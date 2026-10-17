@@ -1,0 +1,73 @@
+name: Deploy share server
+
+# 共有サーバー（Cloudflare Worker + D1）を公開する。リポジトリの Secrets に
+# CLOUDFLARE_API_TOKEN と CLOUDFLARE_ACCOUNT_ID が登録されているときだけ動く（未登録ならスキップ）
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'worker/**'
+      - 'src/**'
+      - 'web/**'
+      - 'scripts/build.mjs'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/share.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: share-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+    steps:
+      - name: Check secrets
+        id: gate
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID が未登録のため、共有サーバーのデプロイをスキップしました"
+          else
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v4
+        if: steps.gate.outputs.enabled == 'true'
+      - uses: actions/setup-node@v4
+        if: steps.gate.outputs.enabled == 'true'
+        with:
+          node-version: 22
+          cache: npm
+      - name: Test and build
+        if: steps.gate.outputs.enabled == 'true'
+        run: |
+          npm ci
+          npm test
+          npm run build
+      - name: Deploy Worker
+        id: deploy
+        if: steps.gate.outputs.enabled == 'true'
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: worker
+          wranglerVersion: '4.144.0'
+          command: deploy
+      - name: Smoke test
+        if: steps.gate.outputs.enabled == 'true' && steps.deploy.outputs.deployment-url != ''
+        env:
+          URL: ${{ steps.deploy.outputs.deployment-url }}
+        run: |
+          echo "公開先: $URL"
+          for i in 1 2 3 4 5 6; do
+            if curl -fsS "$URL/api/health" | grep -q '"ok":true'; then ok=1; break; fi
+            sleep 5
+          done
+          [ "${ok:-0}" = 1 ] || { echo "::error::/api/health が応答しません"; exit 1; }
+          curl -fsS "$URL/" | grep -q '部内大会トーナメント' || { echo "::error::アプリの画面が配信されていません"; exit 1; }
