@@ -211,7 +211,7 @@ test('共有サーバーに接続できないときは、分かる文言を出�
   await expect(page.locator('#sh-error')).toContainText('6文字以上');
 });
 
-test('共有中に次の回を始めると、閲覧者の画面も新しい回（表なし）に変わる。過去の回の画面は閲覧者に出ない', async ({ browser }) => {
+test('共有中に次の回を始めると、閲覧者の画面も新しい回（表なし）に変わる。「次の回を始める」は閲覧者に出ない', async ({ browser }) => {
   const admin = await browser.newContext();
   const viewer = await browser.newContext();
   await withIp(admin, '10.0.3.1');
@@ -236,7 +236,7 @@ test('共有中に次の回を始めると、閲覧者の画面も新しい回�
   expect(dialogs.some((m) => m.includes('閲覧者の画面も新しい回の内容に変わります'))).toBe(true);
   await untilSynced(v, () => expect(v.locator('#print-title')).toHaveText('部内大会 第2回', { timeout: 1000 }));
   await expect(v.locator('#panel-tournament')).toContainText('まだ作成されていません');
-  // 閲覧者には「回」の操作（次の回・過去の回）は出ない
+  // 閲覧者には「次の回を始める」・過去の回の一覧（運営用のカード）は出ない
   await expect(v.locator('[data-edition=next]')).toBeHidden();
   await expect(v.locator('#editions-card')).toBeHidden();
 
@@ -247,6 +247,76 @@ test('共有中に次の回を始めると、閲覧者の画面も新しい回�
   await expect(a.locator('#share-chip')).toContainText(code);
   await a.close();
   await v.close();
+  await admin.close();
+  await viewer.close();
+});
+
+test('閲覧者も過去の回の結果を見られる。見ている間に運営が進めても画面は変わらず、戻ると最新が出る', async ({ browser }) => {
+  const admin = await browser.newContext();
+  const viewer = await browser.newContext();
+  await withIp(admin, '10.0.4.1');
+  await withIp(viewer, '10.0.4.2');
+  const a = await admin.newPage();
+  const v = await viewer.newPage();
+  acceptDialogs(a);
+  acceptDialogs(v);
+  await open(a);
+  await importNames(a, ['山田 太郎', '佐藤 花子', '鈴木 一郎', '高橋 次郎']);
+  await a.click('[data-act=gen-tournament]');
+  for (let i = 0; i < 3; i++) {
+    await a.locator('.next-item').first().click();
+    await enterScore(a, 2, 1);
+  }
+  await startShare(a);
+  const link = await a.inputValue('#sh-link');
+  await a.click('#sh-close');
+  // 第2回を始めて、表を作る（まだ結果は無い）
+  await a.click('.progress [data-edition=next]');
+  await a.click('[data-act=gen-tournament]');
+  await a.waitForSelector('#bracket-wrap svg');
+
+  // 閲覧者: 現在の回（第2回）が開き、「過去の回の結果も見られます」が出る
+  await v.goto(link);
+  await untilSynced(v, () => expect(v.locator('#print-title')).toHaveText('部内大会 第2回', { timeout: 1000 })); // 運営の送信を待つ
+  await expect(v.locator('.results tbody tr.st-done')).toHaveCount(0);
+  await expect(v.locator('#edition-banner')).toContainText('過去の回の結果も見られます');
+  await expect(v.locator('#eb-select-past option')).toHaveText(['選んでください', '第1回']);
+
+  // 第1回を選ぶと、結果が見える。閲覧専用で、コメントタブや共有は隠れる
+  await v.selectOption('#eb-select-past', '1');
+  await expect(v.locator('#edition-banner')).toContainText('第1回の記録を見ています');
+  await expect(v.locator('#print-title')).toHaveText('部内大会 第1回');
+  await expect(v.locator('.results tbody tr.st-done')).toHaveCount(3);
+  await expect(v.locator('#tab-comments')).toBeHidden();
+  await expect(v.locator('[data-tab=setup]')).toBeHidden();
+  await v.locator('g.match').first().click();
+  await expect(v.locator('#result-dialog')).not.toBeVisible();
+
+  // 見ている間に運営が第2回の結果を入れても、第1回の画面は変わらない
+  await a.locator('.next-item').first().click();
+  await enterScore(a, 3, 0);
+  await a.waitForTimeout(2500); // 運営の送信（1.5秒の待ち）を待つ
+  await v.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+  await v.waitForTimeout(800);
+  await expect(v.locator('#print-title')).toHaveText('部内大会 第1回');
+  await expect(v.locator('.results tbody tr.st-done')).toHaveCount(3);
+
+  // 現在の回に戻ると、最新（第2回の結果が1試合）が出る。閲覧専用のまま
+  await v.click('#edition-banner [data-edition=back]');
+  await expect(v.locator('#print-title')).toHaveText('部内大会 第2回');
+  await expect(v.locator('.results tbody tr.st-done')).toHaveCount(1);
+  await expect(v.locator('#share-chip')).toContainText('閲覧中');
+  await expect(v.locator('[data-tab=setup]')).toBeHidden();
+
+  // 見ている回を運営が削除すると、閲覧者の画面は現在の回に戻り、選択肢も消える
+  await v.selectOption('#eb-select-past', '1');
+  await expect(v.locator('#edition-banner')).toContainText('第1回の記録を見ています');
+  await a.click('.tabs [data-tab=setup]');
+  await a.click('[data-edition-del="1"]');
+  await untilSynced(v, () => expect(v.locator('#edition-banner')).toBeHidden({ timeout: 1000 }));
+  await expect(v.locator('#print-title')).toHaveText('部内大会');
+  await expect(v.locator('.results tbody tr.st-done')).toHaveCount(1);
+
   await admin.close();
   await viewer.close();
 });

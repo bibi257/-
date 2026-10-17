@@ -2,18 +2,20 @@
 //
 // 過去の回を見ている間は、共有の閲覧と同じ読み取り専用の仕組みを使う（既存の表・結果・順位表・CSV/PNG 出力がそのまま使える）。
 // 見ている間は自動保存しない。やめると、見る前の自分の大会データ（現在の回）へ戻る。
+// 共有の閲覧者も、運営が公開した過去の回を見られる（見ている間に届いた最新の内容は控えておき、戻ったときに表示する）。
 
 import { getState, setState, setReadOnly, setRemoteState, reloadLocal } from './store.js';
 import { h, toast } from './io.js';
-import { isAdmin, isViewer } from './share.js';
+import { isAdmin, isViewer, onShareChange, setRemoteStateHandler } from './share.js';
 import {
   currentEdition, startNextEdition, deleteEdition, editionState, editionSummary,
 } from '../core/edition.js';
 import { resolveBracket, tournamentProgress } from '../core/bracket.js';
 import { resolveLeague, leagueProgress } from '../core/league.js';
 
-let real = null; // 過去の回を見ている間の、自分の大会データ（現在の回を含む）
+let real = null; // 過去の回を見ている間の、現在の回を含む大会データ（自分のデータ。共有の閲覧者なら、最新に届いた公開内容）
 let viewing = null; // 見ている過去の回の番号
+let asViewer = false; // 共有の閲覧者として見ているか
 
 export const isViewingEdition = () => viewing !== null;
 
@@ -79,10 +81,18 @@ function removeEdition(n) {
 
 function renderBanner() {
   const el = document.getElementById('edition-banner');
-  if (viewing === null) { el.hidden = true; el.innerHTML = ''; return; }
+  const numbers = (list) => list.map((e) => e.edition);
+  if (viewing === null) {
+    // 共有の閲覧者には、公開された過去の回があるときだけ「過去の回を見る」を出す（運営は「回」のカードから見る）
+    const past = isViewer() ? getState().history ?? [] : [];
+    if (!past.length) { el.hidden = true; el.innerHTML = ''; return; }
+    el.hidden = false;
+    el.innerHTML = `<b>過去の回の結果も見られます</b>
+      <label>回を選ぶ <select id="eb-select-past"><option value="">選んでください</option>${numbers(past).reverse().map((n) => `<option value="${n}">第${n}回</option>`).join('')}</select></label>`;
+    return;
+  }
   const cur = currentEdition(real);
-  const options = [...real.history.map((e) => e.edition)].map((n) =>
-    `<option value="${n}" ${n === viewing ? 'selected' : ''}>第${n}回</option>`).join('');
+  const options = numbers(real.history).map((n) => `<option value="${n}" ${n === viewing ? 'selected' : ''}>第${n}回</option>`).join('');
   el.hidden = false;
   el.innerHTML = `<b>第${viewing}回の記録を見ています</b>（閲覧専用です。変更はできません）
     <label>他の回 <select id="eb-select">${options}<option value="current">第${cur}回（現在）</option></select></label>
@@ -90,13 +100,13 @@ function renderBanner() {
 }
 
 function viewEdition(n) {
-  if (isViewer()) return;
   const src = viewing === null ? getState() : real;
   const view = editionState(src, n);
   if (!view) return;
   if (viewing === null) {
     real = src;
-    setReadOnly(true);
+    asViewer = isViewer();
+    if (!asViewer) setReadOnly(true); // 共有の閲覧者は、すでに読み取り専用
   }
   viewing = n;
   document.body.classList.add('viewer', 'archive-view');
@@ -107,16 +117,50 @@ function viewEdition(n) {
 
 export function leaveEdition() {
   if (viewing === null) return;
+  const latest = real;
   viewing = null;
   real = null;
+  document.body.classList.remove('archive-view');
+  if (asViewer) {
+    // 共有の閲覧者: 見ている間に届いた最新の公開内容に戻る
+    if (isViewer()) setRemoteState(latest);
+    asViewer = false;
+    renderBanner();
+    window.dispatchEvent(new CustomEvent('app:tab', { detail: 'tournament' }));
+    return;
+  }
+  document.body.classList.remove('viewer');
   setReadOnly(false);
   reloadLocal();
-  document.body.classList.remove('viewer', 'archive-view');
   renderBanner();
   window.dispatchEvent(new CustomEvent('app:tab', { detail: 'setup' }));
 }
 
+/** 共有から届いた最新の内容。過去の回を見ている間は画面を変えず、戻ったときに表示する */
+function onRemote(next) {
+  if (viewing === null) { setRemoteState(next); renderBanner(); return; }
+  real = next;
+  if (!next.history.some((e) => e.edition === viewing)) {
+    // 見ていた回が、運営によって削除された
+    leaveEdition();
+    toast('見ていた回は、運営が削除したため閉じました');
+    return;
+  }
+  renderBanner();
+}
+
 export function setupEditions() {
+  setRemoteStateHandler(onRemote);
+  // 閲覧をやめた・共有が終わったときに、バナーと見ていた回の状態を片付ける
+  onShareChange(() => {
+    if (viewing !== null && asViewer && !isViewer()) {
+      viewing = null;
+      real = null;
+      asViewer = false;
+      document.body.classList.remove('archive-view');
+    }
+    renderBanner();
+  });
   document.addEventListener('click', (e) => {
     const t = e.target;
     if (!(t instanceof Element)) return;
@@ -129,8 +173,11 @@ export function setupEditions() {
     if (d) removeEdition(Number(d.dataset.editionDel));
   });
   document.getElementById('edition-banner').addEventListener('change', (e) => {
-    if (e.target.id !== 'eb-select') return;
-    if (e.target.value === 'current') leaveEdition();
-    else viewEdition(Number(e.target.value));
+    if (e.target.id === 'eb-select-past') {
+      if (e.target.value) viewEdition(Number(e.target.value));
+    } else if (e.target.id === 'eb-select') {
+      if (e.target.value === 'current') leaveEdition();
+      else viewEdition(Number(e.target.value));
+    }
   });
 }
