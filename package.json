@@ -11,7 +11,8 @@
     "test": "node --test \"test/unit/*.test.js\"",
     "test:e2e": "npm run build && playwright test",
     "start": "npm run build && electron .",
-    "dist:win": "npm run build && electron-builder --win portable --x64"
+    "dist:win": "npm run build && electron-builder --win portable --x64",
+    "serve": "npm run build && node scripts/serve.mjs"
   },
   "build": {
     "appId": "jp.local.bukatsu-taikai",

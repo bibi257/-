@@ -21,10 +21,14 @@ export function downloadBlob(blob, filename) {
   const a = document.createElement('a');
   a.href = url;
   a.download = filename;
+  a.style.display = 'none';
   document.body.appendChild(a);
   a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 10000);
+  // すぐに消すとブラウザによってはダウンロードが始まらないため、少し待ってから片付ける
+  setTimeout(() => {
+    a.remove();
+    URL.revokeObjectURL(url);
+  }, 30000);
 }
 
 export function downloadCSV(table) {
