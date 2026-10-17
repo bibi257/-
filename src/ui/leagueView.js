@@ -4,6 +4,7 @@ import { getState, setState } from './store.js';
 import { h, toast, measureText, downloadCSV, downloadPNG } from './io.js';
 import { openResultDialog } from './resultDialog.js';
 import { nextEditionButton } from './editions.js';
+import { nextItemHtml } from './callCard.js';
 import { resolveLeague, setLeagueResult, setLeagueTable, leagueProgress, outcomeFor } from '../core/league.js';
 import { leagueMatrixTable, leagueResultRows, leagueResultsTable } from '../core/exportData.js';
 import { tableSvg } from '../render/svg.js';
@@ -40,8 +41,7 @@ export function renderLeague() {
       <span><b>${prog.done}</b> / ${prog.total} 試合終了</span>
       ${prog.nextRound ? `<span class="muted">次は ${prog.nextRound}回戦${res.rest[prog.nextRound - 1].length ? `（休み: ${h(res.rest[prog.nextRound - 1].map((id) => playerName(st, id)).join('、'))}）` : ''}</span>` : `<span class="champion">全試合終了</span> ${nextEditionButton()}`}
     </div>
-    ${prog.ready.length ? `<div class="next-list">${prog.ready.map((m) => `<button type="button" class="next-item" data-match="${h(m.id)}">
-      <b>No.${m.no}</b> ${h(m.tableId ? tableName(st, m.tableId) : '')}${m.timeSlot > 1 ? `（時間帯${m.timeSlot}）` : ''} ${h(playerName(st, m.p1))} vs ${h(playerName(st, m.p2))}</button>`).join('')}</div>` : ''}
+    ${prog.ready.length ? `<div class="next-list">${prog.ready.map((m) => nextItemHtml(st, m)).join('')}</div>` : ''}
   </div>
   <div class="card">
     <h2>総当たり表 <span class="hint"><span class="owner-only">マスをクリックすると結果を入力できます</span>（行の選手から見た結果）</span></h2>
