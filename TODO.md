@@ -25,7 +25,7 @@
 - 共有サーバーは Cloudflare アカウントと、Workers Builds（GitHub 連携）の設定が必要（README「共有サーバーの用意」）
 
 ## 未検証（TEST_REPORT.md 参照）
-- 共有サーバーの Cloudflare 上での動作（プレビューのデプロイは成功。応答・D1 への書き込みは未確認）。ローカルの workerd と単体・E2E では確認済み
+- 共有サーバーの Cloudflare 上での動作（プレビュー・本番ともデプロイは成功。応答・D1 への書き込み・CPU 時間は未確認で、利用者の端末での確認が必要）。ローカルの workerd と単体・E2E では確認済み
 - 無料プランの CPU 時間（10ms）内にパスワード照合が収まるか（workerd のローカル実行では問題なし）
 - 手元の Windows PC での exe 起動（CI の windows-latest では成功）
 - 公開URLでの表示（デプロイは成功。この環境から接続できず未確認）
