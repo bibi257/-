@@ -1,13 +1,14 @@
 // 共有サーバー（Cloudflare Worker + D1）
 //
-// 運営が公開した大会データを、閲覧者が共有コード＋閲覧パスワードで読み取る。閲覧者はコメントも書ける。
-//   POST   /api/rooms                      共有を作る（運営）
-//   POST   /api/rooms/:code/login          パスワードを確認してトークンを受け取る
+// 運営が公開した大会データを、閲覧者が共有コード（閲覧リンク）で読み取る。パスワードは運営用だけ。閲覧者はコメントも書ける。
+//   POST   /api/rooms                      共有を作る（運営。運営用パスワードを設定）
+//   POST   /api/rooms/:code/login          運営用パスワードを確認して運営トークンを受け取る
+//   POST   /api/rooms/:code/join           閲覧トークンを受け取る（パスワード不要。共有コードを知っていることが条件）
 //   GET    /api/rooms/:code/sync           大会データとコメントの取得（変化があったときだけ本体を返す）
 //   PUT    /api/rooms/:code/state          大会データの公開（運営のみ）
 //   POST   /api/rooms/:code/comments       コメント投稿
 //   DELETE /api/rooms/:code/comments/:id   コメント削除（運営のみ）
-//   PUT    /api/rooms/:code/passwords      パスワード変更（運営のみ）
+//   PUT    /api/rooms/:code/passwords      運営用パスワードの変更（運営のみ）
 //   DELETE /api/rooms/:code                共有の終了。データをすべて削除（運営のみ）
 //
 // 認証は Authorization: Bearer <トークン>。トークンは HMAC 署名で、サーバーにセッションは持たない。
@@ -20,6 +21,7 @@ const MAX_STATE_CHARS = 1_000_000;
 const MAX_BODY_CHARS = 8_000;
 const MAX_COMMENTS = 500;
 const COMMENT_LIST_LIMIT = 300;
+const JOIN_MISS_MAX = 30; // 存在しない共有コードを10分間に試せる回数（IP ごと）
 const NAME_MAX = 20;
 const COMMENT_MAX = 200;
 const PASSWORD_MIN = 6;
@@ -231,9 +233,7 @@ const clientIp = (request) => request.headers.get('CF-Connecting-IP') || 'local'
 
 async function createRoom(env, request) {
   const body = await readJson(request, MAX_BODY_CHARS);
-  checkPassword(body.viewerPassword, '閲覧用パスワード');
   checkPassword(body.adminPassword, '運営用パスワード');
-  if (body.viewerPassword === body.adminPassword) throw new HttpError(400, '閲覧用と運営用には別のパスワードを使ってください');
   const ipKey = `mk:${await sha256Hex(clientIp(request))}`;
   if (await isLimited(env, ipKey, 5)) throw new HttpError(429, '短時間に共有を作りすぎています。しばらく待ってからやり直してください');
   await countHit(env, ipKey, 3600);
@@ -246,13 +246,13 @@ async function createRoom(env, request) {
     env.DB.prepare('DELETE FROM limits WHERE until < ?').bind(t),
   ]);
 
-  const viewerPw = await hashPassword(body.viewerPassword);
   const adminPw = await hashPassword(body.adminPassword);
   const title = clip(strip(String(body.title ?? '')).trim(), 100);
   for (let i = 0; i < 5; i++) {
     const code = [...crypto.getRandomValues(new Uint8Array(8))].map((b) => CODE_ALPHABET[b % CODE_ALPHABET.length]).join('');
+    // viewer_pw は以前の版（閲覧用パスワードあり）との互換のために残した列。今は使わない
     const r = await env.DB.prepare('INSERT OR IGNORE INTO rooms (code, title, viewer_pw, admin_pw, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)')
-      .bind(code, title, viewerPw, adminPw, t, t).run();
+      .bind(code, title, '', adminPw, t, t).run();
     if (r.meta.changes === 1) {
       const room = { code, admin_ver: 1, viewer_ver: 1 };
       return json({ ok: true, code, ...(await issueToken(env, room, 'admin')) }, 201);
@@ -263,22 +263,33 @@ async function createRoom(env, request) {
 
 async function login(env, request, code) {
   const body = await readJson(request, MAX_BODY_CHARS);
-  const role = body.role === 'admin' ? 'admin' : 'viewer';
   const ipKey = `fl:${code}:${await sha256Hex(clientIp(request))}`;
   const codeKey = `fc:${code}`;
   if ((await isLimited(env, ipKey, 10)) || (await isLimited(env, codeKey, 60))) {
     throw new HttpError(429, 'パスワードの間違いが続いたため、しばらく入力できません。10分ほど待ってください');
   }
-  const room = await env.DB.prepare('SELECT code, viewer_pw, viewer_ver, admin_pw, admin_ver FROM rooms WHERE code = ?').bind(code).first();
+  const room = await env.DB.prepare('SELECT code, admin_pw, admin_ver, viewer_ver FROM rooms WHERE code = ?').bind(code).first();
   const pw = typeof body.password === 'string' ? body.password.slice(0, PASSWORD_MAX) : '';
   // 共有コードの有無で処理時間が変わらないよう、存在しない場合も同じ計算をする
-  const ok = await verifyPassword(pw, room ? (role === 'admin' ? room.admin_pw : room.viewer_pw) : DUMMY_HASH);
+  const ok = await verifyPassword(pw, room ? room.admin_pw : DUMMY_HASH);
   if (!room || !ok) {
     await countHit(env, ipKey, 600);
     await countHit(env, codeKey, 600);
     throw new HttpError(401, '共有コードまたはパスワードが違います');
   }
-  return json({ ok: true, code, ...(await issueToken(env, room, role)) });
+  return json({ ok: true, code, ...(await issueToken(env, room, 'admin')) });
+}
+
+/** 閲覧者の入場。パスワードは要らない。存在しない共有コードを試し続けると、IP ごとに一時的に止める */
+async function join(env, request, code) {
+  const key = `jn:${await sha256Hex(clientIp(request))}`;
+  if (await isLimited(env, key, JOIN_MISS_MAX)) throw new HttpError(429, '存在しない共有コードの入力が続いたため、しばらく入れません。10分ほど待ってください');
+  const room = await env.DB.prepare('SELECT code, admin_ver, viewer_ver FROM rooms WHERE code = ?').bind(code).first();
+  if (!room) {
+    await countHit(env, key, 600);
+    throw new HttpError(404, '共有コードが見つかりません。入力を確認してください（共有が終了した可能性もあります）');
+  }
+  return json({ ok: true, code, ...(await issueToken(env, room, 'viewer')) });
 }
 
 function commentRow(r) {
@@ -348,16 +359,9 @@ async function changePassword(env, request, code) {
   const auth = await authorize(env, request, code);
   requireAdmin(auth);
   const body = await readJson(request, MAX_BODY_CHARS);
-  const role = body.role === 'admin' ? 'admin' : 'viewer';
-  checkPassword(body.password, role === 'admin' ? '運営用パスワード' : '閲覧用パスワード');
-  const row = await env.DB.prepare('SELECT viewer_pw, admin_pw FROM rooms WHERE code = ?').bind(code).first();
-  const other = role === 'admin' ? row.viewer_pw : row.admin_pw;
-  if (await verifyPassword(body.password, other)) throw new HttpError(400, '閲覧用と運営用には別のパスワードを使ってください');
+  checkPassword(body.password, '運営用パスワード');
   const hashed = await hashPassword(body.password);
-  const sql = role === 'admin'
-    ? 'UPDATE rooms SET admin_pw = ?, admin_ver = admin_ver + 1 WHERE code = ?'
-    : 'UPDATE rooms SET viewer_pw = ?, viewer_ver = viewer_ver + 1 WHERE code = ?';
-  await env.DB.prepare(sql).bind(hashed, code).run();
+  await env.DB.prepare('UPDATE rooms SET admin_pw = ?, admin_ver = admin_ver + 1 WHERE code = ?').bind(hashed, code).run();
   // 運営用を変えると今のトークンも無効になるため、新しいトークンを返す
   const fresh = await env.DB.prepare('SELECT code, viewer_ver, admin_ver FROM rooms WHERE code = ?').bind(code).first();
   return json({ ok: true, ...(await issueToken(env, fresh, 'admin')) });
@@ -387,6 +391,7 @@ async function route(env, request) {
   const [, , action, id] = m;
   if (!action && method === 'DELETE') return closeRoom(env, request, code);
   if (action === 'login' && method === 'POST') return login(env, request, code);
+  if (action === 'join' && method === 'POST') return join(env, request, code);
   if (action === 'sync' && method === 'GET') return sync(env, request, url, code);
   if (action === 'state' && method === 'PUT') return putState(env, request, code);
   if (action === 'comments' && !id && method === 'POST') return postComment(env, request, code);

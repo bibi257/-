@@ -4,7 +4,6 @@ import worker from '../../worker/src/index.js';
 import { createD1 } from '../support/d1Shim.js';
 import { createState } from '../../src/core/state.js';
 
-const VIEW = 'view-pass-1';
 const ADMIN = 'admin-pass-1';
 
 function setup() {
@@ -23,14 +22,16 @@ function setup() {
 }
 
 async function newRoom(api, extra = {}) {
-  const r = await api('POST', '/api/rooms', { body: { viewerPassword: VIEW, adminPassword: ADMIN, title: '春季大会', ...extra } });
+  const r = await api('POST', '/api/rooms', { body: { adminPassword: ADMIN, title: '春季大会', ...extra } });
   assert.equal(r.status, 201, JSON.stringify(r.data));
   return r.data;
 }
 
+/** 閲覧者の入場（パスワードなし） */
 async function viewerToken(api, code) {
-  const r = await api('POST', `/api/rooms/${code}/login`, { body: { role: 'viewer', password: VIEW } });
-  assert.equal(r.status, 200);
+  const r = await api('POST', `/api/rooms/${code}/join`);
+  assert.equal(r.status, 200, JSON.stringify(r.data));
+  assert.equal(r.data.role, 'viewer');
   return r.data.token;
 }
 
@@ -49,13 +50,13 @@ test('共有を作ると 8 文字のコードと運営トークンが返る', as
   assert.ok(r.token.includes('.'));
 });
 
-test('パスワードの強さと重複を検査する', async () => {
+test('運営用パスワードの強さを検査する。閲覧用パスワードは不要（送られても使わない）', async () => {
   const { api } = setup();
   const post = (body) => api('POST', '/api/rooms', { body });
-  assert.equal((await post({ viewerPassword: 'abc', adminPassword: ADMIN })).status, 400);
-  assert.equal((await post({ viewerPassword: VIEW, adminPassword: 'x'.repeat(65) })).status, 400);
-  assert.equal((await post({ viewerPassword: VIEW, adminPassword: VIEW })).status, 400);
+  assert.equal((await post({ adminPassword: 'abc' })).status, 400);
+  assert.equal((await post({ adminPassword: 'x'.repeat(65) })).status, 400);
   assert.equal((await post({})).status, 400);
+  assert.equal((await post({ adminPassword: ADMIN, viewerPassword: 'ignored' })).status, 201);
 });
 
 test('不正な JSON は 400、大きすぎる本文は 413', async () => {
@@ -65,39 +66,65 @@ test('不正な JSON は 400、大きすぎる本文は 413', async () => {
   assert.equal((await api('POST', '/api/rooms', { body: JSON.stringify({ title: 'a'.repeat(9000) }) })).status, 413);
 });
 
-test('ログイン: 正しいパスワードで閲覧・運営のトークンを受け取れる', async () => {
+test('運営ログイン: 正しい運営用パスワードで入れる。共有コードは大文字でも通る', async () => {
   const { api } = setup();
   const { code } = await newRoom(api);
-  const v = await api('POST', `/api/rooms/${code}/login`, { body: { role: 'viewer', password: VIEW } });
-  assert.equal(v.status, 200);
-  assert.equal(v.data.role, 'viewer');
-  const a = await api('POST', `/api/rooms/${code}/login`, { body: { role: 'admin', password: ADMIN } });
+  const a = await api('POST', `/api/rooms/${code}/login`, { body: { password: ADMIN } });
+  assert.equal(a.status, 200);
   assert.equal(a.data.role, 'admin');
-  // コードは大文字で入力されても通る
-  const up = await api('POST', `/api/rooms/${code.toUpperCase()}/login`, { body: { role: 'viewer', password: VIEW } });
+  const up = await api('POST', `/api/rooms/${code.toUpperCase()}/login`, { body: { password: ADMIN } });
   assert.equal(up.status, 200);
 });
 
-test('ログイン: 閲覧パスワードでは運営になれず、存在しない共有と区別のつかない応答', async () => {
+test('運営ログイン: 間違いと、存在しない共有コードは区別のつかない応答', async () => {
   const { api } = setup();
   const { code } = await newRoom(api);
-  const wrongRole = await api('POST', `/api/rooms/${code}/login`, { body: { role: 'admin', password: VIEW } });
-  assert.equal(wrongRole.status, 401);
-  const noRoom = await api('POST', '/api/rooms/abcdefgh/login', { body: { role: 'viewer', password: VIEW } });
+  const wrong = await api('POST', `/api/rooms/${code}/login`, { body: { password: 'wrong-pass' } });
+  assert.equal(wrong.status, 401);
+  const noRoom = await api('POST', '/api/rooms/abcdefgh/login', { body: { password: ADMIN } });
   assert.equal(noRoom.status, 401);
-  assert.equal(noRoom.data.error, wrongRole.data.error);
+  assert.equal(noRoom.data.error, wrong.data.error);
 });
 
-test('パスワードを10回間違えるとロックされ、正しい入力でも一時的に拒否される', async () => {
+test('運営ログイン: 10回間違えるとロックされ、正しい入力でも一時的に拒否される', async () => {
   const { api, clock } = setup();
   const { code } = await newRoom(api);
   for (let i = 0; i < 10; i++) {
-    assert.equal((await api('POST', `/api/rooms/${code}/login`, { body: { role: 'viewer', password: 'wrong-pass' } })).status, 401);
+    assert.equal((await api('POST', `/api/rooms/${code}/login`, { body: { password: 'wrong-pass' } })).status, 401);
   }
-  const locked = await api('POST', `/api/rooms/${code}/login`, { body: { role: 'viewer', password: VIEW } });
+  const locked = await api('POST', `/api/rooms/${code}/login`, { body: { password: ADMIN } });
   assert.equal(locked.status, 429);
   clock.t += 601;
-  assert.equal((await api('POST', `/api/rooms/${code}/login`, { body: { role: 'viewer', password: VIEW } })).status, 200);
+  assert.equal((await api('POST', `/api/rooms/${code}/login`, { body: { password: ADMIN } })).status, 200);
+});
+
+test('閲覧者の入場: パスワードなしで入れるが、権限は閲覧のみ', async () => {
+  const { api } = setup();
+  const r = await newRoom(api);
+  const vt = await viewerToken(api, r.code);
+  assert.equal((await api('GET', `/api/rooms/${r.code}/sync?rev=-1&crev=-1`, { token: vt })).status, 200);
+  assert.equal((await api('PUT', `/api/rooms/${r.code}/state`, { token: vt, body: { state: sampleState() } })).status, 403);
+  assert.equal((await api('PUT', `/api/rooms/${r.code}/passwords`, { token: vt, body: { password: 'new-admin-pw' } })).status, 403);
+  assert.equal((await api('DELETE', `/api/rooms/${r.code}`, { token: vt })).status, 403);
+  // 大文字の共有コードでも入れる
+  assert.equal((await api('POST', `/api/rooms/${r.code.toUpperCase()}/join`)).status, 200);
+});
+
+test('閲覧者の入場: 存在しない共有コードは 404。続けて試すと IP ごとに止まる', async () => {
+  const { api, clock, setIp } = setup();
+  const r = await newRoom(api);
+  const miss = await api('POST', '/api/rooms/abcdefgh/join');
+  assert.equal(miss.status, 404);
+  assert.match(miss.data.error, /見つかりません/);
+  for (let i = 0; i < 29; i++) await api('POST', '/api/rooms/abcdefgh/join');
+  assert.equal((await api('POST', '/api/rooms/abcdefgh/join')).status, 429);
+  // 止まっている間は、正しい共有コードでも同じ IP は入れない。別の IP は影響を受けない
+  assert.equal((await api('POST', `/api/rooms/${r.code}/join`)).status, 429);
+  setIp('198.51.100.20');
+  assert.equal((await api('POST', `/api/rooms/${r.code}/join`)).status, 200);
+  setIp('203.0.113.1');
+  clock.t += 601;
+  assert.equal((await api('POST', `/api/rooms/${r.code}/join`)).status, 200);
 });
 
 test('認証なし・改ざん・他の共有のトークンは 401、期限切れも 401', async () => {
@@ -218,24 +245,20 @@ test('コメントの削除は運営だけで、他の共有のコメントは�
   assert.equal(s.data.crev, 2);
 });
 
-test('パスワード変更: 古いトークンは使えなくなる。運営変更では新しいトークンが返る', async () => {
+test('運営用パスワードの変更: 古い運営トークンは使えなくなり、新しいトークンが返る。閲覧者は影響を受けない', async () => {
   const { api } = setup();
   const r = await newRoom(api);
   const vt = await viewerToken(api, r.code);
-  assert.equal((await api('PUT', `/api/rooms/${r.code}/passwords`, { token: vt, body: { role: 'viewer', password: 'new-view-pw' } })).status, 403);
-  assert.equal((await api('PUT', `/api/rooms/${r.code}/passwords`, { token: r.token, body: { role: 'viewer', password: ADMIN } })).status, 400);
-  assert.equal((await api('PUT', `/api/rooms/${r.code}/passwords`, { token: r.token, body: { role: 'viewer', password: 'short' } })).status, 400);
+  const path = `/api/rooms/${r.code}/passwords`;
+  assert.equal((await api('PUT', path, { token: r.token, body: { password: 'short' } })).status, 400);
 
-  assert.equal((await api('PUT', `/api/rooms/${r.code}/passwords`, { token: r.token, body: { role: 'viewer', password: 'new-view-pw' } })).status, 200);
-  assert.equal((await api('GET', `/api/rooms/${r.code}/sync`, { token: vt })).status, 401);
-  assert.equal((await api('GET', `/api/rooms/${r.code}/sync`, { token: r.token })).status, 200);
-  assert.equal((await api('POST', `/api/rooms/${r.code}/login`, { body: { role: 'viewer', password: VIEW } })).status, 401);
-  assert.equal((await api('POST', `/api/rooms/${r.code}/login`, { body: { role: 'viewer', password: 'new-view-pw' } })).status, 200);
-
-  const changed = await api('PUT', `/api/rooms/${r.code}/passwords`, { token: r.token, body: { role: 'admin', password: 'new-admin-pw' } });
+  const changed = await api('PUT', path, { token: r.token, body: { password: 'new-admin-pw' } });
   assert.equal(changed.status, 200);
   assert.equal((await api('GET', `/api/rooms/${r.code}/sync`, { token: r.token })).status, 401);
   assert.equal((await api('GET', `/api/rooms/${r.code}/sync`, { token: changed.data.token })).status, 200);
+  assert.equal((await api('GET', `/api/rooms/${r.code}/sync`, { token: vt })).status, 200);
+  assert.equal((await api('POST', `/api/rooms/${r.code}/login`, { body: { password: ADMIN } })).status, 401);
+  assert.equal((await api('POST', `/api/rooms/${r.code}/login`, { body: { password: 'new-admin-pw' } })).status, 200);
 });
 
 test('共有の終了: 大会データとコメントが消え、トークンも使えなくなる', async () => {
@@ -252,13 +275,13 @@ test('共有の終了: 大会データとコメントが消え、トークンも
 test('共有の作成は1時間に5回まで', async () => {
   const { api, clock, setIp } = setup();
   for (let i = 0; i < 5; i++) await newRoom(api);
-  const sixth = await api('POST', '/api/rooms', { body: { viewerPassword: VIEW, adminPassword: ADMIN } });
+  const sixth = await api('POST', '/api/rooms', { body: { adminPassword: ADMIN } });
   assert.equal(sixth.status, 429);
   setIp('198.51.100.7');
-  assert.equal((await api('POST', '/api/rooms', { body: { viewerPassword: VIEW, adminPassword: ADMIN } })).status, 201);
+  assert.equal((await api('POST', '/api/rooms', { body: { adminPassword: ADMIN } })).status, 201);
   setIp('203.0.113.1');
   clock.t += 3601;
-  assert.equal((await api('POST', '/api/rooms', { body: { viewerPassword: VIEW, adminPassword: ADMIN } })).status, 201);
+  assert.equal((await api('POST', '/api/rooms', { body: { adminPassword: ADMIN } })).status, 201);
 });
 
 test('90日更新のない共有は、次に共有を作るときに削除される', async () => {
@@ -270,13 +293,13 @@ test('90日更新のない共有は、次に共有を作るときに削除され
   assert.equal(await env.DB.prepare('SELECT COUNT(*) AS n FROM rooms WHERE code = ?').bind(old.code).first('n'), 0);
 });
 
-test('パスワードは平文で保存されない', async () => {
+test('運営用パスワードは平文で保存されない。閲覧用の列は使わない', async () => {
   const { api, env } = setup();
   const r = await newRoom(api);
   const row = await env.DB.prepare('SELECT viewer_pw, admin_pw FROM rooms WHERE code = ?').bind(r.code).first();
-  assert.match(row.viewer_pw, /^\d+\$[0-9a-f]{32}\$[0-9a-f]{64}$/);
-  assert.ok(!row.viewer_pw.includes(VIEW) && !row.admin_pw.includes(ADMIN));
-  assert.notEqual(row.viewer_pw, row.admin_pw);
+  assert.match(row.admin_pw, /^\d+\$[0-9a-f]{32}\$[0-9a-f]{64}$/);
+  assert.ok(!row.admin_pw.includes(ADMIN));
+  assert.equal(row.viewer_pw, '');
 });
 
 test('CORS: プリフライトと通常応答にヘッダーが付く。/api 以外は ASSETS に渡す', async () => {
