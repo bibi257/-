@@ -13,6 +13,7 @@
     "start": "npm run build && electron .",
     "dist:win": "npm run build && electron-builder --win portable --x64",
     "serve": "npm run build && node scripts/serve.mjs",
+    "serve:share": "npm run build && WITH_SHARE_API=1 PORT=4174 node scripts/serve.mjs",
     "test:electron": "npm run build && node test/electron/smoke.mjs"
   },
   "build": {

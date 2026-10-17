@@ -17,9 +17,18 @@ export default defineConfig({
       ...(process.env.PW_CHROMIUM_PATH ? { executablePath: process.env.PW_CHROMIUM_PATH } : {}),
     },
   },
-  webServer: {
-    command: 'node scripts/serve.mjs',
-    url: 'http://localhost:4173/',
-    reuseExistingServer: !process.env.CI,
-  },
+  webServer: [
+    {
+      command: 'node scripts/serve.mjs',
+      url: 'http://localhost:4173/',
+      reuseExistingServer: !process.env.CI,
+    },
+    {
+      // 共有機能のテスト用。画面と共有 API（Worker のコード）を同じオリジンで配信する
+      command: 'node scripts/serve.mjs',
+      env: { PORT: '4174', WITH_SHARE_API: '1' },
+      url: 'http://localhost:4174/api/health',
+      reuseExistingServer: !process.env.CI,
+    },
+  ],
 });
