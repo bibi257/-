@@ -123,7 +123,7 @@ async function onExport(kind) {
   try {
     if (kind === 'bracket-csv') downloadCSV(bracketTable(st));
     else if (kind === 'results-csv') downloadCSV(tournamentResultsTable(st));
-    else if (kind === 'bracket-png') await downloadPNG(bracketSvg(st, { measure: measureText }), `${st.meta.title} トーナメント表`);
+    else if (kind === 'bracket-png') await downloadPNG(bracketSvg(st, { measure: measureText }), `${st.meta.title || '大会'} トーナメント表`);
     else if (kind === 'results-png') {
       const table = tournamentResultsTable(st);
       await downloadPNG(tableSvg(st, table, { measure: measureText }), table.title);
