@@ -210,3 +210,43 @@ test('共有サーバーに接続できないときは、分かる文言を出�
   await page.click('[data-sh=start]');
   await expect(page.locator('#sh-error')).toContainText('6文字以上');
 });
+
+test('共有中に次の回を始めると、閲覧者の画面も新しい回（表なし）に変わる。過去の回の画面は閲覧者に出ない', async ({ browser }) => {
+  const admin = await browser.newContext();
+  const viewer = await browser.newContext();
+  await withIp(admin, '10.0.3.1');
+  await withIp(viewer, '10.0.3.2');
+  const a = await admin.newPage();
+  const v = await viewer.newPage();
+  const dialogs = acceptDialogs(a);
+  acceptDialogs(v);
+  await open(a);
+  await makeTournament(a);
+  const code = await startShare(a);
+  const link = await a.inputValue('#sh-link');
+  await a.click('#sh-close');
+
+  await v.goto(link);
+  await expect(v.locator('#bracket-wrap svg')).toBeVisible();
+  await expect(v.locator('#print-title')).toHaveText('部内大会');
+
+  // 運営が次の回を始める（確認に「閲覧者の画面も変わる」と出る）
+  await a.click('.tabs [data-tab=setup]');
+  await a.click('#editions-card [data-edition=next]');
+  expect(dialogs.some((m) => m.includes('閲覧者の画面も新しい回の内容に変わります'))).toBe(true);
+  await untilSynced(v, () => expect(v.locator('#print-title')).toHaveText('部内大会 第2回', { timeout: 1000 }));
+  await expect(v.locator('#panel-tournament')).toContainText('まだ作成されていません');
+  // 閲覧者には「回」の操作（次の回・過去の回）は出ない
+  await expect(v.locator('[data-edition=next]')).toBeHidden();
+  await expect(v.locator('#editions-card')).toBeHidden();
+
+  // 運営が過去の回を見ている間は共有に関する操作は隠れ、戻れば共有中の表示が戻る
+  await a.click('[data-edition-view="1"]');
+  await expect(a.locator('#share-chip')).toBeHidden();
+  await a.click('#edition-banner [data-edition=back]');
+  await expect(a.locator('#share-chip')).toContainText(code);
+  await a.close();
+  await v.close();
+  await admin.close();
+  await viewer.close();
+});

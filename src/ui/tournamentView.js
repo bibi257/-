@@ -3,12 +3,14 @@
 import { getState, setState } from './store.js';
 import { h, toast, measureText, downloadCSV, downloadPNG } from './io.js';
 import { openResultDialog } from './resultDialog.js';
+import { nextEditionButton } from './editions.js';
 import {
   resolveBracket, setTournamentResult, setTournamentTable, roundName, tournamentProgress, missingPlayers,
 } from '../core/bracket.js';
 import { bracketTable, tournamentResultRows, tournamentResultsTable } from '../core/exportData.js';
 import { bracketSvg, tableSvg } from '../render/svg.js';
 import { playerName, tableName } from '../core/state.js';
+import { eventTitle } from '../core/edition.js';
 import { assignTable } from '../core/result.js';
 
 const panel = () => document.getElementById('panel-tournament');
@@ -42,6 +44,7 @@ export function renderTournament() {
       <div class="progress-bar" aria-hidden="true"><div style="width:${pct}%"></div></div>
       <span><b>${prog.done}</b> / ${prog.total} 試合終了</span>
       ${champ ? `<span class="champion">優勝 ${h(champ)}</span>` : ''}
+      ${res.finished ? nextEditionButton() : ''}
     </div>
     ${prog.ready.length ? `<p class="hint">次に行う試合<span class="owner-only">（クリックで結果入力）</span></p>
     <div class="next-list">${prog.ready.map((m) => `<button type="button" class="next-item" data-match="${h(m.id)}">
@@ -123,7 +126,7 @@ async function onExport(kind) {
   try {
     if (kind === 'bracket-csv') downloadCSV(bracketTable(st));
     else if (kind === 'results-csv') downloadCSV(tournamentResultsTable(st));
-    else if (kind === 'bracket-png') await downloadPNG(bracketSvg(st, { measure: measureText }), `${st.meta.title || '大会'} トーナメント表`);
+    else if (kind === 'bracket-png') await downloadPNG(bracketSvg(st, { measure: measureText }), `${eventTitle(st)} トーナメント表`);
     else if (kind === 'results-png') {
       const table = tournamentResultsTable(st);
       await downloadPNG(tableSvg(st, table, { measure: measureText }), table.title);

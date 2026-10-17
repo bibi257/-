@@ -3,6 +3,7 @@
 
 import { resolveBracket, roundName } from '../core/bracket.js';
 import { playerName, tableName } from '../core/state.js';
+import { eventTitle } from '../core/edition.js';
 
 export const FONT_FAMILY = "'BIZ UDPGothic','Yu Gothic UI','Yu Gothic','Meiryo','Hiragino Sans','Noto Sans JP','Noto Sans CJK JP',sans-serif";
 
@@ -79,7 +80,7 @@ export function bracketSvg(state, { measure = approxMeasure, interactive = false
   for (let k = 1; k <= R; k++) ys.push(ys[k - 1].filter((_, j) => j % 2 === 0).map((y, j) => (y + ys[k - 1][2 * j + 1]) / 2));
 
   const out = [];
-  out.push(text(left, 24, `${state.meta.title || '大会'}　トーナメント表`, { size: 20, bold: true }));
+  out.push(text(left, 24, `${eventTitle(state)}　トーナメント表`, { size: 20, bold: true }));
   for (let k = 0; k <= R; k++) {
     out.push(text(colX(k) + boxW / 2, top - 18, k < R ? roundName(k + 1, R) : '優勝', { size: 13, bold: true, color: C.sub, anchor: 'middle' }));
   }
