@@ -44,11 +44,11 @@ function updateList() {
   const list = [...S.comments].reverse();
   document.getElementById('cl-count').textContent = `${list.length}件`;
   document.getElementById('comment-list').innerHTML = list.length
-    ? list.map((c) => `<li class="comment" data-id="${c.id}">
+    ? list.map((c) => `<li class="comment" data-id="${h(c.id)}">
         <div class="c-head"><b>${h(c.name)}</b>
           ${c.matchId ? `<span class="c-target">${h(targetLabel(st, c.matchId))}</span>` : ''}
           <time>${h(formatCommentTime(c.at))}</time>
-          ${admin ? `<button type="button" class="small danger" data-del="${c.id}">削除</button>` : ''}</div>
+          ${admin ? `<button type="button" class="small danger" data-del="${h(c.id)}">削除</button>` : ''}</div>
         <p>${h(c.text).replace(/\n/g, '<br>')}</p></li>`).join('')
     : '<li class="empty">まだコメントはありません。</li>';
 }

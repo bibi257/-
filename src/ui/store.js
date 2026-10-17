@@ -7,6 +7,7 @@ let state = null;
 const listeners = new Set();
 let statusCb = () => {};
 let readOnly = false;
+let localBackup = null; // 閲覧を始める前の自分の大会データ（自動保存が使えない環境でも閲覧後に戻すため）
 const savedListeners = new Set();
 
 export function getState() {
@@ -39,6 +40,7 @@ export function isReadOnly() {
 }
 
 export function setReadOnly(flag) {
+  if (flag && !readOnly) localBackup = state;
   readOnly = flag;
 }
 
@@ -50,8 +52,9 @@ export function setRemoteState(next) {
 
 /** 閲覧をやめたとき、この端末に保存してあった自分の大会データへ戻す */
 export function reloadLocal() {
-  state = null;
-  initState();
+  state = localBackup;
+  localBackup = null;
+  if (!state) initState();
   listeners.forEach((f) => f());
 }
 

@@ -130,7 +130,7 @@ export function bracketSvg(state, { measure = approxMeasure, interactive = false
     if (interactive && m.playable) {
       const label = `${m.isThirdPlace ? '3位決定戦' : roundName(m.round, R)} 試合${m.no}`;
       const hit = `<rect class="hit" x="${colX(k) - 3}" y="${y1 - boxH / 2 - 3}" width="${boxW + stub + 6}" height="${y2 - y1 + boxH + 6}" rx="6"/>`;
-      return `<g class="match st-${m.status}" data-id="${m.id}" tabindex="0" role="button" aria-label="${esc(label)}">${hit}${parts.join('')}</g>`;
+      return `<g class="match st-${m.status}" data-id="${esc(m.id)}" tabindex="0" role="button" aria-label="${esc(label)}">${hit}${parts.join('')}</g>`;
     }
     return parts.join('');
   };
