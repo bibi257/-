@@ -4,6 +4,7 @@ import { resizeTables, MAX_TABLES } from './players.js';
 import { DEFAULT_POINTS, MAX_LEAGUE_PLAYERS } from './league.js';
 import { MAX_SCORE } from './result.js';
 import { MAX_PLAYERS, bracketSize } from './bracket.js';
+import { MAX_HISTORY } from './edition.js';
 
 export const STATE_VERSION = 1;
 export const FILE_KIND = 'bukatsu-taikai';
@@ -27,6 +28,7 @@ export function createState() {
     settings: defaultSettings(),
     tournament: null,
     league: null,
+    history: [],
   };
 }
 
@@ -140,6 +142,43 @@ function parseSettings(s, base) {
   };
 }
 
+function parsePlayers(list) {
+  if (!Array.isArray(list) || list.some((p) => !isObj(p) || !isId(p.id) || !isStr(p.name))) throw new Error('参加者データが不正です');
+  if (list.length > MAX_PLAYERS) throw new Error('参加者が多すぎます');
+  if (new Set(list.map((p) => p.id)).size !== list.length) throw new Error('参加者データが不正です');
+  return list.map((p) => ({ id: p.id, name: p.name }));
+}
+
+function parseTables(list) {
+  if (!Array.isArray(list) || !list.length || list.length > MAX_TABLES ||
+    list.some((t) => !isObj(t) || !isId(t.id) || !isStr(t.name)) ||
+    new Set(list.map((t) => t.id)).size !== list.length) {
+    throw new Error('卓データが不正です');
+  }
+  return list.map((t) => ({ id: t.id, name: t.name }));
+}
+
+/** 過去の回。無い（古い形式のファイル）なら空。各回の中身も今の回と同じ検査を通す */
+function parseHistory(list, baseSettings) {
+  if (list === undefined || list === null) return [];
+  if (!Array.isArray(list) || list.length > MAX_HISTORY) fail('過去の回の');
+  const seen = new Set();
+  return list.map((e) => {
+    if (!isObj(e) || !intIn(e.edition, 1, 9999) || seen.has(e.edition)) fail('過去の回の');
+    seen.add(e.edition);
+    return {
+      edition: e.edition,
+      date: isStr(e.date) ? e.date.slice(0, 10) : '',
+      archivedAt: isStr(e.archivedAt) ? e.archivedAt.slice(0, 40) : '',
+      players: parsePlayers(e.players),
+      tables: parseTables(e.tables),
+      settings: parseSettings(e.settings, baseSettings),
+      tournament: e.tournament ? parseTournament(e.tournament) : null,
+      league: e.league ? parseLeague(e.league) : null,
+    };
+  }).sort((a, b) => a.edition - b.edition);
+}
+
 /**
  * 読み込んだデータを検証し、足りない項目を補う。
  * 共有で受け取ったデータもここを通すため、画面に出す値（ID・数値）は形式まで確かめ、知らない項目は捨てる。
@@ -154,16 +193,8 @@ export function parseState(raw) {
       throw new Error('新しいバージョンで保存されたデータのため読み込めません');
     }
     const base = createState();
-    if (!Array.isArray(data.players) || data.players.some((p) => !isObj(p) || !isId(p.id) || !isStr(p.name))) {
-      throw new Error('参加者データが不正です');
-    }
-    if (data.players.length > MAX_PLAYERS) throw new Error('参加者が多すぎます');
-    if (new Set(data.players.map((p) => p.id)).size !== data.players.length) throw new Error('参加者データが不正です');
-    if (!Array.isArray(data.tables) || !data.tables.length || data.tables.length > MAX_TABLES ||
-      data.tables.some((t) => !isObj(t) || !isId(t.id) || !isStr(t.name)) ||
-      new Set(data.tables.map((t) => t.id)).size !== data.tables.length) {
-      throw new Error('卓データが不正です');
-    }
+    const players = parsePlayers(data.players);
+    const tables = parseTables(data.tables);
     const meta = isObj(data.meta) ? data.meta : {};
     const st = {
       ...base,
@@ -172,11 +203,12 @@ export function parseState(raw) {
         date: isStr(meta.date) ? meta.date : '',
         updatedAt: isStr(meta.updatedAt) ? meta.updatedAt : null,
       },
-      players: data.players.map((p) => ({ id: p.id, name: p.name })),
-      tables: data.tables.map((t) => ({ id: t.id, name: t.name })),
+      players,
+      tables,
       settings: parseSettings(data.settings, base.settings),
       tournament: data.tournament ? parseTournament(data.tournament) : null,
       league: data.league ? parseLeague(data.league) : null,
+      history: parseHistory(data.history, base.settings),
     };
     return { ok: true, state: st };
   } catch (e) {

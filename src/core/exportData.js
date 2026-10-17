@@ -4,11 +4,12 @@ import { resolveBracket, roundName, tournamentRanking } from './bracket.js';
 import { resolveLeague, leagueStandings, outcomeFor } from './league.js';
 import { formatScore } from './result.js';
 import { playerName, tableName } from './state.js';
+import { eventTitle } from './edition.js';
 
 const STATUS = { done: '終了', ready: '試合待ち', waiting: '対戦者未定', bye: '不戦', empty: '－' };
 
 function titleOf(state, kind) {
-  return `${state.meta.title || '大会'} ${kind}`;
+  return `${eventTitle(state)} ${kind}`;
 }
 
 function sideScore(m, side) {
