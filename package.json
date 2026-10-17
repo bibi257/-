@@ -12,7 +12,8 @@
     "test:e2e": "npm run build && playwright test",
     "start": "npm run build && electron .",
     "dist:win": "npm run build && electron-builder --win portable --x64",
-    "serve": "npm run build && node scripts/serve.mjs"
+    "serve": "npm run build && node scripts/serve.mjs",
+    "test:electron": "npm run build && node test/electron/smoke.mjs"
   },
   "build": {
     "appId": "jp.local.bukatsu-taikai",
@@ -27,11 +28,15 @@
       "output": "dist"
     },
     "win": {
-      "target": "portable"
+      "target": "portable",
+      "executableName": "bukatsu-taikai"
     }
   },
   "devDependencies": {
     "@playwright/test": "^1.56.1",
+    "electron": "^44.9.0",
+    "electron-builder": "^26.15.3",
     "esbuild": "^0.28.2"
-  }
+  },
+  "author": "部内大会運営"
 }
