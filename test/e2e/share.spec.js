@@ -126,6 +126,7 @@ test('運営用パスワードを変えても閲覧は続く。共有を終了�
 
   // 運営用パスワードを変更 → 運営はそのまま使え、閲覧者も影響を受けない
   await a.locator('.sh-details summary').first().click();
+  await expect(a.locator('#sh-newa')).toHaveAttribute('type', 'text');
   await a.fill('#sh-newa', 'new-admin-pass');
   await a.click('[data-sh=pw-admin]');
   await expect(a.locator('#toast')).toContainText('変更しました');
@@ -196,6 +197,12 @@ test('自分の大会データがある端末で閲覧リンクを開くと、�
 test('共有サーバーに接続できないときは、分かる文言を出して入力内容を保つ', async ({ page }) => {
   await open(page);
   await page.click('[data-action=share]');
+  // パスワードを「設定する」欄は普通のテキスト入力（自動入力・自動生成を誘わない）。すでにあるパスワードを「入力する」欄は隠す
+  for (const id of ['#sh-apw', '#sh-apwc']) {
+    await expect(page.locator(id)).toHaveAttribute('type', 'text');
+    await expect(page.locator(id)).toHaveAttribute('autocomplete', 'off');
+  }
+  await expect(page.locator('#sh-apw2')).toHaveAttribute('type', 'password');
   await page.fill('#sh-base', 'http://localhost:1');
   await page.fill('#sh-apw', ADMIN_PW);
   await page.fill('#sh-apwc', ADMIN_PW);
