@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>部内大会トーナメント</title>
+  <meta name="description" content="部内大会のトーナメント表・総当たり表を作成し、結果入力・順位集計・CSV/PNG出力ができるアプリ">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M4 6h8v6h6v8h-6v6H4v-4h4v-4h6v-4H8V10H4z' fill='%231565c0'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand">部内大会トーナメント</div>
+    <div class="print-title" id="print-title"></div>
+    <div class="header-actions no-print">
+      <button type="button" data-action="new">新規</button>
+      <button type="button" data-action="save" title="大会データをファイルに保存">保存</button>
+      <button type="button" data-action="load" title="保存した大会データを開く">読込</button>
+      <button type="button" data-action="print">印刷</button>
+      <input type="file" id="load-file" accept=".json,application/json" hidden>
+      <span class="save-status" id="save-status" aria-live="polite"></span>
+    </div>
+  </header>
+
+  <nav class="tabs no-print" role="tablist" aria-label="画面切替">
+    <button type="button" role="tab" data-tab="setup" aria-selected="true">参加者・設定</button>
+    <button type="button" role="tab" data-tab="tournament" aria-selected="false">トーナメント</button>
+    <button type="button" role="tab" data-tab="league" aria-selected="false">総当たり</button>
+    <button type="button" role="tab" data-tab="standings" aria-selected="false">順位表</button>
+  </nav>
+
+  <main>
+    <section id="panel-setup" class="tab-panel" role="tabpanel"></section>
+    <section id="panel-tournament" class="tab-panel" role="tabpanel" hidden></section>
+    <section id="panel-league" class="tab-panel" role="tabpanel" hidden></section>
+    <section id="panel-standings" class="tab-panel" role="tabpanel" hidden></section>
+  </main>
+
+  <dialog id="result-dialog" aria-labelledby="rd-title">
+    <form method="dialog" id="result-form" novalidate>
+      <h2 id="rd-title">試合結果</h2>
+      <p class="rd-sub" id="rd-sub"></p>
+      <div class="rd-grid">
+        <label class="rd-player"><input type="radio" name="outcome" value="p1"><span id="rd-p1"></span></label>
+        <input class="rd-score" id="rd-s1" inputmode="numeric" autocomplete="off" aria-label="選手1のスコア">
+        <span class="rd-dash">－</span>
+        <input class="rd-score" id="rd-s2" inputmode="numeric" autocomplete="off" aria-label="選手2のスコア">
+        <label class="rd-player rd-right"><span id="rd-p2"></span><input type="radio" name="outcome" value="p2"></label>
+      </div>
+      <p class="hint">スコアを入力すると勝者が自動で選ばれます。スコアなしで勝者だけ選んでも構いません。</p>
+      <div class="rd-options">
+        <label id="rd-draw-wrap"><input type="radio" name="outcome" value="draw"> 引き分け</label>
+        <label><input type="checkbox" id="rd-walkover"> 不戦勝（相手の棄権・欠席）</label>
+        <label>卓 <select id="rd-table"></select></label>
+      </div>
+      <p class="error" id="rd-error" role="alert"></p>
+      <div class="dialog-buttons">
+        <button type="button" id="rd-clear" class="danger">結果を取り消す</button>
+        <span class="spacer"></span>
+        <button type="button" id="rd-cancel">キャンセル</button>
+        <button type="submit" id="rd-ok" class="primary">保存</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="import-dialog" aria-labelledby="im-title">
+    <form method="dialog" id="import-form">
+      <h2 id="im-title">参加者の一括入力・CSV取込</h2>
+      <p class="hint">1行に1人ずつ入力するか、CSVファイルを選んでください（1行目が「名前」「氏名」なら見出しとして扱います。Shift_JIS・UTF-8 に対応）。</p>
+      <p><button type="button" id="im-file-btn">CSVファイルを選ぶ</button> <input type="file" id="im-file" accept=".csv,.txt,text/csv,text/plain" hidden> <span id="im-file-name"></span></p>
+      <textarea id="im-text" rows="10" placeholder="山田 太郎&#10;佐藤 花子&#10;…"></textarea>
+      <div class="rd-options">
+        <label><input type="radio" name="im-mode" value="append" checked> 今の名簿に追加</label>
+        <label><input type="radio" name="im-mode" value="replace"> 今の名簿と置き換え</label>
+      </div>
+      <p class="error" id="im-error" role="alert"></p>
+      <div class="dialog-buttons">
+        <span class="spacer"></span>
+        <button type="button" id="im-cancel">キャンセル</button>
+        <button type="submit" class="primary">取り込む</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
+</body>
+</html>

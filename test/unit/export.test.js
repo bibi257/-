@@ -1,0 +1,118 @@
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import { createState } from '../../src/core/state.js';
+import { makePlayers } from '../../src/core/players.js';
+import { generateTournament, setTournamentResult } from '../../src/core/bracket.js';
+import { generateLeague, setLeagueResult } from '../../src/core/league.js';
+import {
+  bracketTable, tournamentResultsTable, tournamentStandingsTable,
+  leagueMatrixTable, leagueResultsTable, leagueStandingsTable,
+} from '../../src/core/exportData.js';
+import { bracketSvg, tableSvg } from '../../src/render/svg.js';
+import { toCSV, parseCSV } from '../../src/core/csv.js';
+
+function sample(n = 4, opts = {}) {
+  const st = createState();
+  st.meta.title = '春季大会';
+  st.players = makePlayers(Array.from({ length: n }, (_, i) => `選手${i + 1}`));
+  st.tournament = generateTournament(st.players.map((p) => p.id), opts);
+  if (n <= 40) st.league = generateLeague(st.players.map((p) => p.id));
+  return st;
+}
+
+test('トーナメント表CSV: 回戦ごとの列と優勝者', () => {
+  const st = sample(4);
+  let t = st.tournament;
+  t = setTournamentResult(t, 'R1-M1', { score1: 3, score2: 0 }).tournament;
+  t = setTournamentResult(t, 'R1-M2', { score1: 1, score2: 2 }).tournament;
+  t = setTournamentResult(t, 'R2-M1', { score1: 2, score2: 1 }).tournament;
+  st.tournament = t;
+  const tb = bracketTable(st);
+  assert.equal(tb.title, '春季大会 トーナメント表');
+  assert.deepEqual(tb.headers, ['準決勝', '決勝', '優勝']);
+  assert.equal(tb.rows.length, 4);
+  assert.equal(tb.rows[0][0], '○選手1 (3)');
+  assert.equal(tb.rows[1][0], '選手4 (0)');
+  assert.equal(tb.rows[0][1], '○選手1 (2)');
+  assert.equal(tb.rows[2][1], '選手3 (1)');
+  assert.equal(tb.rows[0][2], '選手1');
+});
+
+test('トーナメント表CSV: 不戦と3位決定戦', () => {
+  const st = sample(3, { thirdPlace: true });
+  const tb = bracketTable(st);
+  assert.equal(tb.rows[1][0], '（不戦）');
+  assert.equal(tb.rows.at(-1)[0], '3位決定戦');
+});
+
+test('試合結果・順位表CSV', () => {
+  const st = sample(4);
+  st.tournament = setTournamentResult(st.tournament, 'R1-M1', { walkover: true, outcome: 'p2' }).tournament;
+  const rt = tournamentResultsTable(st);
+  assert.equal(rt.headers[0], '試合番号');
+  const row = rt.rows.find((r) => r[0] === 1);
+  assert.equal(row[5], '不戦勝');
+  assert.equal(row[7], '選手4');
+  assert.equal(row[8], '終了');
+  const s = tournamentStandingsTable(st);
+  // 4人なら1回戦が準決勝。3位決定戦なしのため敗者は3位
+  assert.equal(s.rows.find((r) => r[1] === '選手1')[2], '3位');
+  assert.equal(s.rows.find((r) => r[1] === '選手1')[0], 3);
+});
+
+test('総当たり表: ○×△と不戦勝、自分自身は－', () => {
+  const st = sample(3);
+  const [m1, m2] = st.league.matches;
+  st.league = setLeagueResult(st.league, m1.id, { score1: 3, score2: 1 }).league;
+  st.league = setLeagueResult(st.league, m2.id, { walkover: true, outcome: 'p2' }).league;
+  const mt = leagueMatrixTable(st);
+  assert.deepEqual(mt.headers, ['', '選手1', '選手2', '選手3', '勝', '分', '敗', '勝点', '順位']);
+  const idx = (id) => st.league.playerIds.indexOf(id);
+  const cell = (a, b) => mt.rows[idx(a)][idx(b) + 1];
+  assert.equal(cell(m1.p1, m1.p2), '○ 3-1');
+  assert.equal(cell(m1.p2, m1.p1), '× 1-3');
+  assert.equal(cell(m2.p2, m2.p1), '○ 不戦勝');
+  assert.equal(cell(m2.p1, m2.p2), '× 不戦敗');
+  assert.equal(mt.rows[0][1], '－');
+  const rt = leagueResultsTable(st);
+  assert.equal(rt.rows[0][7].endsWith('の勝ち'), true);
+  const s = leagueStandingsTable(st);
+  assert.equal(s.headers.at(-1), '勝点');
+  assert.match(s.note, /勝点 勝3/);
+});
+
+test('CSV 往復で日本語が保たれる', () => {
+  const st = sample(5);
+  const rows = [leagueMatrixTable(st).headers, ...leagueMatrixTable(st).rows];
+  const back = parseCSV(toCSV(rows));
+  assert.deepEqual(back, rows.map((r) => r.map((c) => String(c))));
+});
+
+test('SVG: 名前をエスケープし、寸法を返す', () => {
+  const st = sample(8, { thirdPlace: true });
+  st.players[0].name = '<A&B>"';
+  const { svg, width, height } = bracketSvg(st, { interactive: true });
+  assert.ok(svg.startsWith('<svg xmlns="http://www.w3.org/2000/svg"'));
+  assert.ok(svg.includes('&lt;A&amp;B&gt;&quot;'));
+  assert.ok(!svg.includes('<A&B>'));
+  assert.ok(width > 400 && height > 8 * 36);
+  // 対話用の試合要素は実際に行う試合の数（7）＋3位決定戦
+  assert.equal((svg.match(/class="match /g) || []).length, 8);
+  const plain = bracketSvg(st).svg;
+  assert.equal((plain.match(/class="match /g) || []).length, 0);
+});
+
+test('SVG: 128人でも生成できる', () => {
+  const st = sample(128);
+  const { width, height } = bracketSvg(st);
+  assert.ok(height > 128 * 36);
+  assert.ok(width < 3000);
+});
+
+test('表SVG: 行数に応じた高さ', () => {
+  const st = sample(6);
+  const table = leagueStandingsTable(st);
+  const { svg, height } = tableSvg(st, table);
+  assert.ok(svg.includes('総当たり 順位表'));
+  assert.ok(height >= 56 + 7 * 28);
+});
