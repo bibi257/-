@@ -49,12 +49,12 @@ GitHub Pages は静的ファイルしか置けないため、データの置き�
 - GitHub Pages の画面から使うときは、共有サーバーのURLを入力します。サーバーのURLの画面（`https://tournament.○○.workers.dev/`）から開けば入力不要です
 
 ### 共有サーバーの用意（初回のみ）
+Cloudflare の「Workers Builds」（GitHub 連携）で、このリポジトリを自動でビルド・公開します。API トークンや GitHub の Secrets は不要です。
 1. [Cloudflare](https://dash.cloudflare.com/sign-up) の無料アカウントを作り、メールを認証する
-2. ダッシュボードの「Workers & Pages」を一度開き、`workers.dev` のサブドメインを決める
-3. 「My Profile → API Tokens → Create Token」で「Edit Cloudflare Workers」テンプレートからトークンを作る（表示は一度きり）。アカウントIDも控える
-4. GitHub のリポジトリの Settings → Secrets and variables → Actions に `CLOUDFLARE_API_TOKEN` と `CLOUDFLARE_ACCOUNT_ID` を登録する
-5. Actions → 「Deploy share server」→ Run workflow（以後は `main` への変更で自動デプロイ）。完了後、ログの「公開先」が共有サーバーのURLです
-6. データベース（D1）は `worker/wrangler.jsonc` の `database_id` に設定済みです。別のアカウントで使うときは、D1 を作って `database_id` を書き換えてください。表は初回アクセス時に自動で作られます
+2. ダッシュボードの「Workers & Pages」→「Create application」→「Import a repository」（GitHub を連携）で、このリポジトリを選ぶ
+3. Worker 名は `tournament`（`wrangler.jsonc` の `name` と同じにする）。ルートディレクトリは `/`（既定）、ビルドコマンドは空、デプロイコマンドは `npx wrangler deploy`（既定）、本番ブランチは `main`
+4. 以後、`main` にマージするたびに自動で公開されます（画面のビルドは `wrangler.jsonc` の `build.command` が行います）。PR のブランチは、プレビュー用にビルドされます。公開先のURLは Worker の画面（`https://tournament.○○.workers.dev`）に表示されます
+5. データベース（D1）は `wrangler.jsonc` の `database_id` に設定済みです。別のアカウントで使うときは、D1 を作って `database_id` を書き換えてください。表は初回アクセス時に自動で作られます
 
 ### 注意
 - 共有されるのは大会データ（参加者名・結果）とコメントです。個人情報になる内容は入れない運用にしてください

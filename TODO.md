@@ -22,6 +22,7 @@
 - データはブラウザ（Windows 版は PC のユーザーフォルダ）ごとに保存される。別の PC・ブラウザへは「保存」したファイルで移す
 - Windows 版は未署名のため、初回起動時に SmartScreen の警告が出る場合がある
 - GitHub Pages の有効化はリポジトリ設定（Source: GitHub Actions）が必要
+- 共有サーバーは Cloudflare アカウントと、Workers Builds（GitHub 連携）の設定が必要（README「共有サーバーの用意」）
 
 ## 未検証（TEST_REPORT.md 参照）
 - 共有サーバーの本番（Cloudflare・D1・workers.dev）での動作。ローカルの workerd と単体・E2E では確認済み。デプロイ後に確認する

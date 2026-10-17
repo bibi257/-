@@ -1,0 +1,24 @@
+{
+  // 共有サーバー（Cloudflare Worker）。Cloudflare の「Workers Builds」（GitHub 連携）が、
+  // リポジトリのルートでこの設定を読んでビルド・デプロイする。ログイン情報はここに書かない
+  "name": "tournament",
+  "main": "worker/src/index.js",
+  "compatibility_date": "2026-09-01",
+  "workers_dev": true,
+  // 画面（web/app.js）は生成物でコミットしないため、デプロイ前に作る。依存が未インストールのときだけ npm ci する
+  "build": {
+    "command": "test -d node_modules || npm ci --ignore-scripts && npm run build"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "tournament",
+      "database_id": "26f095f8-b04d-4eb9-9b5c-09db79280e95"
+    }
+  ],
+  "assets": {
+    "directory": "web",
+    "binding": "ASSETS",
+    "run_worker_first": ["/api/*"]
+  }
+}

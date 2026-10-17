@@ -240,3 +240,11 @@ state = {
 ### D17. 共有のテスト方法（環境の制約）
 - この開発環境は外部の Cloudflare に接続できない。Worker は (1) `node:sqlite` による D1 互換シムでの単体テスト（20 件）、(2) 同じコードを画面と同じオリジンで配信する E2E（3 件）、(3) wrangler 4.144.0 のローカル実行（workerd＋ローカル D1）での API 通し確認で検証した
 - 本番の Cloudflare（D1・デプロイ・workers.dev）での動作は、デプロイ後でないと確認できないため「未検証」として TEST_REPORT.md に記載
+
+### D18. 共有サーバーのデプロイ方法（問題と判断）
+- 経緯: 初めは GitHub Actions（`wrangler-action`、API トークンを Secrets に登録）でのデプロイを設計した。しかし利用者が Cloudflare 側で Worker `tournament` をリポジトリ連携（Workers Builds）で作成済みで、PR を出すと「Workers Builds: tournament」が失敗した
+- 原因: 連携の既定はリポジトリのルートを見るが、設定ファイルを `worker/` 内に置いていた。また画面の `web/app.js` は生成物（未コミット）のため、デプロイ前にビルドが必要だった
+- 選択肢: A. Actions 方式のまま、Cloudflare 連携を外してもらう／B. 連携方式に合わせ、ルートに `wrangler.jsonc` を置く
+- 採用: **B**。`wrangler.jsonc` をルートへ移し、`build.command` で画面をビルド。`share.yml` と Secrets は廃止
+- 理由: 利用者が登録するものが減る（API トークン不要）。1つの Worker に2系統でデプロイしない。`wrangler deploy --dry-run` で、`node_modules` も `web/app.js` も無いきれいなコピーから、ビルド→アセット取り込みまで通ることを確認した
+- 注意: Cloudflare 側のビルドログはこの環境から見られない。結果は PR のチェック「Workers Builds: tournament」の成否で判断する
