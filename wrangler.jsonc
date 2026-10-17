@@ -16,6 +16,15 @@
       "database_id": "26f095f8-b04d-4eb9-9b5c-09db79280e95"
     }
   ],
+  // PR ブランチのプレビュー（wrangler preview）は、本番とは別のデータベースを使う
+  "previews": {
+    "d1_databases": [
+      {
+        "binding": "DB",
+        "database_id": "69c28862-e0c6-41da-b27a-75c88598f7af"
+      }
+    ]
+  },
   "assets": {
     "directory": "web",
     "binding": "ASSETS",

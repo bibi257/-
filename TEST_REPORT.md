@@ -68,7 +68,7 @@
 | 7 | 大会名が空だとトーナメント表 PNG のファイル名が「_トーナメント表.png」 | 大会名の補完漏れ | 「大会」を補うよう修正 |
 | 8 | （共有 E2E）運営の結果入力が閲覧者に反映されず失敗 | 運営の送信は 1.5 秒待ってまとめる設計だが、テストが閲覧側の更新を1回しか呼ばず、送信前に確認していた。アプリの不具合ではない | 更新確認を繰り返し呼びながら待つヘルパーに変更 |
 | 9 | （共有画面）閲覧者にも「クリックで結果入力」の案内が出ていた | 運営向けの文言を共通で表示していた | 閲覧中は非表示（`owner-only`）にし、クリック可能に見えるカーソルも解除 |
-| 10 | PR の「Workers Builds: tournament」が失敗 | Cloudflare の連携はリポジトリのルートを見るが、設定を `worker/` に置いていた。画面の `web/app.js` も未ビルド | 設定をルートの `wrangler.jsonc` に移し `build.command` で画面をビルド。きれいなコピーでの `wrangler deploy --dry-run` で確認（D18）。本番の結果は PR のチェックで確認 |
+| 10 | PR の「Workers Builds: tournament」が失敗 | (1) Cloudflare の連携はリポジトリのルートを見るが、設定を `worker/` に置いていた（画面のビルドも必要）。(2) 移した後は、PR ブランチ用の `wrangler preview` が「`previews` ブロックが無い」と失敗（利用者が貼ったログで判明） | (1) 設定をルートの `wrangler.jsonc` に移し `build.command` で画面をビルド（Cloudflare 上で成功を確認）。(2) プレビュー専用の D1 `tournament-preview` を作り `previews.d1_databases` に設定（D18）。結果は PR のチェックで確認 |
 
 ## 再実行
 

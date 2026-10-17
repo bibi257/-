@@ -247,4 +247,7 @@ state = {
 - 選択肢: A. Actions 方式のまま、Cloudflare 連携を外してもらう／B. 連携方式に合わせ、ルートに `wrangler.jsonc` を置く
 - 採用: **B**。`wrangler.jsonc` をルートへ移し、`build.command` で画面をビルド。`share.yml` と Secrets は廃止
 - 理由: 利用者が登録するものが減る（API トークン不要）。1つの Worker に2系統でデプロイしない。`wrangler deploy --dry-run` で、`node_modules` も `web/app.js` も無いきれいなコピーから、ビルド→アセット取り込みまで通ることを確認した
-- 注意: Cloudflare 側のビルドログはこの環境から見られない。結果は PR のチェック「Workers Builds: tournament」の成否で判断する
+- 注意: Cloudflare 側のビルドログはこの環境から見られない。結果は PR のチェック「Workers Builds: tournament」の成否と、利用者が貼ってくれたログで判断する
+- 追加の問題（ルートに移した後も失敗）: 利用者のログから、画面のビルドは成功し、PR ブランチ用のデプロイコマンド `npx wrangler preview`（wrangler 4.151.1、ベータ）が「`previews` ブロックが無い」と失敗していたと判明。プレビューは本番のリソースを使わせない設計で、プレビュー用の D1 を要求する
+- 対応: プレビュー専用の D1 `tournament-preview` を作成し、`wrangler.jsonc` の `previews.d1_databases` に設定（wrangler のエラー文が示した形式）。本番データと分かれるので、PR のプレビューで試しても大会データを汚さない
+- 限界: `wrangler preview` に予行（dry-run）は無く、ローカルでは Cloudflare への通信が必要なため、設定の正しさは Cloudflare 側のビルドで初めて分かる

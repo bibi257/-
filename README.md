@@ -54,7 +54,7 @@ Cloudflare の「Workers Builds」（GitHub 連携）で、このリポジトリ
 2. ダッシュボードの「Workers & Pages」→「Create application」→「Import a repository」（GitHub を連携）で、このリポジトリを選ぶ
 3. Worker 名は `tournament`（`wrangler.jsonc` の `name` と同じにする）。ルートディレクトリは `/`（既定）、ビルドコマンドは空、デプロイコマンドは `npx wrangler deploy`（既定）、本番ブランチは `main`
 4. 以後、`main` にマージするたびに自動で公開されます（画面のビルドは `wrangler.jsonc` の `build.command` が行います）。PR のブランチは、プレビュー用にビルドされます。公開先のURLは Worker の画面（`https://tournament.○○.workers.dev`）に表示されます
-5. データベース（D1）は `wrangler.jsonc` の `database_id` に設定済みです。別のアカウントで使うときは、D1 を作って `database_id` を書き換えてください。表は初回アクセス時に自動で作られます
+5. データベース（D1）は `wrangler.jsonc` の `database_id`（本番）と `previews` の `database_id`（PR のプレビュー用。本番データと分けるため別の D1）に設定済みです。別のアカウントで使うときは、D1 を2つ作って書き換えてください。表は初回アクセス時に自動で作られます
 
 ### 注意
 - 共有されるのは大会データ（参加者名・結果）とコメントです。個人情報になる内容は入れない運用にしてください
