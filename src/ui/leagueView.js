@@ -43,7 +43,7 @@ export function renderLeague() {
       <b>No.${m.no}</b> ${h(m.tableId ? tableName(st, m.tableId) : '')}${m.timeSlot > 1 ? `（時間帯${m.timeSlot}）` : ''} ${h(playerName(st, m.p1))} vs ${h(playerName(st, m.p2))}</button>`).join('')}</div>` : ''}
   </div>
   <div class="card">
-    <h2>総当たり表 <span class="hint">マスをクリックすると結果を入力できます（行の選手から見た結果）</span></h2>
+    <h2>総当たり表 <span class="hint"><span class="owner-only">マスをクリックすると結果を入力できます</span>（行の選手から見た結果）</span></h2>
     <div class="toolbar">
       <span class="group"><span class="group-label">総当たり表</span>
         <button type="button" class="small" data-export="matrix-csv">CSV</button>

@@ -167,3 +167,42 @@ dialog h2 { margin: 0 0 4px; font-size: 18px; }
   table.data tr.st-ready td { background: none; }
   .table-wrap { overflow: visible; }
 }
+
+/* 共有・コメント */
+body.viewer .owner-only { display: none !important; }
+.share-chip { font-size: 12px; border-radius: 999px !important; padding: 3px 11px !important; }
+.header-actions .share-chip.bad { background: #c62828; border-color: #ef9a9a; }
+.share-box { padding: 16px 18px; }
+.share-box h2 { margin: 0 0 8px; font-size: 18px; }
+.share-box h3 { margin: 12px 0 4px; font-size: 15px; }
+.sh-field { display: grid; gap: 3px; margin: 8px 0; font-size: 13px; color: var(--muted); }
+.sh-field input, .sh-field select, .sh-field textarea {
+  width: 100%; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: #fff; color: var(--text); font-size: 15px;
+}
+.sh-section { border-top: 1px solid var(--line); margin-top: 12px; padding-top: 2px; }
+.sh-row { display: flex; align-items: center; gap: 10px; margin: 8px 0; }
+.sh-row > span:first-child { min-width: 6em; color: var(--muted); font-size: 13px; }
+.sh-row input { flex: 1; min-width: 0; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; font-size: 13px; }
+.sh-code { font-family: ui-monospace, Consolas, monospace; font-size: 22px; letter-spacing: .12em; }
+.sh-actions { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0 4px; }
+.sh-details { margin-top: 12px; }
+.sh-details summary { cursor: pointer; color: var(--primary); }
+.sh-pwrow { display: flex; align-items: end; gap: 8px; }
+.sh-pwrow .sh-field { flex: 1; }
+.sh-state { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+.bad { color: var(--danger); }
+.comment-form .cf-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); gap: 12px; }
+@media (max-width: 700px) { .comment-form .cf-row { grid-template-columns: 1fr; } }
+.cf-foot { display: flex; align-items: center; gap: 12px; }
+.cf-foot .error { flex: 1; }
+.comment-list { list-style: none; margin: 0; padding: 0; }
+.comment { padding: 9px 0; border-bottom: 1px solid var(--line); }
+.comment:last-child { border-bottom: none; }
+.comment p { margin: 4px 0 0; white-space: normal; overflow-wrap: anywhere; }
+.c-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; }
+.c-target { background: var(--primary-weak); color: var(--primary); border-radius: 4px; padding: 1px 7px; }
+.c-head time { color: var(--muted); }
+.c-head button { margin-left: auto; }
+.comment-list .empty { color: var(--muted); padding: 10px 0; }
+@media print { #panel-comments, .share-chip { display: none !important; } }
+body.viewer .next-item, body.viewer g.match, body.viewer tr.clickable, body.viewer td.cell { cursor: default; }

@@ -6,6 +6,8 @@ const KEY = 'bukatsu-taikai:state';
 let state = null;
 const listeners = new Set();
 let statusCb = () => {};
+let readOnly = false;
+const savedListeners = new Set();
 
 export function getState() {
   return state;
@@ -17,6 +19,7 @@ export function getState() {
  * @param {{render?:boolean}} opts render:false なら画面を再描画しない（入力中のフォーカスを保つため）
  */
 export function setState(next, { render = true } = {}) {
+  if (readOnly) return; // 閲覧専用（共有を見ている間）は、操作で内容を変えない
   state = { ...next, meta: { ...next.meta, updatedAt: new Date().toISOString() } };
   persist();
   if (render) listeners.forEach((f) => f());
@@ -24,6 +27,32 @@ export function setState(next, { render = true } = {}) {
 
 export function onChange(f) {
   listeners.add(f);
+}
+
+/** 保存のたびに呼ばれる（共有の自動送信用。render:false の入力でも呼ばれる） */
+export function onSaved(f) {
+  savedListeners.add(f);
+}
+
+export function isReadOnly() {
+  return readOnly;
+}
+
+export function setReadOnly(flag) {
+  readOnly = flag;
+}
+
+/** 閲覧中に受け取った大会データを表示する。この端末の自動保存は上書きしない */
+export function setRemoteState(next) {
+  state = next;
+  listeners.forEach((f) => f());
+}
+
+/** 閲覧をやめたとき、この端末に保存してあった自分の大会データへ戻す */
+export function reloadLocal() {
+  state = null;
+  initState();
+  listeners.forEach((f) => f());
 }
 
 export function onSaveStatus(cb) {
@@ -37,6 +66,7 @@ function persist() {
   } catch {
     statusCb({ ok: false });
   }
+  savedListeners.forEach((f) => f());
 }
 
 /** 自動保存から復元。なければ新規 */

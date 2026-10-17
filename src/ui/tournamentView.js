@@ -43,12 +43,12 @@ export function renderTournament() {
       <span><b>${prog.done}</b> / ${prog.total} 試合終了</span>
       ${champ ? `<span class="champion">優勝 ${h(champ)}</span>` : ''}
     </div>
-    ${prog.ready.length ? `<p class="hint">次に行う試合（クリックで結果入力）</p>
+    ${prog.ready.length ? `<p class="hint">次に行う試合<span class="owner-only">（クリックで結果入力）</span></p>
     <div class="next-list">${prog.ready.map((m) => `<button type="button" class="next-item" data-match="${m.id}">
       <b>No.${m.no}</b> ${h(m.tableId ? tableName(st, m.tableId) : '')} ${h(playerName(st, m.p1))} vs ${h(playerName(st, m.p2))}</button>`).join('')}</div>` : ''}
   </div>
   <div class="card">
-    <h2>トーナメント表 <span class="hint">試合をクリックすると結果を入力できます</span></h2>
+    <h2>トーナメント表 <span class="hint owner-only">試合をクリックすると結果を入力できます</span></h2>
     <div class="toolbar">
       <span class="group"><span class="group-label">トーナメント表</span>
         <button type="button" class="small" data-export="bracket-csv">CSV</button>

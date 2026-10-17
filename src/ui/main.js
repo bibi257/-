@@ -1,6 +1,6 @@
 // エントリポイント: タブ切替・ヘッダー操作・保存/読込
 
-import { getState, setState, onChange, onSaveStatus, initState } from './store.js';
+import { getState, setState, onChange, onSaveStatus, initState, isReadOnly } from './store.js';
 import { toast, downloadBlob, safeFileName } from './io.js';
 import { createState, parseState, serializeState } from '../core/state.js';
 import { renderSetup, setupSetupView } from './setupView.js';
@@ -8,8 +8,10 @@ import { renderTournament, setupTournamentView } from './tournamentView.js';
 import { renderLeague, setupLeagueView } from './leagueView.js';
 import { renderStandings, setupStandingsView } from './standingsView.js';
 import { setupResultDialog } from './resultDialog.js';
+import { renderComments, setupCommentsView } from './commentsView.js';
+import { S, initShare, isSharing, isViewer, isAdmin, onShareChange, openShareDialog, setupShareDialog } from './share.js';
 
-const TABS = { setup: renderSetup, tournament: renderTournament, league: renderLeague, standings: renderStandings };
+const TABS = { setup: renderSetup, tournament: renderTournament, league: renderLeague, standings: renderStandings, comments: renderComments };
 const TAB_KEY = 'bukatsu-taikai:tab';
 let activeTab = 'setup';
 
@@ -21,12 +23,33 @@ function render() {
 
 function showTab(name) {
   if (!TABS[name]) name = 'setup';
+  if (isViewer() && name === 'setup') name = 'tournament'; // 閲覧中は設定画面を使わない
+  if (!isSharing() && name === 'comments') name = 'setup';
   activeTab = name;
   document.querySelectorAll('.tabs [data-tab]').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === name)));
   for (const key of Object.keys(TABS)) document.getElementById(`panel-${key}`).hidden = key !== name;
   try { sessionStorage.setItem(TAB_KEY, name); } catch { /* 無視 */ }
   render();
   window.scrollTo(0, 0);
+}
+
+/** 共有の状態に合わせて、ヘッダーの表示・コメントタブ・閲覧専用の見た目を更新する */
+function updateShareUi() {
+  const chip = document.getElementById('share-chip');
+  const sharing = isSharing();
+  chip.hidden = !sharing;
+  document.getElementById('tab-comments').hidden = !sharing;
+  if (sharing) {
+    const bad = S.status === 'error' || S.status === 'auth';
+    chip.classList.toggle('bad', bad);
+    const label = S.status === 'auth' ? '再ログインが必要' : S.status === 'error' ? '通信エラー' : S.status === 'sending' ? '送信中…' : isViewer() ? '閲覧中' : '共有中';
+    chip.textContent = `${label} ${S.cfg.code}`;
+    chip.title = S.status === 'error' || S.status === 'auth' ? S.message : '共有の設定を開く';
+    document.getElementById('tab-comments').textContent = `コメント${S.comments.length ? ` (${S.comments.length})` : ''}`;
+  }
+  if (!sharing && activeTab === 'comments') showTab('setup');
+  else if (isViewer() && activeTab === 'setup') showTab('tournament');
+  else if (activeTab === 'comments') renderComments();
 }
 
 function hasData(st) {
@@ -41,6 +64,7 @@ function saveFile() {
 }
 
 async function loadFile(file) {
+  if (isReadOnly()) return;
   const r = parseState(await file.text());
   if (!r.ok) { toast(`読み込めませんでした: ${r.error}`, { error: true }); return; }
   if (hasData(getState()) && !confirm('今の大会データを、読み込んだデータで置き換えますか？')) return;
@@ -52,8 +76,10 @@ function setupHeader() {
   const fileInput = document.getElementById('load-file');
   document.querySelector('.header-actions').addEventListener('click', (e) => {
     const act = e.target.closest('button[data-action]')?.dataset.action;
-    if (act === 'new') {
-      if (hasData(getState()) && !confirm('今の大会データを消して新しく始めますか？\n（必要なら先に「保存」でファイルに保存してください）')) return;
+    if (act === 'share') openShareDialog();
+    else if (act === 'new') {
+      const note = isAdmin() ? '\n※共有中のため、公開している大会データも新しい内容に置き換わります。' : '';
+      if (hasData(getState()) && !confirm(`今の大会データを消して新しく始めますか？\n（必要なら先に「保存」でファイルに保存してください）${note}`)) return;
       setState(createState());
       showTab('setup');
       toast('新しい大会を作成しました');
@@ -90,11 +116,16 @@ function init() {
   setupLeagueView();
   setupStandingsView();
   setupResultDialog();
+  setupCommentsView();
+  setupShareDialog();
   onChange(render);
+  onShareChange(updateShareUi);
   let tab = 'setup';
   try { tab = sessionStorage.getItem(TAB_KEY) || 'setup'; } catch { /* 無視 */ }
+  initShare();
   showTab(tab);
-  if (restored) toast('前回の続きから再開しました');
+  updateShareUi();
+  if (restored && !isReadOnly()) toast('前回の続きから再開しました');
 }
 
 init();

@@ -1,6 +1,7 @@
 // 試合結果の入力ダイアログ（トーナメント・総当たり共通）
 
 import { h } from './io.js';
+import { isReadOnly } from './store.js';
 
 const $ = (id) => document.getElementById(id);
 let current = null;
@@ -21,6 +22,7 @@ let current = null;
  * @param {(input:object|null, tableId:string|null, opts:{tableOnly:boolean}) => string|null} o.onSave 失敗時はエラー文を返す
  */
 export function openResultDialog(o) {
+  if (isReadOnly()) return; // 共有を閲覧している間は結果を入力できない
   current = o;
   $('rd-title').textContent = o.title;
   $('rd-sub').textContent = o.sub;

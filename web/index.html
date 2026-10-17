@@ -13,20 +13,23 @@
     <div class="brand">部内大会トーナメント</div>
     <div class="print-title" id="print-title"></div>
     <div class="header-actions no-print">
-      <button type="button" data-action="new">新規</button>
-      <button type="button" data-action="save" title="大会データをファイルに保存">保存</button>
-      <button type="button" data-action="load" title="保存した大会データを開く">読込</button>
+      <button type="button" data-action="new" class="owner-only">新規</button>
+      <button type="button" data-action="save" class="owner-only" title="大会データをファイルに保存">保存</button>
+      <button type="button" data-action="load" class="owner-only" title="保存した大会データを開く">読込</button>
       <button type="button" data-action="print">印刷</button>
+      <button type="button" data-action="share" title="大会データを公開して、スマホなどから見られるようにする">共有</button>
       <input type="file" id="load-file" accept=".json,application/json" hidden>
-      <span class="save-status" id="save-status" aria-live="polite"></span>
+      <span class="save-status owner-only" id="save-status" aria-live="polite"></span>
+      <button type="button" class="share-chip" id="share-chip" data-action="share" hidden></button>
     </div>
   </header>
 
   <nav class="tabs no-print" role="tablist" aria-label="画面切替">
-    <button type="button" role="tab" data-tab="setup" aria-selected="true">参加者・設定</button>
+    <button type="button" role="tab" data-tab="setup" class="owner-only" aria-selected="true">参加者・設定</button>
     <button type="button" role="tab" data-tab="tournament" aria-selected="false">トーナメント</button>
     <button type="button" role="tab" data-tab="league" aria-selected="false">総当たり</button>
     <button type="button" role="tab" data-tab="standings" aria-selected="false">順位表</button>
+    <button type="button" role="tab" data-tab="comments" id="tab-comments" aria-selected="false" hidden>コメント</button>
   </nav>
 
   <main>
@@ -34,6 +37,7 @@
     <section id="panel-tournament" class="tab-panel" role="tabpanel" hidden></section>
     <section id="panel-league" class="tab-panel" role="tabpanel" hidden></section>
     <section id="panel-standings" class="tab-panel" role="tabpanel" hidden></section>
+    <section id="panel-comments" class="tab-panel" role="tabpanel" hidden></section>
   </main>
 
   <dialog id="result-dialog" aria-labelledby="rd-title">
@@ -80,6 +84,15 @@
         <button type="submit" class="primary">取り込む</button>
       </div>
     </form>
+  </dialog>
+
+  <dialog id="share-dialog" aria-labelledby="sh-title">
+    <div class="share-box">
+      <h2 id="sh-title">共有</h2>
+      <div id="share-body"></div>
+      <p class="error" id="sh-error" role="alert"></p>
+      <div class="dialog-buttons"><span class="spacer"></span><button type="button" id="sh-close">閉じる</button></div>
+    </div>
   </dialog>
 
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
