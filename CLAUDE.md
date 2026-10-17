@@ -19,11 +19,14 @@
 
 追加機能の採否は `PLAN.md`「追加機能の検討」に記録する。
 
+任意機能として「共有」（運営が公開、閲覧者が閲覧・コメント）を持つ。必須機能 1〜8 は共有なしで完結させ、共有は無効でも壊れないこと。
+
 ## 2. 技術とプロジェクト構成
 
 - 言語: JavaScript（ES2022, ES Modules）。フレームワークなし
 - バンドル: esbuild（`src/` → `web/app.js`、IIFE 形式。`file://` でも動くようにするため）
 - デスクトップ版: Electron + electron-builder（Windows portable `.exe`）
+- 共有サーバー: Cloudflare Workers + D1（`worker/`）。アプリ側は `fetch` のみで通信（実行時ライブラリ 0 を維持）
 - テスト: Node 標準テストランナー（`node --test`）＋ Playwright（E2E）
 - 公開: GitHub Actions → GitHub Pages（`web/` を配信）
 
@@ -35,13 +38,16 @@ src/core/      純粋ロジック（DOM非依存・Nodeでテスト可能）
   exportData.js 出力用の表データ（CSV/PNG共通）
   state.js     大会データの初期値・検証・移行
   players.js   参加者・卓の編集と入力チェック
+  share.js     共有のコード・URL・コメント対象（純粋ロジック）
 src/render/    SVG 生成（表示とPNG出力で共用）
 src/ui/        画面（DOM 操作）
 web/           配信ファイル（index.html, style.css, 生成物 app.js）
 electron/      Electron メインプロセス
+worker/        共有サーバー（src/index.js, wrangler.jsonc）。認証・コメント・大会データの保管
 scripts/       ビルド補助
 test/unit/     単体テスト
-test/e2e/      E2E テスト（Playwright）
+test/e2e/      E2E テスト（Playwright）。share.spec.js は共有 API を載せたサーバー（:4174）で実行
+test/support/  テスト用の補助（D1 互換シムなど）
 ```
 
 ## 3. コーディング規約と開発ルール
@@ -53,6 +59,8 @@ test/e2e/      E2E テスト（Playwright）
 - 文字列は UTF-8。CSV 出力は BOM 付き UTF-8・CRLF（Excel で文字化けさせない）
 - ユーザーに見える文言は日本語。コード内の識別子は英語
 - 外部ランタイム依存を増やさない（実行時ライブラリは0個を維持）
+- 共有: 閲覧中は store を読み取り専用にし、この端末の自動保存を上書きしない。パスワード・トークンをログや画面に出さない。コメントは必ず HTML エスケープして表示する
+- API トークンなどの秘密情報はリポジトリに書かない（GitHub Secrets）。`wrangler.jsonc` の D1 の ID は秘密ではない
 - フォーマット: 2スペースインデント、セミコロンあり、シングルクォート
 
 ## 4. 実装時に確認すべき事項
@@ -64,6 +72,7 @@ test/e2e/      E2E テスト（Playwright）
 - 日本語が CSV（Excel）・PNG・印刷で文字化けしないか
 - 保存データの読み込みで不正ファイルを弾くか。古い形式の移行
 - Web 版（file:// と https://）と Electron 版で同じ動作をするか
+- 共有: 閲覧者が結果を変更できないか、パスワード変更・共有終了で古いトークンが無効になるか、コメントの上限・制限、サーバー不達時の表示
 
 ## 5. テスト方針と完了条件
 
