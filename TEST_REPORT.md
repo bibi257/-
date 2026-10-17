@@ -10,8 +10,8 @@
 | E2E（ブラウザ） | `npm run test:e2e` | 17 / 17 成功 |
 | Electron 起動確認（Linux） | `npm run test:electron` | 成功 |
 | Windows exe ビルド（Linux からクロスビルド） | `npm run dist:win` | 成功（PE32 実行ファイル、asar の中身を確認） |
-| Windows 実機での起動 | `windows.yml`（CI） | **未検証**（下記） |
-| GitHub Pages 公開 | `pages.yml`（CI） | **未検証**（下記） |
+| Windows 上でのパッケージ版起動（CI の windows-latest） | `windows.yml`（main, run 39034322170） | 成功（npm test → exe ビルド → パッケージ版で結果入力・PNG変換・自動保存） |
+| GitHub Pages デプロイ | `pages.yml`（main, run 39034322151） | ワークフロー成功。公開URLの表示確認は未検証（下記） |
 
 ## 観点別の確認内容
 
@@ -36,10 +36,8 @@
 
 ## 未検証の項目と理由
 
-- **Windows 実機での exe 起動**: この開発環境は Linux のため実行できない。`windows.yml` が `windows-latest` で
-  exe をビルドし、パッケージ版を Playwright で起動して「結果入力・PNG 変換・自動保存」を確認する。CI の結果は PR を参照
-- **GitHub Pages での表示**: Pages の有効化（Settings → Pages → Source: GitHub Actions）はリポジトリ設定が必要で、
-  デプロイは `main` へのマージ後に動く。ビルド済みファイルの http / file:// 動作は E2E で確認済み
+- **Windows 実機（手元の PC）での exe 起動**: CI の windows-latest（実 Windows）では起動確認に成功したが、利用者の PC での操作は未確認
+- **公開URL（https://bibi257.github.io/-/）の表示**: デプロイのワークフローは成功。この開発環境から公開URLへ接続できず、ブラウザでの表示は未確認
 - **Safari・Firefox**: Chromium のみで確認。SVG→PNG 変換は標準 API のみ使用
 - **実際の印刷結果（用紙への収まり）**: プレビュー相当の確認のみ
 
