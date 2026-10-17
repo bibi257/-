@@ -8,6 +8,7 @@ import { getState, setState, setReadOnly, setRemoteState, reloadLocal, onSaved }
 import { toast, h } from './io.js';
 import { createState, parseState } from '../core/state.js';
 import { normalizeBase, defaultBase, normalizeCode, viewerLink, codeFromHash, PASSWORD_MIN } from '../core/share.js';
+import { fitForShare } from '../core/edition.js';
 
 const KEY = 'bukatsu-taikai:share';
 const NAME_KEY = 'bukatsu-taikai:comment-name';
@@ -169,7 +170,9 @@ async function joinAdmin(args) {
   if (r.state) {
     const parsed = parseState(r.state);
     if (parsed.ok && confirm('この共有に公開済みの大会データがあります。\n\nOK: 公開済みの内容をこの端末に読み込む\nキャンセル: この端末の内容で公開し直す')) {
-      setState(parsed.state);
+      // 共有には過去の回を全部は載せないことがあるため、この端末の過去の回のほうが多ければそれを残す
+      const mine = getState().history ?? [];
+      setState({ ...parsed.state, history: mine.length >= parsed.state.history.length ? mine : parsed.state.history });
       toast('公開済みの大会データを読み込みました');
     } else {
       await pushNow();
@@ -219,7 +222,7 @@ export async function pushNow() {
   dirty = false;
   setStatus('sending');
   try {
-    const r = await call('PUT', '/state', { state: getState() });
+    const r = await call('PUT', '/state', { state: fitForShare(getState()) });
     S.rev = r.rev;
     S.lastPush = new Date();
     setStatus('ok');

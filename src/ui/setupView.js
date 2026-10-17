@@ -6,6 +6,7 @@ import { makePlayers, validatePlayers, movePlayer, resizeTables, cleanName, MAX_
 import { generateTournament, bracketSize, MAX_PLAYERS, MIN_PLAYERS } from '../core/bracket.js';
 import { generateLeague, MAX_LEAGUE_PLAYERS } from '../core/league.js';
 import { decodeText, namesFromCSV } from '../core/csv.js';
+import { editionsCardHtml } from './editions.js';
 
 const panel = () => document.getElementById('panel-setup');
 
@@ -27,6 +28,7 @@ export function renderSetup() {
         <div class="form-row"><label for="meta-title">大会名</label><input type="text" id="meta-title" value="${h(st.meta.title)}" maxlength="60" style="flex:1"></div>
         <div class="form-row"><label for="meta-date">開催日</label><input type="date" id="meta-date" value="${h(st.meta.date)}"></div>
       </div>
+      ${editionsCardHtml(st)}
       <div class="card">
         <h2>参加者 <span class="muted" id="player-count">${n}人</span>
           <span class="spacer"></span>

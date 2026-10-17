@@ -9,6 +9,8 @@ import { renderLeague, setupLeagueView } from './leagueView.js';
 import { renderStandings, setupStandingsView } from './standingsView.js';
 import { setupResultDialog } from './resultDialog.js';
 import { renderComments, setupCommentsView } from './commentsView.js';
+import { setupEditions } from './editions.js';
+import { eventTitle } from '../core/edition.js';
 import { S, initShare, isSharing, isViewer, isAdmin, onShareChange, openShareDialog, setupShareDialog } from './share.js';
 
 const TABS = { setup: renderSetup, tournament: renderTournament, league: renderLeague, standings: renderStandings, comments: renderComments };
@@ -16,14 +18,14 @@ const TAB_KEY = 'bukatsu-taikai:tab';
 let activeTab = 'setup';
 
 function render() {
-  document.getElementById('print-title').textContent = getState().meta.title;
-  document.title = `${getState().meta.title || '大会'} - 部内大会トーナメント`;
+  document.getElementById('print-title').textContent = eventTitle(getState());
+  document.title = `${eventTitle(getState())} - 部内大会トーナメント`;
   TABS[activeTab]();
 }
 
 function showTab(name) {
   if (!TABS[name]) name = 'setup';
-  if (isViewer() && name === 'setup') name = 'tournament'; // 閲覧中は設定画面を使わない
+  if (isReadOnly() && name === 'setup') name = 'tournament'; // 閲覧中（共有・過去の回）は設定画面を使わない
   if (!isSharing() && name === 'comments') name = 'setup';
   activeTab = name;
   document.querySelectorAll('.tabs [data-tab]').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.tab === name)));
@@ -117,6 +119,7 @@ function init() {
   setupStandingsView();
   setupResultDialog();
   setupCommentsView();
+  setupEditions();
   setupShareDialog();
   onChange(render);
   onShareChange(updateShareUi);
