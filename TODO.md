@@ -22,8 +22,8 @@
 - GitHub Pages の有効化はリポジトリ設定（Source: GitHub Actions）が必要
 
 ## 未検証（TEST_REPORT.md 参照）
-- Windows 実機での exe 起動（CI の windows ランナーで確認する設計）
-- GitHub Pages 上での表示（main へのマージ後）
+- 手元の Windows PC での exe 起動（CI の windows-latest では成功）
+- 公開URLでの表示（デプロイは成功。この環境から接続できず未確認）
 - Safari・Firefox、紙への印刷
 
 ## 今後の改善候補
