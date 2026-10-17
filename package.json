@@ -1,0 +1,35 @@
+{
+  "name": "bukatsu-taikai",
+  "productName": "部内大会トーナメント",
+  "version": "1.0.0",
+  "description": "部内大会のトーナメント表・総当たり表作成アプリ",
+  "private": true,
+  "type": "module",
+  "main": "electron/main.cjs",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node --test \"test/unit/*.test.js\"",
+    "test:e2e": "npm run build && playwright test",
+    "start": "npm run build && electron .",
+    "dist:win": "npm run build && electron-builder --win portable --x64"
+  },
+  "build": {
+    "appId": "jp.local.bukatsu-taikai",
+    "productName": "部内大会トーナメント",
+    "artifactName": "bukatsu-taikai-${version}-portable.exe",
+    "files": [
+      "electron/**",
+      "web/**",
+      "package.json"
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": "portable"
+    }
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  }
+}
