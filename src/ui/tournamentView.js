@@ -44,7 +44,7 @@ export function renderTournament() {
       ${champ ? `<span class="champion">優勝 ${h(champ)}</span>` : ''}
     </div>
     ${prog.ready.length ? `<p class="hint">次に行う試合<span class="owner-only">（クリックで結果入力）</span></p>
-    <div class="next-list">${prog.ready.map((m) => `<button type="button" class="next-item" data-match="${m.id}">
+    <div class="next-list">${prog.ready.map((m) => `<button type="button" class="next-item" data-match="${h(m.id)}">
       <b>No.${m.no}</b> ${h(m.tableId ? tableName(st, m.tableId) : '')} ${h(playerName(st, m.p1))} vs ${h(playerName(st, m.p2))}</button>`).join('')}</div>` : ''}
   </div>
   <div class="card">
@@ -65,7 +65,7 @@ export function renderTournament() {
     <div class="table-wrap">
       <table class="data results">
         <thead><tr>${['試合番号', '回戦', '卓', '時間帯', '選手1', 'スコア', '選手2', '勝者', '状態'].map((x) => `<th>${x}</th>`).join('')}</tr></thead>
-        <tbody>${rows.map(({ match: m, cells }) => `<tr class="st-${m.status}${m.playable ? ' clickable' : ''}" ${m.playable ? `data-match="${m.id}"` : ''}>
+        <tbody>${rows.map(({ match: m, cells }) => `<tr class="st-${m.status}${m.playable ? ' clickable' : ''}" ${m.playable ? `data-match="${h(m.id)}"` : ''}>
           ${cells.map((c, i) => `<td${[0, 3, 5].includes(i) ? ' class="num"' : ''}>${h(c)}</td>`).join('')}</tr>`).join('')}</tbody>
       </table>
     </div>

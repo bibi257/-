@@ -117,6 +117,11 @@ async function hmacKey(secret) {
 
 // ---- DB ----
 
+/** 期限内の共有を1件読む。最後の更新から ROOM_TTL を過ぎた共有は、掃除される前でも「存在しない」として扱う */
+function findRoom(env, cols, code) {
+  return env.DB.prepare(`SELECT ${cols} FROM rooms WHERE code = ? AND updated_at >= ?`).bind(code, now(env) - ROOM_TTL).first();
+}
+
 const ready = new WeakSet();
 
 async function initDb(db) {
@@ -155,7 +160,7 @@ async function authorize(env, request, code) {
     throw fail();
   }
   if (payload.c !== code || payload.e < now(env)) throw fail();
-  const room = await env.DB.prepare('SELECT code, title, viewer_ver, admin_ver, rev, crev, updated_at FROM rooms WHERE code = ?').bind(code).first();
+  const room = await findRoom(env, 'code, title, viewer_ver, admin_ver, rev, crev, updated_at', code);
   if (!room) throw new HttpError(404, 'この共有は終了したか、存在しません');
   const ver = payload.r === 'admin' ? room.admin_ver : room.viewer_ver;
   if (payload.r !== 'admin' && payload.r !== 'viewer') throw fail();
@@ -268,7 +273,7 @@ async function login(env, request, code) {
   if ((await isLimited(env, ipKey, 10)) || (await isLimited(env, codeKey, 60))) {
     throw new HttpError(429, 'パスワードの間違いが続いたため、しばらく入力できません。10分ほど待ってください');
   }
-  const room = await env.DB.prepare('SELECT code, admin_pw, admin_ver, viewer_ver FROM rooms WHERE code = ?').bind(code).first();
+  const room = await findRoom(env, 'code, admin_pw, admin_ver, viewer_ver', code);
   const pw = typeof body.password === 'string' ? body.password.slice(0, PASSWORD_MAX) : '';
   // 共有コードの有無で処理時間が変わらないよう、存在しない場合も同じ計算をする
   const ok = await verifyPassword(pw, room ? room.admin_pw : DUMMY_HASH);
@@ -284,7 +289,7 @@ async function login(env, request, code) {
 async function join(env, request, code) {
   const key = `jn:${await sha256Hex(clientIp(request))}`;
   if (await isLimited(env, key, JOIN_MISS_MAX)) throw new HttpError(429, '存在しない共有コードの入力が続いたため、しばらく入れません。10分ほど待ってください');
-  const room = await env.DB.prepare('SELECT code, admin_ver, viewer_ver FROM rooms WHERE code = ?').bind(code).first();
+  const room = await findRoom(env, 'code, admin_ver, viewer_ver', code);
   if (!room) {
     await countHit(env, key, 600);
     throw new HttpError(404, '共有コードが見つかりません。入力を確認してください（共有が終了した可能性もあります）');
@@ -322,8 +327,10 @@ async function putState(env, request, code) {
   const text = JSON.stringify(body.state);
   if (text.length > MAX_STATE_CHARS) throw new HttpError(413, '大会データが大きすぎます');
   const title = clip(strip(String(body.state.meta?.title ?? '')).trim(), 100);
-  const rev = auth.room.rev + 1;
-  await env.DB.prepare('UPDATE rooms SET state = ?, title = ?, rev = ?, updated_at = ? WHERE code = ?').bind(text, title, rev, now(env), code).run();
+  // 版番号は DB 側で +1 する。読んだ値に +1 して書くと、2台から同時に送ったときに同じ番号になり、閲覧者が後の更新を受け取れない
+  const rev = await env.DB.prepare('UPDATE rooms SET state = ?, title = ?, rev = rev + 1, updated_at = ? WHERE code = ? RETURNING rev')
+    .bind(text, title, now(env), code).first('rev');
+  if (rev === null) throw new HttpError(404, 'この共有は終了したか、存在しません');
   return json({ ok: true, rev });
 }
 

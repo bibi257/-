@@ -116,3 +116,19 @@ test('表SVG: 行数に応じた高さ', () => {
   assert.ok(svg.includes('総当たり 順位表'));
   assert.ok(height >= 56 + 7 * 28);
 });
+
+test('トーナメント表CSV: 3位決定戦の行も見出しと同じ列数（3〜8人）', () => {
+  for (const n of [3, 4, 5, 8]) {
+    const st = sample(n, { thirdPlace: true });
+    const tb = bracketTable(st);
+    for (const row of tb.rows) assert.equal(row.length, tb.headers.length, `${n}人`);
+  }
+  // 4人: スコアは対戦者の欄にまとめる
+  const st = sample(4, { thirdPlace: true });
+  let t = st.tournament;
+  t = setTournamentResult(t, 'R1-M1', { score1: 3, score2: 0 }).tournament;
+  t = setTournamentResult(t, 'R1-M2', { score1: 2, score2: 1 }).tournament;
+  t = setTournamentResult(t, '3P', { score1: 1, score2: 4 }).tournament;
+  st.tournament = t;
+  assert.deepEqual(bracketTable(st).rows.at(-1), ['3位決定戦', '選手4 vs 選手3 (1-4)', '3位: 選手3']);
+});

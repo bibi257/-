@@ -40,9 +40,9 @@ export function renderSetup() {
             <thead><tr><th class="num">No</th><th>名前</th><th>並べ替え・削除</th></tr></thead>
             <tbody>
               ${st.players.map((p, i) => `
-              <tr data-id="${p.id}">
+              <tr data-id="${h(p.id)}">
                 <td class="idx">${i + 1}${i < Math.min(s.seedCount, n) ? `<span class="seed-badge">第${i + 1}シード</span>` : ''}</td>
-                <td><input type="text" class="name" data-id="${p.id}" value="${h(p.name)}" maxlength="40" aria-label="${i + 1}番目の名前"></td>
+                <td><input type="text" class="name" data-id="${h(p.id)}" value="${h(p.name)}" maxlength="40" aria-label="${i + 1}番目の名前"></td>
                 <td class="ops">
                   <button type="button" class="icon" data-act="up" data-i="${i}" ${i === 0 ? 'disabled' : ''} aria-label="上へ">↑</button>
                   <button type="button" class="icon" data-act="down" data-i="${i}" ${i === n - 1 ? 'disabled' : ''} aria-label="下へ">↓</button>
@@ -65,7 +65,7 @@ export function renderSetup() {
           <input type="number" id="table-count" min="1" max="${MAX_TABLES}" value="${st.tables.length}" style="width:6em"></div>
         <p class="hint">各回戦の試合を卓へ順番に割り当てます。卓数より試合が多いときは「時間帯」が2, 3…と分かれます。</p>
         <div class="tables-list">
-          ${st.tables.map((t, i) => `<input type="text" class="table-name" data-id="${t.id}" value="${h(t.name)}" maxlength="20" aria-label="卓${i + 1}の名前">`).join('')}
+          ${st.tables.map((t, i) => `<input type="text" class="table-name" data-id="${h(t.id)}" value="${h(t.name)}" maxlength="20" aria-label="卓${i + 1}の名前">`).join('')}
         </div>
       </div>
       <div class="card">

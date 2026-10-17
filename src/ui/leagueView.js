@@ -39,7 +39,7 @@ export function renderLeague() {
       <span><b>${prog.done}</b> / ${prog.total} 試合終了</span>
       ${prog.nextRound ? `<span class="muted">次は ${prog.nextRound}回戦${res.rest[prog.nextRound - 1].length ? `（休み: ${h(res.rest[prog.nextRound - 1].map((id) => playerName(st, id)).join('、'))}）` : ''}</span>` : '<span class="champion">全試合終了</span>'}
     </div>
-    ${prog.ready.length ? `<div class="next-list">${prog.ready.map((m) => `<button type="button" class="next-item" data-match="${m.id}">
+    ${prog.ready.length ? `<div class="next-list">${prog.ready.map((m) => `<button type="button" class="next-item" data-match="${h(m.id)}">
       <b>No.${m.no}</b> ${h(m.tableId ? tableName(st, m.tableId) : '')}${m.timeSlot > 1 ? `（時間帯${m.timeSlot}）` : ''} ${h(playerName(st, m.p1))} vs ${h(playerName(st, m.p2))}</button>`).join('')}</div>` : ''}
   </div>
   <div class="card">
@@ -62,7 +62,7 @@ export function renderLeague() {
             if (op === id) return '<td class="self">－</td>';
             const m = pairs.get(`${id}|${op}`);
             const o = outcomeFor(m, l.results[m.id], id) || 'pending';
-            return `<td class="cell ${o}" data-match="${m.id}" title="${h(playerName(st, id))} vs ${h(playerName(st, op))}">${h(row[j + 1]) || '・'}</td>`;
+            return `<td class="cell ${o}" data-match="${h(m.id)}" title="${h(playerName(st, id))} vs ${h(playerName(st, op))}">${h(row[j + 1]) || '・'}</td>`;
           }).join('')}${row.slice(n + 1).map((c) => `<td>${h(c)}</td>`).join('')}</tr>`;
         }).join('')}</tbody>
       </table>
@@ -73,7 +73,7 @@ export function renderLeague() {
     <div class="table-wrap">
       <table class="data results">
         <thead><tr>${['試合番号', '回戦', '卓', '時間帯', '選手1', 'スコア', '選手2', '結果', '状態'].map((x) => `<th>${x}</th>`).join('')}</tr></thead>
-        <tbody>${rows.map(({ match: m, cells }) => `<tr class="st-${m.status} clickable" data-match="${m.id}">
+        <tbody>${rows.map(({ match: m, cells }) => `<tr class="st-${m.status} clickable" data-match="${h(m.id)}">
           ${cells.map((c, i) => `<td${[0, 3, 5].includes(i) ? ' class="num"' : ''}>${h(c)}</td>`).join('')}</tr>`).join('')}</tbody>
       </table>
     </div>

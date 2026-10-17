@@ -342,6 +342,22 @@ test.describe('保存・読込', () => {
     await expect(page.locator('#player-count')).toHaveText('2人');
   });
 
+  test('ID に HTML を仕込んだファイルは読み込まず、スクリプトも動かない', async ({ page }) => {
+    acceptDialogs(page);
+    await open(page);
+    const evil = 'L1"><img id=pwn src=x onerror="document.title=\'XSS\'">';
+    const data = {
+      kind: 'bukatsu-taikai', version: 1, meta: { title: '細工' }, settings: {}, tournament: null,
+      players: [{ id: 'a', name: 'A' }, { id: 'b', name: 'B' }], tables: [{ id: 't1', name: '第1卓' }],
+      league: { playerIds: ['a', 'b'], matches: [{ id: evil, round: 1, p1: 'a', p2: 'b' }], results: {} },
+    };
+    await page.setInputFiles('#load-file', { name: 'evil.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(data)) });
+    await expect(page.locator('#toast')).toContainText('読み込めませんでした');
+    await page.click('[data-tab=league]');
+    await expect(page.locator('#pwn')).toHaveCount(0);
+    expect(await page.title()).not.toBe('XSS');
+  });
+
   test('自動保存: 再読み込みしても続きから', async ({ page }) => {
     acceptDialogs(page);
     await open(page);

@@ -45,8 +45,12 @@ export function bracketTable(state) {
     const tp = res.thirdPlace;
     rows.push(Array(R + 1).fill(''));
     const name = (side) => (tp[side] === undefined ? '（未定）' : playerName(state, tp[side]));
-    const winner = tp.winner ? playerName(state, tp.winner) : '';
-    rows.push(['3位決定戦', `${name('p1')} vs ${name('p2')}`, formatScore(tp.result), winner ? `3位: ${winner}` : '']);
+    const winner = tp.winner ? `3位: ${playerName(state, tp.winner)}` : '';
+    const vs = `${name('p1')} vs ${name('p2')}`;
+    const score = formatScore(tp.result);
+    // 見出しの列数（回戦数+1）に合わせる。4人以下は列が3つなので、スコアを対戦者の欄にまとめる
+    const cells = R + 1 >= 4 ? ['3位決定戦', vs, score, winner] : ['3位決定戦', score ? `${vs} (${score})` : vs, winner];
+    rows.push([...cells, ...Array(R + 1 - cells.length).fill('')]);
   }
   return { title: titleOf(state, 'トーナメント表'), headers, rows };
 }

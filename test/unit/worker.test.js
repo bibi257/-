@@ -319,3 +319,44 @@ test('CORS: プリフライトと通常応答にヘッダーが付く。/api 以
   assert.equal(await res.text(), 'asset');
   assert.equal(calls.length, 1);
 });
+
+test('同時に2回公開しても版番号は重ならない（閲覧者が後の更新を取りこぼさない）', async () => {
+  const { api, env } = setup();
+  const r = await newRoom(api);
+  const path = `/api/rooms/${r.code}/state`;
+  // 2つの要求がどちらも書き込みの直前まで進んでから書くようにして、同時実行を再現する
+  const prepare = env.DB.prepare;
+  let waiting = 0;
+  let release;
+  const bothReady = new Promise((res) => { release = res; });
+  const gate = async () => { if (++waiting === 2) release(); await bothReady; };
+  env.DB.prepare = (sql) => {
+    const st = prepare(sql);
+    if (!sql.startsWith('UPDATE rooms SET state')) return st;
+    return { bind: (...p) => {
+      const b = st.bind(...p);
+      return { run: async () => { await gate(); return b.run(); }, first: async (c) => { await gate(); return b.first(c); } };
+    } };
+  };
+  const [a, b] = await Promise.all([
+    api('PUT', path, { token: r.token, body: { state: sampleState('A') } }),
+    api('PUT', path, { token: r.token, body: { state: sampleState('B') } }),
+  ]);
+  env.DB.prepare = prepare;
+  assert.deepEqual([a.data.rev, b.data.rev].sort(), [1, 2]);
+  const vt = await viewerToken(api, r.code);
+  const got = await api('GET', `/api/rooms/${r.code}/sync?rev=-1&crev=-1`, { token: vt });
+  assert.equal(got.data.rev, 2);
+});
+
+test('90日更新のない共有は、削除される前でも入れない・見られない', async () => {
+  const { api, clock } = setup();
+  const r = await newRoom(api);
+  // 期限の1時間前に入場（トークンは12時間有効）→ 2時間後は共有の期限切れ
+  clock.t += 90 * 24 * 3600 - 3600;
+  const vt = await viewerToken(api, r.code);
+  clock.t += 2 * 3600;
+  assert.equal((await api('GET', `/api/rooms/${r.code}/sync?rev=-1&crev=-1`, { token: vt })).status, 404);
+  assert.equal((await api('POST', `/api/rooms/${r.code}/join`)).status, 404);
+  assert.equal((await api('POST', `/api/rooms/${r.code}/login`, { body: { password: ADMIN } })).status, 401);
+});
