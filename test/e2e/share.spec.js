@@ -5,7 +5,6 @@ import { NAMES, open, importNames, acceptDialogs, enterScore } from './helpers.j
 test.use({ baseURL: 'http://localhost:4174/' });
 test.describe.configure({ mode: 'serial' });
 
-const VIEW_PW = 'view-pass-1';
 const ADMIN_PW = 'admin-pass-1';
 
 /** 部屋ごとに別の IP として扱わせ、作成回数の制限に当たらないようにする */
@@ -23,8 +22,8 @@ async function untilSynced(page, check, timeout = 15000) {
 
 async function startShare(page) {
   await page.click('[data-action=share]');
-  await page.fill('#sh-vpw', VIEW_PW);
   await page.fill('#sh-apw', ADMIN_PW);
+  await page.fill('#sh-apwc', ADMIN_PW);
   await page.click('[data-sh=start]');
   await expect(page.locator('.sh-code')).toHaveText(/^[a-hj-km-np-z2-9]{8}$/);
   return (await page.locator('.sh-code').textContent()).trim();
@@ -36,7 +35,7 @@ async function makeTournament(page) {
   await page.waitForSelector('#bracket-wrap svg');
 }
 
-test('運営が共有を始め、閲覧者が見て、結果の更新とコメントが反映される', async ({ browser }) => {
+test('運営が共有を始め、閲覧者はリンクを開くだけで見られ、結果の更新とコメントが反映される', async ({ browser }) => {
   const admin = await browser.newContext();
   const viewer = await browser.newContext();
   await withIp(admin, '10.0.0.1');
@@ -54,33 +53,24 @@ test('運営が共有を始め、閲覧者が見て、結果の更新とコメ�
   await a.click('#sh-close');
   await expect(a.locator('#share-chip')).toContainText(code);
 
-  // 閲覧者: リンクを開くとコードが入力済み。閲覧パスワードで入る
+  // 閲覧者: リンクを開くだけ（パスワード入力もダイアログも無し）で表が見える
   await v.goto(link);
-  await v.evaluate(() => { sessionStorage.clear(); });
-  await expect(v.locator('#sh-code')).toHaveValue(code);
-  await v.fill('#sh-vpw2', 'wrong-password');
-  await v.click('[data-sh=join]');
-  await expect(v.locator('#sh-error')).toContainText('違います');
-  await v.fill('#sh-vpw2', VIEW_PW);
-  await v.click('[data-sh=join]');
-  await expect(v.locator('.sh-code')).toHaveText(code);
-  await v.click('#sh-close');
-
-  // 閲覧専用: 設定タブや編集ボタンが無く、表が見える。試合をクリックしても入力ダイアログは開かない
   await expect(v.locator('#bracket-wrap svg')).toBeVisible();
+  await expect(v.locator('#share-dialog')).not.toBeVisible();
+  await expect(v.locator('#share-chip')).toContainText('閲覧中');
+
+  // 閲覧専用: 設定タブや編集ボタンが無い。試合をクリックしても入力ダイアログは開かない
   await expect(v.locator('[data-tab=setup]')).toBeHidden();
   await expect(v.locator('[data-action=save]')).toBeHidden();
-  await expect(v.locator('#share-chip')).toContainText('閲覧中');
   await v.locator('g.match').first().click();
   await expect(v.locator('#result-dialog')).not.toBeVisible();
   // 閲覧者の端末の自動保存は、閲覧データで上書きされない
   expect(await v.evaluate(() => localStorage.getItem('bukatsu-taikai:state'))).toBeNull();
 
-  // 運営が結果を入力すると、閲覧者に反映される（15秒の定期更新を待たず、画面を戻して即時更新）
+  // 運営が結果を入力すると、閲覧者に反映される
   await a.click('.tabs [data-tab=tournament]');
   await a.locator('g.match').first().click();
   await enterScore(a, 3, 1);
-  await expect(a.locator('#share-chip')).not.toContainText('送信中');
   await untilSynced(v, () => expect(v.locator('.results tbody tr.st-done')).toHaveCount(1, { timeout: 1000 }));
   await expect(v.locator('.results tbody tr.st-done')).toContainText('3-1');
 
@@ -112,7 +102,7 @@ test('運営が共有を始め、閲覧者が見て、結果の更新とコメ�
   await viewer.close();
 });
 
-test('閲覧用パスワードを変えると今の閲覧者は入り直しが必要になる。共有を終了すると見られなくなる', async ({ browser }) => {
+test('運営用パスワードを変えても閲覧は続く。共有を終了すると閲覧者は切断される', async ({ browser }) => {
   const admin = await browser.newContext();
   const viewer = await browser.newContext();
   await withIp(admin, '10.0.1.1');
@@ -125,24 +115,35 @@ test('閲覧用パスワードを変えると今の閲覧者は入り直しが�
   await makeTournament(a);
   const code = await startShare(a);
 
+  // 閲覧者: 共有コードだけで入る（パスワード欄は無い）
   await v.goto('/');
   await v.click('[data-action=share]');
+  await expect(v.locator('section.sh-section', { hasText: '共有を見る' }).locator('input[type=password]')).toHaveCount(0); // 閲覧にパスワード欄は無い
   await v.fill('#sh-code', code);
-  await v.fill('#sh-vpw2', VIEW_PW);
   await v.click('[data-sh=join]');
   await expect(v.locator('#bracket-wrap svg')).toBeVisible();
   await v.click('#sh-close');
 
-  // 閲覧用パスワードを変更 → 閲覧者は次の更新で「再ログインが必要」になる
+  // 運営用パスワードを変更 → 運営はそのまま使え、閲覧者も影響を受けない
   await a.locator('.sh-details summary').first().click();
-  await a.fill('#sh-newv', 'new-view-pass');
-  await a.click('[data-sh=pw-viewer]');
-  await untilSynced(v, () => expect(v.locator('#share-dialog')).toBeVisible({ timeout: 1000 }));
-  await expect(v.locator('#share-body')).toContainText('認証が切れました');
-  await v.fill('#sh-pw', 'new-view-pass');
-  await v.click('[data-sh=relogin]');
-  await expect(v.locator('#share-chip')).toContainText('閲覧中');
-  await v.click('#sh-close');
+  await a.fill('#sh-newa', 'new-admin-pass');
+  await a.click('[data-sh=pw-admin]');
+  await expect(a.locator('#toast')).toContainText('変更しました');
+  await a.click('[data-sh=push]');
+  await expect(a.locator('#share-chip')).not.toContainText('再ログイン');
+  await untilSynced(v, () => expect(v.locator('#share-chip')).toContainText('閲覧中', { timeout: 1000 }));
+  await expect(v.locator('#share-dialog')).not.toBeVisible();
+
+  // 古い運営用パスワードでは、運営として再接続できない
+  await a.click('[data-sh=disconnect]');
+  await a.locator('.sh-details summary').first().click();
+  await a.fill('#sh-code2', code);
+  await a.fill('#sh-apw2', ADMIN_PW);
+  await a.click('[data-sh=admin]');
+  await expect(a.locator('#sh-error')).toContainText('違います');
+  await a.fill('#sh-apw2', 'new-admin-pass');
+  await a.click('[data-sh=admin]');
+  await expect(a.locator('.sh-code')).toHaveText(code);
 
   // 共有を終了
   await a.click('[data-sh=close]');
@@ -154,16 +155,58 @@ test('閲覧用パスワードを変えると今の閲覧者は入り直しが�
   await viewer.close();
 });
 
+test('自分の大会データがある端末で閲覧リンクを開くと、確認してから入り、やめると元のデータに戻る', async ({ browser }) => {
+  const admin = await browser.newContext();
+  const other = await browser.newContext();
+  await withIp(admin, '10.0.2.1');
+  await withIp(other, '10.0.2.2');
+  const a = await admin.newPage();
+  const o = await other.newPage();
+  const dialogs = acceptDialogs(o);
+  acceptDialogs(a);
+  await open(a);
+  await makeTournament(a);
+  const code = await startShare(a);
+  const link = await a.inputValue('#sh-link');
+
+  await open(o);
+  await importNames(o, ['自分 一郎', '自分 二郎']);
+  await o.goto(link);
+  // 自動では入らず、共有コードが入力済みのダイアログが出る
+  await expect(o.locator('#share-dialog')).toBeVisible();
+  await expect(o.locator('#sh-code')).toHaveValue(code);
+  await expect(o.locator('#share-chip')).toBeHidden();
+  await o.click('[data-sh=join]');
+  await expect(o.locator('#bracket-wrap svg')).toBeVisible();
+  expect(dialogs.some((m) => m.includes('この端末の大会データは表示されません'))).toBe(true);
+  await o.click('#sh-close');
+
+  await o.click('#share-chip');
+  await o.click('[data-sh=disconnect]');
+  await o.click('#sh-close');
+  await o.click('.tabs [data-tab=setup]');
+  await expect(o.locator('#panel-setup')).toContainText('参加者 2人');
+  const names = await o.evaluate(() => JSON.parse(localStorage.getItem('bukatsu-taikai:state')).players.map((p) => p.name));
+  expect(names).toEqual(['自分 一郎', '自分 二郎']); // 閲覧中も、この端末の保存データは書き換わらない
+
+  await admin.close();
+  await other.close();
+});
+
 test('共有サーバーに接続できないときは、分かる文言を出して入力内容を保つ', async ({ page }) => {
   await open(page);
   await page.click('[data-action=share]');
   await page.fill('#sh-base', 'http://localhost:1');
-  await page.fill('#sh-vpw', VIEW_PW);
   await page.fill('#sh-apw', ADMIN_PW);
+  await page.fill('#sh-apwc', ADMIN_PW);
   await page.click('[data-sh=start]');
   await expect(page.locator('#sh-error')).toContainText('接続できませんでした');
-  await expect(page.locator('#sh-vpw')).toHaveValue(VIEW_PW);
-  await page.fill('#sh-vpw', 'abc');
+  await expect(page.locator('#sh-apw')).toHaveValue(ADMIN_PW);
+  await page.fill('#sh-apwc', 'different');
+  await page.click('[data-sh=start]');
+  await expect(page.locator('#sh-error')).toContainText('一致しません');
+  await page.fill('#sh-apw', 'abc');
+  await page.fill('#sh-apwc', 'abc');
   await page.click('[data-sh=start]');
   await expect(page.locator('#sh-error')).toContainText('6文字以上');
 });

@@ -1,5 +1,6 @@
 // 共有（運営が大会データを公開し、閲覧者が見る・コメントする）の通信・同期・ダイアログ
 //
+// 閲覧者はパスワード不要（閲覧リンク＝共有コードを知っていれば入れる）。運営だけが運営用パスワードを持つ。
 // 運営: 保存のたびに大会データを送信（少し待ってまとめて）。閲覧者: 15秒ごとに更新を確認。
 // 閲覧中は store を読み取り専用にし、この端末の自動保存データを上書きしない。
 
@@ -86,7 +87,25 @@ async function request(base, method, path, { token, body } = {}) {
   return data;
 }
 
-const call = (method, path, body) => request(S.cfg.base, method, `/api/rooms/${S.cfg.code}${path}`, { token: S.cfg.token, body });
+/** 閲覧者のトークンは期限（12時間）が来ても、パスワード不要なので自動で取り直す */
+async function rejoinViewer() {
+  const data = await request(S.cfg.base, 'POST', `/api/rooms/${S.cfg.code}/join`);
+  S.cfg = { ...S.cfg, token: data.token, exp: data.expiresAt };
+  saveCfg();
+}
+
+async function call(method, path, body) {
+  const go = () => request(S.cfg.base, method, `/api/rooms/${S.cfg.code}${path}`, { token: S.cfg.token, body });
+  try {
+    return await go();
+  } catch (e) {
+    if (e.status === 401 && isViewer()) {
+      await rejoinViewer();
+      return go();
+    }
+    throw e;
+  }
+}
 
 function setStatus(status, message = '') {
   S.status = status;
@@ -122,27 +141,26 @@ function leaveViewer() {
 }
 
 /** 運営として共有を始める。大会データをすぐ送信する */
-async function startShare({ base, viewerPassword, adminPassword }) {
-  const data = await request(base, 'POST', '/api/rooms', { body: { viewerPassword, adminPassword, title: getState().meta.title } });
+async function startShare({ base, adminPassword }) {
+  const data = await request(base, 'POST', '/api/rooms', { body: { adminPassword, title: getState().meta.title } });
   useSession(base, data, 'admin');
   await pushNow();
   return data.code;
 }
 
-async function login({ base, code, password, role }) {
-  const data = await request(base, 'POST', `/api/rooms/${code}/login`, { body: { role, password } });
-  return data;
+function loginAdmin({ base, code, password }) {
+  return request(base, 'POST', `/api/rooms/${code}/login`, { body: { password } });
 }
 
-async function joinViewer(args) {
-  const data = await login({ ...args, role: 'viewer' });
-  useSession(args.base, data, 'viewer');
+async function joinViewer({ base, code }) {
+  const data = await request(base, 'POST', `/api/rooms/${code}/join`);
+  useSession(base, data, 'viewer');
   await pollOnce();
   window.dispatchEvent(new CustomEvent('app:tab', { detail: 'tournament' }));
 }
 
 async function joinAdmin(args) {
-  const data = await login({ ...args, role: 'admin' });
+  const data = await loginAdmin(args);
   useSession(args.base, data, 'admin');
   const r = await call('GET', '/sync?rev=-1&crev=-1');
   S.rev = r.rev;
@@ -163,7 +181,7 @@ async function joinAdmin(args) {
 }
 
 function relogin(password) {
-  return login({ base: S.cfg.base, code: S.cfg.code, password, role: S.cfg.role }).then((data) => {
+  return loginAdmin({ base: S.cfg.base, code: S.cfg.code, password }).then((data) => {
     S.cfg = { ...S.cfg, token: data.token, exp: data.expiresAt };
     saveCfg();
     setStatus('ok');
@@ -224,11 +242,10 @@ function schedulePush() {
 // ---- 同期（コメント・閲覧者のデータ更新） ----
 
 function handleError(e, prefix) {
-  if (e.status === 401) {
+  if (e.status === 401 && isAdmin()) {
     clearTimeout(pollTimer);
     setStatus('auth', e.message);
-    if (isViewer()) openShareDialog();
-    else toast('共有の認証が切れました。共有の画面でパスワードを入力してください', { error: true });
+    toast('共有の認証が切れました。共有の画面でパスワードを入力してください', { error: true });
   } else if (e.status === 404) {
     const wasViewer = isViewer();
     disconnect();
@@ -308,8 +325,8 @@ function bodyHtml(prefill) {
   const baseField = field('sh-base', '共有サーバーのURL', `value="${h(base)}" placeholder="https://tournament.○○.workers.dev" autocomplete="url" inputmode="url"`);
   if (S.cfg && S.status === 'auth') {
     return `<p class="bad">${h(S.message || '認証が切れました')}</p>
-    <p>共有コード <b class="sh-code">${h(S.cfg.code)}</b> に入り直します。${isAdmin() ? '運営用' : '閲覧用'}パスワードを入力してください。</p>
-    ${field('sh-pw', 'パスワード', 'type="password" autocomplete="current-password"')}
+    <p>共有コード <b class="sh-code">${h(S.cfg.code)}</b> に入り直します。運営用パスワードを入力してください。</p>
+    ${field('sh-pw', '運営用パスワード', 'type="password" autocomplete="current-password"')}
     <p class="sh-actions"><button type="button" class="primary" data-sh="relogin">入り直す</button> <button type="button" data-sh="disconnect">共有から切断</button></p>`;
   }
   if (isAdmin()) {
@@ -317,12 +334,10 @@ function bodyHtml(prefill) {
     return `<p class="sh-state">${statusLine()}</p>
     <div class="sh-row"><span>共有コード</span><b class="sh-code">${h(S.cfg.code)}</b></div>
     <div class="sh-row"><span>閲覧リンク</span><input id="sh-link" readonly value="${h(link)}"><button type="button" data-sh="copy">コピー</button></div>
-    <p class="hint">閲覧者には、このリンクと<b>閲覧用パスワード</b>を伝えてください（パスワードは安全のため画面には表示されません）。閲覧者はコメントも書けます。</p>
+    <p class="hint">閲覧者には、この<b>閲覧リンク</b>を伝えてください。リンクを知っている人は、パスワードなしで閲覧・コメントできます（リンクを知らない人は入れません）。個人情報は載せない運用にしてください。</p>
     <p class="sh-actions"><button type="button" class="primary" data-sh="push">今すぐ送信</button></p>
-    <details class="sh-details"><summary>パスワードを変更する</summary>
-      <div class="sh-pwrow">${field('sh-newv', '新しい閲覧用パスワード', 'type="password" autocomplete="new-password"')}<button type="button" data-sh="pw-viewer">変更</button></div>
+    <details class="sh-details"><summary>運営用パスワードを変更する</summary>
       <div class="sh-pwrow">${field('sh-newa', '新しい運営用パスワード', 'type="password" autocomplete="new-password"')}<button type="button" data-sh="pw-admin">変更</button></div>
-      <p class="hint">閲覧用を変えると、今見ている人はもう一度パスワードの入力が必要になります。</p>
     </details>
     <p class="sh-actions"><button type="button" data-sh="disconnect">切断（共有は残す）</button> <button type="button" class="danger" data-sh="close">共有を終了（サーバーのデータを削除）</button></p>`;
   }
@@ -332,15 +347,14 @@ function bodyHtml(prefill) {
     <p class="hint">閲覧専用です。コメントタブからコメントを書けます。</p>
     <p class="sh-actions"><button type="button" data-sh="disconnect">閲覧をやめる</button></p>`;
   }
-  return `<p class="hint">大会データをサーバーに公開し、スマホなどから見られるようにします（閲覧者はコメントも書けます）。共有サーバー（Cloudflare Worker）が必要です。設定は README の「共有機能」を参照してください。</p>
+  return `<p class="hint">大会データをサーバーに公開し、スマホなどから見られるようにします。閲覧者はパスワード不要で、閲覧リンクを開くだけです（コメントも書けます）。共有サーバー（Cloudflare Worker）が必要です。設定は README の「共有機能」を参照してください。</p>
   ${baseField}
   <section class="sh-section"><h3>大会を共有する（運営）</h3>
-    ${field('sh-vpw', `閲覧用パスワード（参加者に伝える・${PASSWORD_MIN}文字以上）`, 'type="password" autocomplete="new-password"')}
-    ${field('sh-apw', `運営用パスワード（あなた専用・${PASSWORD_MIN}文字以上）`, 'type="password" autocomplete="new-password"')}
+    ${field('sh-apw', `運営用パスワード（あなた専用・${PASSWORD_MIN}文字以上。忘れると運営として入れません）`, 'type="password" autocomplete="new-password"')}
+    ${field('sh-apwc', '運営用パスワード（確認のためもう一度）', 'type="password" autocomplete="new-password"')}
     <button type="button" class="primary" data-sh="start">共有を始める</button></section>
   <section class="sh-section"><h3>共有を見る（閲覧）</h3>
-    ${field('sh-code', '共有コード', `value="${h(prefill.code || '')}" autocomplete="off" autocapitalize="none" spellcheck="false"`)}
-    ${field('sh-vpw2', '閲覧用パスワード', 'type="password" autocomplete="current-password"')}
+    ${field('sh-code', '共有コード（閲覧リンクを開けば自動で入ります）', `value="${h(prefill.code || '')}" autocomplete="off" autocapitalize="none" spellcheck="false"`)}
     <button type="button" class="primary" data-sh="join">見る</button></section>
   <details class="sh-details"><summary>運営として再接続する（別の端末・認証切れ）</summary>
     ${field('sh-code2', '共有コード', 'autocomplete="off" autocapitalize="none" spellcheck="false"')}
@@ -385,11 +399,10 @@ const val = (id) => $(id)?.value ?? '';
 
 async function onAction(act, btn) {
   if (act === 'start') {
-    const viewerPassword = val('sh-vpw');
     const adminPassword = val('sh-apw');
-    if (viewerPassword.length < PASSWORD_MIN || adminPassword.length < PASSWORD_MIN) throw new ShareError(0, `パスワードは${PASSWORD_MIN}文字以上で入力してください`);
-    if (viewerPassword === adminPassword) throw new ShareError(0, '閲覧用と運営用には別のパスワードを使ってください');
-    await startShare({ base: readBase(), viewerPassword, adminPassword });
+    if (adminPassword.length < PASSWORD_MIN) throw new ShareError(0, `パスワードは${PASSWORD_MIN}文字以上で入力してください`);
+    if (adminPassword !== val('sh-apwc')) throw new ShareError(0, '確認用のパスワードが一致しません');
+    await startShare({ base: readBase(), adminPassword });
     toast('共有を始めました');
   } else if (act === 'join') {
     const code = normalizeCode(val('sh-code'));
@@ -397,7 +410,7 @@ async function onAction(act, btn) {
     if (getState().players.length || getState().tournament || getState().league) {
       if (!confirm('共有を見ている間は、この端末の大会データは表示されません（閲覧をやめると元に戻ります。データは消えません）。\n続けますか？')) return;
     }
-    await joinViewer({ base: readBase(), code, password: val('sh-vpw2') });
+    await joinViewer({ base: readBase(), code });
   } else if (act === 'admin') {
     const code = normalizeCode(val('sh-code2'));
     if (!code) throw new ShareError(0, '共有コードは8文字です。入力を確認してください');
@@ -412,15 +425,14 @@ async function onAction(act, btn) {
     const link = $('sh-link');
     link.select();
     try { await navigator.clipboard.writeText(link.value); toast('閲覧リンクをコピーしました'); } catch { toast('リンクを選択しました。コピーしてください'); }
-  } else if (act === 'pw-viewer' || act === 'pw-admin') {
-    const role = act === 'pw-admin' ? 'admin' : 'viewer';
-    const password = val(role === 'admin' ? 'sh-newa' : 'sh-newv');
+  } else if (act === 'pw-admin') {
+    const password = val('sh-newa');
     if (password.length < PASSWORD_MIN) throw new ShareError(0, `パスワードは${PASSWORD_MIN}文字以上で入力してください`);
-    const r = await call('PUT', '/passwords', { role, password });
+    const r = await call('PUT', '/passwords', { password });
     S.cfg = { ...S.cfg, token: r.token, exp: r.expiresAt };
     saveCfg();
-    $(role === 'admin' ? 'sh-newa' : 'sh-newv').value = '';
-    toast(`${role === 'admin' ? '運営用' : '閲覧用'}パスワードを変更しました`);
+    $('sh-newa').value = '';
+    toast('運営用パスワードを変更しました');
   } else if (act === 'disconnect') {
     disconnect();
     toast('共有から切断しました');
@@ -453,29 +465,53 @@ export function setupShareDialog() {
 
 // ---- 起動時 ----
 
+function hasLocalData() {
+  const st = getState();
+  return st.players.length > 0 || !!st.tournament || !!st.league;
+}
+
+/** 閲覧リンク（#v=共有コード）を開いたときの処理。ページを開いたときと、開いたままリンクを開き直したときの両方で呼ぶ */
+function handleLinkHash() {
+  const code = codeFromHash(location.hash);
+  if (!code) return;
+  history.replaceState(null, '', location.pathname + location.search);
+  if (S.cfg) {
+    if (S.cfg.code !== code) toast('すでに別の共有に接続しています。先に「共有」から切断してください', { error: true });
+    return;
+  }
+  const base = defaultBase(location);
+  if (base && !hasLocalData()) {
+    // 閲覧リンクを開いただけで入る。この端末に自分の大会データがあるときは、確認のためダイアログを出す
+    joinViewer({ base, code }).catch((err) => {
+      toast(err.message, { error: true });
+      openShareDialog({ code });
+    });
+  } else {
+    openShareDialog({ code });
+  }
+}
+
 export function initShare() {
   onSaved(schedulePush);
   document.addEventListener('visibilitychange', () => { if (!document.hidden && S.cfg) pollOnce(); });
   window.addEventListener('online', () => { if (S.cfg) pollOnce(); });
+  window.addEventListener('hashchange', handleLinkHash);
 
   const saved = loadCfg();
-  const hashCode = codeFromHash(location.hash);
-  if (hashCode) history.replaceState(null, '', location.pathname + location.search);
-
   if (saved) {
     S.cfg = saved;
     if (isViewer()) enterViewer();
-    if (saved.exp * 1000 < Date.now()) {
+    if (isAdmin() && saved.exp * 1000 < Date.now()) {
       S.status = 'auth';
       S.message = '前回のログインの有効期限が切れました';
-      if (isViewer()) setTimeout(openShareDialog, 0);
     } else {
+      // 閲覧者は期限が切れていても、最初の通信で自動的に取り直す（パスワード不要）
       S.status = 'ok';
       startPolling();
       pollOnce();
     }
     emit();
-  } else if (hashCode) {
-    setTimeout(() => openShareDialog({ code: hashCode }), 0);
   }
+  // ダイアログの表示は初期描画のあとに行う
+  setTimeout(handleLinkHash, 0);
 }
