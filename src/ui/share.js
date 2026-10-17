@@ -36,6 +36,12 @@ const listeners = new Set();
 const $ = (id) => document.getElementById(id);
 
 export const onShareChange = (f) => listeners.add(f);
+
+/** 閲覧中に受け取った大会データの表示方法。既定はそのまま表示。過去の回を見ている間は、画面を切り替えずに最新の内容だけ控える（editions.js が差し替える） */
+let applyRemote = setRemoteState;
+export function setRemoteStateHandler(fn) {
+  applyRemote = fn;
+}
 const emit = () => listeners.forEach((f) => f());
 export const isSharing = () => !!S.cfg;
 export const isViewer = () => S.cfg?.role === 'viewer';
@@ -268,7 +274,7 @@ async function pollOnce() {
       S.rev = r.rev;
       if (isViewer() && r.state) {
         const parsed = parseState(r.state);
-        if (parsed.ok) setRemoteState(parsed.state);
+        if (parsed.ok) applyRemote(parsed.state);
         else toast(`受信した大会データを読み込めませんでした: ${parsed.error}`, { error: true });
       }
     }
