@@ -316,6 +316,9 @@ export { ShareError };
 
 // ---- 共有ダイアログ ----
 
+/** パスワードを「設定する」欄は普通のテキスト入力にする。type=password だと、ブラウザやパスワード管理ツールが自動入力・自動生成・保存を促して紛らわしいため */
+const PLAIN_INPUT = 'type="text" autocomplete="off" autocapitalize="none" spellcheck="false" data-lpignore="true" data-1p-ignore data-bwignore data-form-type="other"';
+
 function field(id, label, attrs = '') {
   return `<label class="sh-field"><span>${label}</span><input id="${id}" ${attrs}></label>`;
 }
@@ -346,7 +349,7 @@ function bodyHtml(prefill) {
     <p class="hint">閲覧者には、この<b>閲覧リンク</b>を伝えてください。リンクを知っている人は、パスワードなしで閲覧・コメントできます（リンクを知らない人は入れません）。個人情報は載せない運用にしてください。</p>
     <p class="sh-actions"><button type="button" class="primary" data-sh="push">今すぐ送信</button></p>
     <details class="sh-details"><summary>運営用パスワードを変更する</summary>
-      <div class="sh-pwrow">${field('sh-newa', '新しい運営用パスワード', 'type="password" autocomplete="new-password"')}<button type="button" data-sh="pw-admin">変更</button></div>
+      <div class="sh-pwrow">${field('sh-newa', '新しい運営用パスワード（入力した文字がそのまま表示されます）', PLAIN_INPUT)}<button type="button" data-sh="pw-admin">変更</button></div>
     </details>
     <p class="sh-actions"><button type="button" data-sh="disconnect">切断（共有は残す）</button> <button type="button" class="danger" data-sh="close">共有を終了（サーバーのデータを削除）</button></p>`;
   }
@@ -359,8 +362,8 @@ function bodyHtml(prefill) {
   return `<p class="hint">大会データをサーバーに公開し、スマホなどから見られるようにします。閲覧者はパスワード不要で、閲覧リンクを開くだけです（コメントも書けます）。共有サーバー（Cloudflare Worker）が必要です。設定は README の「共有機能」を参照してください。</p>
   ${baseField}
   <section class="sh-section"><h3>大会を共有する（運営）</h3>
-    ${field('sh-apw', `運営用パスワード（あなた専用・${PASSWORD_MIN}文字以上。忘れると運営として入れません）`, 'type="password" autocomplete="new-password"')}
-    ${field('sh-apwc', '運営用パスワード（確認のためもう一度）', 'type="password" autocomplete="new-password"')}
+    ${field('sh-apw', `運営用パスワード（あなた専用・${PASSWORD_MIN}文字以上。忘れると運営として入れません。入力した文字がそのまま表示されます）`, PLAIN_INPUT)}
+    ${field('sh-apwc', '運営用パスワード（確認のためもう一度）', PLAIN_INPUT)}
     <button type="button" class="primary" data-sh="start">共有を始める</button></section>
   <section class="sh-section"><h3>共有を見る（閲覧）</h3>
     ${field('sh-code', '共有コード（閲覧リンクを開けば自動で入ります）', `value="${h(prefill.code || '')}" autocomplete="off" autocapitalize="none" spellcheck="false"`)}
