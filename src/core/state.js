@@ -1,8 +1,8 @@
 // 大会データの初期値・検証・移行
 
-import { resizeTables, MAX_TABLES } from './players.js';
+import { resizeTables, MAX_TABLES, MAX_NAME_LENGTH } from './players.js';
 import { DEFAULT_POINTS, MAX_LEAGUE_PLAYERS } from './league.js';
-import { MAX_SCORE } from './result.js';
+import { MAX_SCORE, normalizeResultInput } from './result.js';
 import { MAX_PLAYERS, bracketSize } from './bracket.js';
 import { MAX_HISTORY } from './edition.js';
 import { SEED_MODES } from './seeds.js';
@@ -47,6 +47,11 @@ function fail(label) {
   throw new Error(`${label}データが不正です`);
 }
 
+const TABLE_NAME_MAX = 20;
+const TITLE_MAX = 60;
+/** 表示する文字列: 改行・制御文字・双方向の制御文字は空白にし、長さを切る（入力欄と同じ上限） */
+const cleanText = (s, max) => [...s.replace(/[\u0000-\u001f\u007f\u202a-\u202e\u2066-\u2069]+/g, ' ').trim()].slice(0, max).join('');
+
 /** ID の配列（重複なし）を検査する */
 function checkIds(ids, label, max) {
   if (!Array.isArray(ids) || ids.length > max || ids.some((id) => !isId(id)) || new Set(ids).size !== ids.length) fail(label);
@@ -56,9 +61,20 @@ function checkIds(ids, label, max) {
 const intIn = (v, min, max) => Number.isInteger(v) && v >= min && v <= max;
 const isScore = (v) => v === null || v === undefined || intIn(v, 0, MAX_SCORE);
 
-function checkScores(r, label) {
+/**
+ * 保存された結果を、入力時と同じ規則で検査する。勝者とスコアの矛盾・片方だけのスコア・不戦勝にスコアがある場合は読み込まない。
+ * @param {'p1'|'p2'|'draw'} outcome 勝者（トーナメントは勝者の ID から決める）
+ */
+function checkResult(r, label, outcome, allowDraw) {
   if (!isScore(r.score1) || !isScore(r.score2) || (r.walkover !== undefined && typeof r.walkover !== 'boolean')) fail(label);
-  return { score1: r.score1 ?? null, score2: r.score2 ?? null, walkover: !!r.walkover };
+  const score1 = r.score1 ?? null;
+  const score2 = r.score2 ?? null;
+  const walkover = !!r.walkover;
+  const v = normalizeResultInput({ score1, score2, outcome, walkover }, { allowDraw });
+  if (!v.ok || v.value.outcome !== outcome || v.value.score1 !== score1 || v.value.score2 !== score2 || v.value.walkover !== walkover) {
+    fail(label);
+  }
+  return { score1, score2, walkover };
 }
 
 /** 卓の手動割当（試合ID → 卓ID）。形式が違うものは捨てる（自動割当に戻るだけで害はない） */
@@ -71,21 +87,23 @@ function cleanOverrides(obj) {
 
 function parseTournament(t) {
   const label = 'トーナメント';
-  if (!isObj(t) || !intIn(t.size, 2, bracketSize(MAX_PLAYERS)) || t.size !== bracketSize(t.size)) fail(label);
+  if (!isObj(t)) fail(label);
   const playerIds = checkIds(t.playerIds, label, MAX_PLAYERS);
   if (playerIds.length < 2) fail(label);
-  // 1回戦の枠: 名簿の全員がちょうど1回ずつ入り、残りは不戦（null）
+  // 枠の数は人数から決まる（人数が2の累乗でないときは不戦の枠が増える）
+  if (t.size !== bracketSize(playerIds.length)) fail(label);
+  // 1回戦の枠: 名簿の全員がちょうど1回ずつ入り、残りは不戦（null）。不戦同士の組は作らない
   if (!Array.isArray(t.slots) || t.slots.length !== t.size || t.slots.some((s) => s !== null && !isId(s))) fail(label);
   const placed = t.slots.filter((s) => s !== null);
   const ids = new Set(playerIds);
   if (placed.length !== playerIds.length || new Set(placed).size !== placed.length || placed.some((s) => !ids.has(s))) fail(label);
-  if (!isObj(t.results)) throw new Error(`${label}の結果データが不正です`);
+  for (let i = 0; i < t.size; i += 2) if (t.slots[i] === null && t.slots[i + 1] === null) fail(label);
+  if (!isObj(t.results)) fail(`${label}の結果`);
   const results = {};
   for (const [id, r] of Object.entries(t.results)) {
-    if (!isId(id) || !isObj(r) || !isId(r.p1) || !isId(r.p2) || (r.winnerId !== r.p1 && r.winnerId !== r.p2)) {
-      throw new Error(`${label}の結果データが不正です`);
-    }
-    results[id] = { p1: r.p1, p2: r.p2, winnerId: r.winnerId, ...checkScores(r, `${label}の結果`) };
+    if (!isId(id) || !isObj(r) || !isId(r.p1) || !isId(r.p2) || (r.winnerId !== r.p1 && r.winnerId !== r.p2)) fail(`${label}の結果`);
+    const outcome = r.winnerId === r.p1 ? 'p1' : 'p2';
+    results[id] = { p1: r.p1, p2: r.p2, winnerId: r.winnerId, ...checkResult(r, `${label}の結果`, outcome, false) };
   }
   return {
     size: t.size,
@@ -118,13 +136,11 @@ function parseLeague(l) {
     return { id: m.id, round: m.round, p1: m.p1, p2: m.p2 };
   });
   if (matches.length !== (playerIds.length * (playerIds.length - 1)) / 2) fail(label);
-  if (!isObj(l.results)) throw new Error(`${label}の結果データが不正です`);
+  if (!isObj(l.results)) fail(`${label}の結果`);
   const results = {};
   for (const [id, r] of Object.entries(l.results)) {
-    if (!matchIds.has(id) || !isObj(r) || !['p1', 'p2', 'draw'].includes(r.outcome)) {
-      throw new Error(`${label}の結果データが不正です`);
-    }
-    results[id] = { outcome: r.outcome, ...checkScores(r, `${label}の結果`) };
+    if (!matchIds.has(id) || !isObj(r) || !['p1', 'p2', 'draw'].includes(r.outcome)) fail(`${label}の結果`);
+    results[id] = { outcome: r.outcome, ...checkResult(r, `${label}の結果`, r.outcome, true) };
   }
   return { playerIds, matches, results, tableOverrides: cleanOverrides(l.tableOverrides) };
 }
@@ -160,19 +176,16 @@ function parseSettings(s, base, players) {
 }
 
 function parsePlayers(list) {
-  if (!Array.isArray(list) || list.some((p) => !isObj(p) || !isId(p.id) || !isStr(p.name))) throw new Error('参加者データが不正です');
+  if (!Array.isArray(list) || list.some((p) => !isObj(p) || !isStr(p.name))) fail('参加者');
   if (list.length > MAX_PLAYERS) throw new Error('参加者が多すぎます');
-  if (new Set(list.map((p) => p.id)).size !== list.length) throw new Error('参加者データが不正です');
-  return list.map((p) => ({ id: p.id, name: p.name }));
+  checkIds(list.map((p) => p.id), '参加者', MAX_PLAYERS);
+  return list.map((p) => ({ id: p.id, name: cleanText(p.name, MAX_NAME_LENGTH) }));
 }
 
 function parseTables(list) {
-  if (!Array.isArray(list) || !list.length || list.length > MAX_TABLES ||
-    list.some((t) => !isObj(t) || !isId(t.id) || !isStr(t.name)) ||
-    new Set(list.map((t) => t.id)).size !== list.length) {
-    throw new Error('卓データが不正です');
-  }
-  return list.map((t) => ({ id: t.id, name: t.name }));
+  if (!Array.isArray(list) || !list.length || list.length > MAX_TABLES || list.some((t) => !isObj(t) || !isStr(t.name))) fail('卓');
+  checkIds(list.map((t) => t.id), '卓', MAX_TABLES);
+  return list.map((t) => ({ id: t.id, name: cleanText(t.name, TABLE_NAME_MAX) }));
 }
 
 /** 過去の回。無い（古い形式のファイル）なら空。各回の中身も今の回と同じ検査を通す */
@@ -218,7 +231,7 @@ export function parseState(raw) {
     const st = {
       ...base,
       meta: {
-        title: isStr(meta.title) ? meta.title : base.meta.title,
+        title: isStr(meta.title) ? cleanText(meta.title, TITLE_MAX) : base.meta.title,
         date: isValidDate(meta.date) ? meta.date : '',
         time: isValidTime(meta.time) ? meta.time : '',
         updatedAt: isStr(meta.updatedAt) ? meta.updatedAt : null,

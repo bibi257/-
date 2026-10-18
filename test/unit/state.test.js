@@ -164,3 +164,56 @@ test('設定の不正な値は既定値に戻す（勝点が文字列でも計�
   assert.equal(r.state.meta.title, '部内大会');
   assert.equal('extra' in r.state.meta, false);
 });
+
+test('保存された結果も、勝者とスコアが矛盾していれば読み込まない', () => {
+  const cases = [
+    (d) => { d.league.results.L1 = { outcome: 'p1', score1: 3, score2: null }; }, // 片方だけのスコア
+    (d) => { d.league.results.L1 = { outcome: 'p1', score1: 0, score2: 5 }; }, // 勝者とスコアが逆
+    (d) => { d.league.results.L1 = { outcome: 'draw', score1: 2, score2: 1 }; }, // 引き分けなのに点差あり
+    (d) => { d.league.results.L1 = { outcome: 'p1', score1: 2, score2: 2, walkover: true }; }, // 不戦勝にスコア
+    (d) => { d.tournament.results['R1-M1'] = { ...d.tournament.results['R1-M1'], score1: 1, score2: 2 }; }, // 勝者が負けた側
+    (d) => { d.tournament.results['R1-M1'] = { ...d.tournament.results['R1-M1'], score1: null }; }, // 片方だけのスコア
+  ];
+  for (const mutate of cases) {
+    const d = validData();
+    mutate(d);
+    assert.equal(parseState(d).ok, false, mutate.toString());
+  }
+  // 正しい結果（スコアのみ・勝者のみ・不戦勝・総当たりの引き分け）は通る
+  const ok = validData();
+  ok.league.results = { L1: { outcome: 'draw', score1: 1, score2: 1, walkover: false }, L2: { outcome: 'p2', score1: null, score2: null, walkover: false } };
+  ok.tournament.results = { 'R1-M1': { ...ok.tournament.results['R1-M1'], score1: null, score2: null, walkover: true } };
+  assert.ok(parseState(ok).ok, parseState(ok).error);
+});
+
+test('トーナメントの枠は人数から決まり、不戦同士の組を含まない', () => {
+  // 4人なのに枠が8
+  const d = validData();
+  d.tournament.size = 8;
+  d.tournament.slots = [...d.tournament.slots, null, null, null, null];
+  assert.equal(parseState(d).ok, false);
+
+  // 5人の枠（8）で、1回戦の2組目が不戦同士
+  const bye = validData();
+  bye.players = makePlayers(['a', 'b', 'c', 'd', 'e']);
+  const ids = bye.players.map((p) => p.id);
+  bye.league = null;
+  bye.tournament = { ...generateTournament(ids, {}), slots: [ids[0], ids[1], null, null, ids[2], ids[3], ids[4], null] };
+  assert.equal(parseState(JSON.parse(JSON.stringify(bye))).ok, false, '不戦同士の組');
+  bye.tournament.slots = [ids[0], null, ids[1], null, ids[2], ids[3], ids[4], null];
+  assert.ok(parseState(JSON.parse(JSON.stringify(bye))).ok);
+});
+
+test('名前・卓名・大会名は、長さ・改行・双方向の制御文字を整えて読み込む', () => {
+  const d = validData();
+  d.players[0].name = 'あ'.repeat(10000);
+  d.players[1].name = '山田\n太郎‮';
+  d.tables[0].name = '第'.repeat(50);
+  d.meta.title = 'x'.repeat(500);
+  const r = parseState(d);
+  assert.ok(r.ok, r.error);
+  assert.equal(r.state.players[0].name.length, 40);
+  assert.equal(r.state.players[1].name, '山田 太郎');
+  assert.equal(r.state.tables[0].name.length, 20);
+  assert.equal(r.state.meta.title.length, 60);
+});
