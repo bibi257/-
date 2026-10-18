@@ -7,6 +7,7 @@ import { MAX_PLAYERS, bracketSize } from './bracket.js';
 import { MAX_HISTORY } from './edition.js';
 import { SEED_MODES } from './seeds.js';
 import { isValidDate, isValidTime } from './schedule.js';
+import { isStartTime } from './started.js';
 
 export const STATE_VERSION = 1;
 export const FILE_KIND = 'bukatsu-taikai';
@@ -85,6 +86,23 @@ function cleanOverrides(obj) {
   return out;
 }
 
+/** 試合の開始（進行中）。古い保存データには無いので、無ければ空（開始した試合なし）。形式が違うものは捨てる（開始が消えるだけで害はない） */
+function cleanStarted(obj, { withPlayers, validId }) {
+  const out = {};
+  if (!isObj(obj)) return out;
+  for (const [k, v] of Object.entries(obj)) {
+    if (!validId(k) || !isObj(v) || !isStartTime(v.at)) continue;
+    if (withPlayers) {
+      if (!isId(v.p1) || !isId(v.p2)) continue;
+      out[k] = { at: v.at, p1: v.p1, p2: v.p2 };
+    } else {
+      out[k] = { at: v.at };
+    }
+    if (Object.keys(out).length >= 256) break;
+  }
+  return out;
+}
+
 function parseTournament(t) {
   const label = 'トーナメント';
   if (!isObj(t)) fail(label);
@@ -114,6 +132,7 @@ function parseTournament(t) {
     playerIds,
     results,
     tableOverrides: cleanOverrides(t.tableOverrides),
+    started: cleanStarted(t.started, { withPlayers: true, validId: isId }),
   };
 }
 
@@ -142,7 +161,7 @@ function parseLeague(l) {
     if (!matchIds.has(id) || !isObj(r) || !['p1', 'p2', 'draw'].includes(r.outcome)) fail(`${label}の結果`);
     results[id] = { outcome: r.outcome, ...checkResult(r, `${label}の結果`, r.outcome, true) };
   }
-  return { playerIds, matches, results, tableOverrides: cleanOverrides(l.tableOverrides) };
+  return { playerIds, matches, results, tableOverrides: cleanOverrides(l.tableOverrides), started: cleanStarted(l.started, { withPlayers: false, validId: (id) => matchIds.has(id) }) };
 }
 
 /** シードの設定。古い形式（seedMode なし）で seedCount が1以上なら、名簿の上から指名した扱いにする */

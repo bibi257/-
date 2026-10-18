@@ -5,6 +5,7 @@
 // 導出値の表現: 選手ID = 確定, null = 誰も来ない（不戦）, undefined = 未定（前の試合待ち）
 
 import { normalizeResultInput, assignTable } from './result.js';
+import { isStartTime, applyStarted } from './started.js';
 
 export const MIN_PLAYERS = 2;
 export const MAX_PLAYERS = 128;
@@ -66,6 +67,7 @@ export function generateTournament(playerIds, { seedCount = 0, placement = 'orde
     playerIds: [...playerIds],
     results: {},
     tableOverrides: {},
+    started: {},
   };
 }
 
@@ -127,7 +129,7 @@ export function resolveBracket(t, tables = []) {
     const matchCount = t.size / 2 ** r;
     for (let i = 0; i < matchCount; i++) {
       const id = matchId(r, i);
-      const m = { id, round: r, index: i, p1: undefined, p2: undefined, winner: undefined, loser: undefined, result: null };
+      const m = { id, round: r, index: i, p1: undefined, p2: undefined, winner: undefined, loser: undefined, result: null, startedAt: null };
       if (r === 1) {
         m.p1 = t.slots[2 * i] ?? null;
         m.p2 = t.slots[2 * i + 1] ?? null;
@@ -136,6 +138,7 @@ export function resolveBracket(t, tables = []) {
         m.p2 = advance(prev[2 * i + 1], 'winner');
       }
       if (decide(m, t.results[id])) stale.push(id);
+      applyStarted(m, t.started, true);
       const c1 = counts[2 * i];
       const c2 = counts[2 * i + 1];
       m.playable = c1 > 0 && c2 > 0; // 実際に試合が行われる（不戦でない）
@@ -150,8 +153,9 @@ export function resolveBracket(t, tables = []) {
   if (t.thirdPlace && roundCount >= 2) {
     const semis = rounds[roundCount - 2];
     third = { id: THIRD_PLACE_ID, round: roundCount, index: -1, isThirdPlace: true, result: null,
-      p1: advance(semis[0], 'loser'), p2: advance(semis[1], 'loser'), winner: undefined, loser: undefined };
+      p1: advance(semis[0], 'loser'), p2: advance(semis[1], 'loser'), winner: undefined, loser: undefined, startedAt: null };
     if (decide(third, t.results[THIRD_PLACE_ID])) stale.push(THIRD_PLACE_ID);
+    applyStarted(third, t.started, true);
     // 準決勝が両方とも実際の試合なら3位決定戦も実際の試合
     third.playable = semis[0].playable && semis[1].playable;
   }
@@ -227,7 +231,36 @@ export function setTournamentResult(t, id, input) {
     results[id] = { p1: m.p1, p2: m.p2, winnerId: outcome === 'p1' ? m.p1 : m.p2, score1, score2, walkover };
   }
   const { tournament, cleared } = cleanStale(withResults(t, results));
-  return { ok: true, tournament, cleared: cleared.filter((c) => c !== id) };
+  return { ok: true, tournament: pruneStarted(tournament), cleared: cleared.filter((c) => c !== id) };
+}
+
+/** 開始が無効になった試合（結果が入った・対戦者が変わった・まだ始められない）の開始時刻を取り除く */
+export function pruneStarted(t) {
+  if (!t.started || !Object.keys(t.started).length) return t;
+  const res = resolveBracket(t);
+  const started = {};
+  for (const m of res.matches) if (m.startedAt) started[m.id] = t.started[m.id];
+  return { ...t, started };
+}
+
+/**
+ * 試合を開始する（進行中にする）。at が null なら開始を取り消す。開始できるのは、対戦者が決まっていて結果が入っていない試合。
+ * @returns {{ok:true, tournament} | {ok:false, error:string}}
+ */
+export function setTournamentStarted(t, id, at) {
+  const m = findMatch(resolveBracket(t), id);
+  if (!m || !m.playable) return { ok: false, error: '試合が見つかりません' };
+  const started = { ...(t.started || {}) };
+  if (at === null) {
+    delete started[id];
+  } else {
+    if (!isStartTime(at)) return { ok: false, error: '開始時刻が正しくありません' };
+    if (m.status === 'waiting') return { ok: false, error: '対戦者がまだ決まっていません' };
+    if (m.status !== 'ready') return { ok: false, error: '結果が入力済みの試合は開始できません' };
+    if (m.startedAt) return { ok: true, tournament: t }; // すでに開始している（開始時刻は変えない）
+    started[id] = { at, p1: m.p1, p2: m.p2 };
+  }
+  return { ok: true, tournament: { ...t, started } };
 }
 
 /** 卓を手動で変更する（tableId が null なら自動割当に戻す） */
