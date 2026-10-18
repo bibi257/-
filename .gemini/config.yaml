@@ -1,0 +1,5 @@
+# .gemini/config.yaml
+comment_severity_threshold: "MEDIUM" # LOW / MEDIUM / HIGH / CRITICAL から選択
+pull_request_opened:
+  summary: true       # PR全体の概要・要約を出力する
+  code_review: true   # バグ・コード改善案のレビューを出力する
