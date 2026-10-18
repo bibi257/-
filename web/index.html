@@ -44,28 +44,36 @@
 
   <dialog id="result-dialog" aria-labelledby="rd-title">
     <form method="dialog" id="result-form" novalidate>
-      <h2 id="rd-title">試合結果</h2>
-      <p class="rd-sub" id="rd-sub"></p>
-      <div class="rd-grid">
-        <label class="rd-player"><input type="radio" name="outcome" value="p1"><span id="rd-p1"></span></label>
-        <input class="rd-score" id="rd-s1" inputmode="numeric" autocomplete="off" aria-label="選手1のスコア">
-        <span class="rd-dash">－</span>
-        <input class="rd-score" id="rd-s2" inputmode="numeric" autocomplete="off" aria-label="選手2のスコア">
-        <label class="rd-player rd-right"><span id="rd-p2"></span><input type="radio" name="outcome" value="p2"></label>
+      <div class="rd-body">
+        <h2 id="rd-title">試合結果</h2>
+        <p class="rd-sub" id="rd-sub"></p>
+        <div class="rd-grid">
+          <div class="rd-row">
+            <label class="rd-player"><input type="radio" name="outcome" value="p1"><span class="rd-name" id="rd-p1"></span><span class="rd-badge">勝者</span></label>
+            <input class="rd-score" id="rd-s1" inputmode="numeric" autocomplete="off" aria-label="選手1のスコア">
+          </div>
+          <span class="rd-dash">－</span>
+          <div class="rd-row">
+            <input class="rd-score" id="rd-s2" inputmode="numeric" autocomplete="off" aria-label="選手2のスコア">
+            <label class="rd-player rd-right"><span class="rd-name" id="rd-p2"></span><span class="rd-badge">勝者</span><input type="radio" name="outcome" value="p2"></label>
+          </div>
+        </div>
+        <p class="hint">スコアを入力すると勝者が自動で選ばれます。スコアなしで勝者だけ選んでも構いません。</p>
+        <div class="rd-options">
+          <label id="rd-draw-wrap"><input type="radio" name="outcome" value="draw"> 引き分け</label>
+          <label><input type="checkbox" id="rd-walkover"> 不戦勝（相手の棄権・欠席）</label>
+          <label>卓 <select id="rd-table"></select></label>
+        </div>
       </div>
-      <p class="hint">スコアを入力すると勝者が自動で選ばれます。スコアなしで勝者だけ選んでも構いません。</p>
-      <div class="rd-options">
-        <label id="rd-draw-wrap"><input type="radio" name="outcome" value="draw"> 引き分け</label>
-        <label><input type="checkbox" id="rd-walkover"> 不戦勝（相手の棄権・欠席）</label>
-        <label>卓 <select id="rd-table"></select></label>
-      </div>
-      <p class="error" id="rd-error" role="alert"></p>
-      <div class="dialog-buttons">
-        <button type="button" id="rd-clear" class="danger">結果を取り消す</button>
-        <span class="spacer"></span>
-        <button type="button" id="rd-cancel">キャンセル</button>
-        <button type="button" id="rd-next" title="保存して、次に行う試合の入力を開きます（Ctrl+Enter）">保存して次へ</button>
-        <button type="submit" id="rd-ok" class="primary">保存</button>
+      <div class="rd-foot">
+        <p class="error" id="rd-error" role="alert"></p>
+        <div class="dialog-buttons">
+          <button type="button" id="rd-clear" class="danger">結果を取り消す</button>
+          <span class="spacer"></span>
+          <button type="button" id="rd-cancel">キャンセル</button>
+          <button type="button" id="rd-next" title="保存して、次に行う試合の入力を開きます（Ctrl+Enter）">保存して次へ</button>
+          <button type="submit" id="rd-ok" class="primary">保存</button>
+        </div>
       </div>
     </form>
   </dialog>
