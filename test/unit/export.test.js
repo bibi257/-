@@ -135,3 +135,33 @@ test('トーナメント表CSV: 3位決定戦の行も見出しと同じ列数�
   st.tournament = t;
   assert.deepEqual(bracketTable(st).rows.at(-1), ['3位決定戦', '選手4 vs 選手3 (1-4)', '3位: 選手3']);
 });
+
+test('トーナメント順位表: 勝ち残りが上・敗退が順位の高い順。CSV の列は変えない', () => {
+  const st = sample(8);
+  st.tournament = setTournamentResult(st.tournament, 'R1-M1', { score1: 3, score2: 0 }).tournament;
+  const s = tournamentStandingsTable(st);
+  assert.deepEqual(s.headers, ['順位', '名前', '成績', '勝', '敗']);
+  assert.equal(s.rows.length, 8);
+  assert.deepEqual(s.rows.slice(0, 7).map((r) => r[2]), Array(7).fill('勝ち残り'));
+  assert.deepEqual(s.rows[0].slice(0, 1), ['']); // 勝ち残りの順位は空欄（画面はバッジ）
+  assert.equal(s.rows[7][0], 5);
+  assert.equal(s.rows[7][2], '準々決勝敗退');
+  assert.deepEqual(s.rowMedals, Array(8).fill(null));
+});
+
+test('トーナメント順位表: 大会が終わると 1〜3位の印（rowMedals）が付き、PNG に帯が出る', () => {
+  const st = sample(4);
+  let t = st.tournament;
+  t = setTournamentResult(t, 'R1-M1', { score1: 3, score2: 0 }).tournament;
+  t = setTournamentResult(t, 'R1-M2', { score1: 1, score2: 2 }).tournament;
+  t = setTournamentResult(t, 'R2-M1', { score1: 2, score2: 1 }).tournament;
+  st.tournament = t;
+  const s = tournamentStandingsTable(st);
+  assert.deepEqual(s.rowMedals, ['gold', 'silver', 'bronze', 'bronze']);
+  const { svg } = tableSvg(st, s);
+  assert.equal((svg.match(/width="4" height="28"/g) || []).length, 4);
+  assert.ok(svg.includes('fill="#e0a800"') && svg.includes('fill="#9aa5b1"') && svg.includes('fill="#b87333"'));
+  // 途中は帯なし
+  const mid = sample(4);
+  assert.ok(!tableSvg(mid, tournamentStandingsTable(mid)).svg.includes('width="4" height="28"'));
+});

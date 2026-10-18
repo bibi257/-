@@ -259,3 +259,49 @@ test('ラウンド名', () => {
   assert.equal(roundName(1, 5), '1回戦');
   assert.equal(roundName(1, 1), '決勝');
 });
+
+test('順位: 大会の途中は、勝ち残りを上に、敗退した選手を順位の高い順に並べる', () => {
+  let t = generateTournament(ids(8), {});
+  // 1回戦（準々決勝）を2試合だけ進める
+  for (const id of ['R1-M1', 'R1-M2']) t = setTournamentResult(t, id, { outcome: 'p1' }).tournament;
+  const r = tournamentRanking(t);
+  assert.deepEqual(r.map((x) => x.phase), ['alive', 'alive', 'alive', 'alive', 'alive', 'alive', 'out', 'out']);
+  assert.ok(r.slice(0, 6).every((x) => x.rank === null && x.label === '勝ち残り'));
+  assert.ok(r.slice(6).every((x) => x.rank === 5 && x.label === '準々決勝敗退'));
+  assert.ok(r.every((x) => x.medal === null)); // 途中は金・銀・銅なし
+  // 勝ち残りの中は、名簿の順
+  const order = ids(8);
+  const alive = r.slice(0, 6).map((x) => order.indexOf(x.playerId));
+  assert.deepEqual(alive, [...alive].sort((a, b) => a - b));
+  // もう1回戦進めると、準々決勝敗退（5位）の後に1回戦敗退がある場合でも、順位の高い順
+  t = playAll(t);
+  const done = tournamentRanking(t);
+  assert.deepEqual(done.map((x) => x.rank), [...done.map((x) => x.rank)].sort((a, b) => a - b));
+});
+
+test('順位: 3位決定戦へ進む選手は、勝ち残りの下・敗退した選手の上に並ぶ', () => {
+  let t = generateTournament(ids(4), { thirdPlace: true });
+  t = setTournamentResult(t, 'R1-M1', { outcome: 'p1' }).tournament;
+  t = setTournamentResult(t, 'R1-M2', { outcome: 'p1' }).tournament;
+  const r = tournamentRanking(t);
+  assert.deepEqual(r.map((x) => x.phase), ['alive', 'alive', 'third', 'third']);
+  assert.ok(r.slice(2).every((x) => x.label === '3位決定戦へ' && x.rank === null));
+});
+
+test('順位: 大会が終わると1〜3位に金・銀・銅（3位が2人なら銅が2人）', () => {
+  const t = playAll(generateTournament(ids(8), {}));
+  const r = tournamentRanking(t);
+  assert.deepEqual(r.map((x) => x.medal), ['gold', 'silver', 'bronze', 'bronze', null, null, null, null]);
+  assert.ok(r.every((x) => x.phase === 'out'));
+  const t2 = playAll(generateTournament(ids(8), { thirdPlace: true }));
+  assert.deepEqual(tournamentRanking(t2).map((x) => x.medal).slice(0, 4), ['gold', 'silver', 'bronze', null]);
+});
+
+test('順位: 準決勝まで終わっても、決勝・3位決定戦が終わるまでは金・銀・銅を付けない', () => {
+  let t = generateTournament(ids(4), { thirdPlace: true });
+  t = setTournamentResult(t, 'R1-M1', { outcome: 'p1' }).tournament;
+  t = setTournamentResult(t, 'R1-M2', { outcome: 'p1' }).tournament;
+  t = setTournamentResult(t, 'R2-M1', { outcome: 'p1' }).tournament; // 決勝は終わったが、3位決定戦がまだ
+  const r = tournamentRanking(t);
+  assert.ok(r.every((x) => x.medal === null));
+});
