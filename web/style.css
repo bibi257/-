@@ -141,7 +141,12 @@ table.data tr.clickable { cursor: pointer; }
 table.data tr.clickable:hover td { background: var(--primary-weak); }
 table.data tr.st-done td { color: var(--muted); }
 table.data tr.st-ready td { background: var(--primary-weak); }
-table.data tr.st-ready td:last-child { color: var(--primary); font-weight: bold; }
+/* 試合の状態バッジ（src/ui/badge.js）。色だけに頼らず、文字と枠の形でも区別する */
+.badge { display: inline-block; padding: 0 8px; border-radius: 999px; font-size: 12px; line-height: 20px; font-weight: bold; white-space: nowrap; border: 1px solid transparent; }
+.badge-ready { background: var(--primary); border-color: var(--primary); color: #fff; }
+.badge-done { border-color: var(--rule-strong); color: var(--muted); font-weight: normal; }
+.badge-waiting { border: 1px dashed var(--rule-strong); color: var(--muted); font-weight: normal; }
+.badge-bye { border: 0; color: var(--muted); font-weight: normal; padding: 0; }
 table.data tr.st-waiting td, table.data tr.st-bye td { color: var(--faint); }
 
 .players td.idx { width: 3em; text-align: center; color: var(--muted); }

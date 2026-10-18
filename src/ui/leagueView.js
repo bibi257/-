@@ -5,6 +5,7 @@ import { h, toast, measureText, downloadCSV, downloadPNG } from './io.js';
 import { openResultDialog } from './resultDialog.js';
 import { nextEditionButton } from './editions.js';
 import { nextItemHtml } from './callCard.js';
+import { statusBadge } from './badge.js';
 import { resolveLeague, setLeagueResult, setLeagueTable, leagueProgress, outcomeFor } from '../core/league.js';
 import { leagueMatrixTable, leagueResultRows, leagueResultsTable } from '../core/exportData.js';
 import { tableSvg } from '../render/svg.js';
@@ -64,7 +65,7 @@ export function renderLeague() {
             if (op === id) return '<td class="self">－</td>';
             const m = pairs.get(`${id}|${op}`);
             const o = outcomeFor(m, l.results[m.id], id) || 'pending';
-            return `<td class="cell ${o}" data-match="${h(m.id)}" title="${h(playerName(st, id))} vs ${h(playerName(st, op))}">${h(row[j + 1]) || '・'}</td>`;
+            return `<td class="cell ${o}" data-match="${h(m.id)}" title="${h(playerName(st, id))} vs ${h(playerName(st, op))}">${h(row[j + 1])}</td>`;
           }).join('')}${row.slice(n + 1).map((c) => `<td>${h(c)}</td>`).join('')}</tr>`;
         }).join('')}</tbody>
       </table>
@@ -76,7 +77,7 @@ export function renderLeague() {
       <table class="data results">
         <thead><tr>${['試合番号', '回戦', '卓', '時間帯', '選手1', 'スコア', '選手2', '結果', '状態'].map((x) => `<th>${x}</th>`).join('')}</tr></thead>
         <tbody>${rows.map(({ match: m, cells }) => `<tr class="st-${m.status} clickable" data-match="${h(m.id)}">
-          ${cells.map((c, i) => `<td${[0, 3, 5].includes(i) ? ' class="num"' : ''}>${h(c)}</td>`).join('')}</tr>`).join('')}</tbody>
+          ${cells.map((c, i) => i === 8 ? `<td>${statusBadge(m.status)}</td>` : `<td${[0, 3, 5].includes(i) ? ' class="num"' : ''}>${h(c)}</td>`).join('')}</tr>`).join('')}</tbody>
       </table>
     </div>
   </div>`;
