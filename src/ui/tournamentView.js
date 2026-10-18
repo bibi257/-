@@ -12,7 +12,7 @@ import { bracketTable, tournamentResultRows, tournamentResultsTable } from '../c
 import { bracketSvg, tableSvg } from '../render/svg.js';
 import { playerName, tableName } from '../core/state.js';
 import { eventTitle } from '../core/edition.js';
-import { assignTable } from '../core/result.js';
+import { assignTable, pickNextMatch } from '../core/result.js';
 
 const panel = () => document.getElementById('panel-tournament');
 
@@ -46,6 +46,7 @@ export function renderTournament() {
       <span><b>${prog.done}</b> / ${prog.total} 試合終了</span>
       ${champ ? `<span class="champion">優勝 ${h(champ)}</span>` : ''}
       ${res.finished ? nextEditionButton() : ''}
+      <button type="button" class="small" data-call="tournament" title="会場の大型ディスプレイ向けに、次に行う試合を大きく表示します">呼び出し画面</button>
     </div>
     ${prog.ready.length ? `<p class="hint">次に行う試合<span class="owner-only">（クリックで結果入力）</span></p>
     <div class="next-list">${prog.ready.map((m) => nextItemHtml(st, m)).join('')}</div>` : ''}
@@ -75,6 +76,14 @@ export function renderTournament() {
   </div>`;
 }
 
+function openNext(afterNo) {
+  const st = getState();
+  if (!st.tournament) return;
+  const next = pickNextMatch(tournamentProgress(resolveBracket(st.tournament, st.tables)).ready, afterNo);
+  if (next) openMatch(next.id);
+  else toast('次に行う試合はありません');
+}
+
 function openMatch(id) {
   const st = getState();
   const t = st.tournament;
@@ -98,6 +107,7 @@ function openMatch(id) {
     tables: st.tables,
     tableOverride: t.tableOverrides?.[id] ?? null,
     autoTableName: tableName(st, auto.tableId),
+    openNext: () => openNext(m.no),
     onSave(input, tableId, { tableOnly }) {
       let next = setTournamentTable(t, id, tableId);
       if (!tableOnly) {

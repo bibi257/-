@@ -58,14 +58,32 @@ export function editionsCardHtml(st) {
   </div>`;
 }
 
-function nextEdition() {
+/** 順位表タブの、「上位N人で次の回を始める」欄（総当たりの順位表の下に出す。運営のみ） */
+export function qualifyHtml(st) {
+  const n = currentEdition(st);
+  const alive = new Set(st.players.map((p) => p.id));
+  const max = st.league.playerIds.filter((id) => alive.has(id)).length;
+  if (max < 2) return '';
+  return `<div class="qualify owner-only">
+    <label>上位 <input type="number" id="qualify-count" min="2" max="${max}" value="${Math.min(4, max)}" style="width:5em"> 人</label>
+    <button type="button" data-edition="qualify">この人たちで第${n + 1}回を始める</button>
+    <p class="hint">予選リーグのあとに決勝トーナメントを行うときなどに使います。上位の選手だけを、順位順の名簿にして次の回を始めます（前の回の記録は「過去の回」に残ります）。</p>
+  </div>`;
+}
+
+/** 次の回を始める。topCount を指定すると、総当たりの順位表の上位 topCount 人だけを引き継ぐ */
+function nextEdition(topCount) {
   const st = getState();
-  const r = startNextEdition(st);
+  const r = startNextEdition(st, topCount === undefined ? {} : { topCount });
   if (!r.ok) { toast(r.error, { error: true }); return; }
   const n = currentEdition(st);
   const notes = unfinishedNotes(st);
-  const msg = `第${n}回の表と結果を「過去の回」に残して、第${n + 1}回を始めます。\n参加者・卓・設定はそのまま引き継ぎます。` +
-    `${notes.length ? `\n\n※まだ終わっていない試合があります（${notes.join('、')}）。` : ''}` +
+  const carry = topCount === undefined
+    ? '参加者・卓・設定はそのまま引き継ぎます。'
+    : `総当たりの順位表の上位${topCount}人（${r.state.players.map((p) => p.name).join('、')}）を、順位順の名簿として引き継ぎます。卓・設定はそのまま引き継ぎます。` +
+      `${r.tie ? `\n※${r.tie.rank}位が${r.tie.total}人いて、人数の境目に同順位の選手がいます。名簿の並びで選んでいるので、必要なら始めたあとに名簿で入れ替えてください。` : ''}`;
+  const msg = `第${n}回の表と結果を「過去の回」に残して、第${n + 1}回を始めます。\n${carry}` +
+    `${notes.length ? `\n\n※まだ終わっていない試合があります（${notes.join('、')}）。順位は途中経過です。` : ''}` +
     `${isAdmin() ? '\n※共有中のため、閲覧者の画面も新しい回の内容に変わります。' : ''}\n\nよろしいですか？`;
   if (!confirm(msg)) return;
   setState(r.state);
@@ -166,6 +184,10 @@ export function setupEditions() {
     if (!(t instanceof Element)) return;
     const act = t.closest('[data-edition]')?.dataset.edition;
     if (act === 'next') nextEdition();
+    else if (act === 'qualify') {
+      const raw = document.getElementById('qualify-count')?.value.trim() ?? '';
+      nextEdition(/^\d+$/.test(raw) ? Number(raw) : NaN);
+    }
     else if (act === 'back') leaveEdition();
     const v = t.closest('[data-edition-view]');
     if (v) viewEdition(Number(v.dataset.editionView));

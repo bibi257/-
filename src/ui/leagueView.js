@@ -9,7 +9,7 @@ import { resolveLeague, setLeagueResult, setLeagueTable, leagueProgress, outcome
 import { leagueMatrixTable, leagueResultRows, leagueResultsTable } from '../core/exportData.js';
 import { tableSvg } from '../render/svg.js';
 import { playerName, tableName } from '../core/state.js';
-import { assignTable } from '../core/result.js';
+import { assignTable, pickNextMatch } from '../core/result.js';
 
 const panel = () => document.getElementById('panel-league');
 
@@ -40,6 +40,7 @@ export function renderLeague() {
       <div class="progress-bar" aria-hidden="true"><div style="width:${pct}%"></div></div>
       <span><b>${prog.done}</b> / ${prog.total} 試合終了</span>
       ${prog.nextRound ? `<span class="muted">次は ${prog.nextRound}回戦${res.rest[prog.nextRound - 1].length ? `（休み: ${h(res.rest[prog.nextRound - 1].map((id) => playerName(st, id)).join('、'))}）` : ''}</span>` : `<span class="champion">全試合終了</span> ${nextEditionButton()}`}
+      <button type="button" class="small" data-call="league" title="会場の大型ディスプレイ向けに、次に行う試合を大きく表示します">呼び出し画面</button>
     </div>
     ${prog.ready.length ? `<div class="next-list">${prog.ready.map((m) => nextItemHtml(st, m)).join('')}</div>` : ''}
   </div>
@@ -81,6 +82,14 @@ export function renderLeague() {
   </div>`;
 }
 
+function openNext(afterNo) {
+  const st = getState();
+  if (!st.league) return;
+  const next = pickNextMatch(leagueProgress(resolveLeague(st.league, st.tables)).ready, afterNo);
+  if (next) openMatch(next.id);
+  else toast('次に行う試合はありません');
+}
+
 function openMatch(id) {
   const st = getState();
   const l = st.league;
@@ -100,6 +109,7 @@ function openMatch(id) {
     tables: st.tables,
     tableOverride: l.tableOverrides?.[id] ?? null,
     autoTableName: tableName(st, auto.tableId),
+    openNext: () => openNext(m.no),
     onSave(input, tableId, { tableOnly }) {
       let next = setLeagueTable(l, id, tableId);
       if (!tableOnly) {

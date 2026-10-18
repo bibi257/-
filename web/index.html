@@ -64,9 +64,25 @@
         <button type="button" id="rd-clear" class="danger">結果を取り消す</button>
         <span class="spacer"></span>
         <button type="button" id="rd-cancel">キャンセル</button>
+        <button type="button" id="rd-next" title="保存して、次に行う試合の入力を開きます（Ctrl+Enter）">保存して次へ</button>
         <button type="submit" id="rd-ok" class="primary">保存</button>
       </div>
     </form>
+  </dialog>
+
+  <dialog id="call-screen" aria-labelledby="cs-title">
+    <header class="cs-head">
+      <div class="cs-heading">
+        <h2 id="cs-title"></h2>
+        <p class="cs-sub" id="cs-sub"></p>
+      </div>
+      <p class="cs-progress" id="cs-progress"></p>
+      <div class="cs-actions">
+        <button type="button" id="cs-full">全画面</button>
+        <button type="button" id="cs-close">閉じる</button>
+      </div>
+    </header>
+    <div class="cs-body" id="cs-body" aria-live="polite"></div>
   </dialog>
 
   <dialog id="import-dialog" aria-labelledby="im-title">
