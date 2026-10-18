@@ -34,11 +34,11 @@ test('総当たりの上位N人を順位順の名簿にして、次の回を始�
   expect(msg).not.toContain('同順位');
 
   // 参加者・設定タブに移り、順位順の3人になっている。前の回は残る
-  await expect(page.locator('#editions-card')).toContainText('今は第2回');
+  await expect(page.locator('#editions-card')).toContainText('今は第2回大会');
   await expect(page.locator('#panel-setup')).toContainText('3人');
   const names = await page.locator('#panel-setup input.name').evaluateAll((els) => els.map((e) => e.value));
   expect(names).toEqual(['山田 太郎', '佐藤 花子', '鈴木 一郎']);
-  await expect(page.locator('#editions-card')).toContainText('第1回');
+  await expect(page.locator('#editions-card')).toContainText('第1回大会');
   await expect(page.locator('#editions-card')).toContainText('総当たり 1位 山田 太郎');
 
   // そのまま決勝トーナメントを作れる（シード順＝順位順）

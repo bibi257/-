@@ -73,7 +73,9 @@ test.describe('トーナメント', () => {
     const dialogs = acceptDialogs(page);
     await open(page);
     await importNames(page, NAMES.slice(0, 6));
-    await setNumber(page, '#seed-count', 2);
+    await page.selectOption('#seed-mode', 'pick');
+    await page.locator('.seed-pick-box').nth(0).check();
+    await page.locator('.seed-pick-box').nth(1).check();
     await expect(page.locator('.seed-badge')).toHaveCount(2);
     await expect(page.locator('#panel-setup')).toContainText('1回戦不戦（シード上位から） 2枠');
     await page.click('[data-act=gen-tournament]');
@@ -198,6 +200,7 @@ test.describe('トーナメント', () => {
     acceptDialogs(page);
     await open(page);
     await importNames(page, Array.from({ length: 64 }, (_, i) => `選手${i + 1}`));
+    await page.selectOption('#seed-mode', 'random');
     await setNumber(page, '#seed-count', 8);
     await page.click('[data-act=gen-tournament]');
     await expect(page.locator('#bracket-wrap g.match')).toHaveCount(63);

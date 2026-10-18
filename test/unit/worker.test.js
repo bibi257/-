@@ -360,3 +360,23 @@ test('90日更新のない共有は、削除される前でも入れない・見
   assert.equal((await api('POST', `/api/rooms/${r.code}/join`)).status, 404);
   assert.equal((await api('POST', `/api/rooms/${r.code}/login`, { body: { password: ADMIN } })).status, 401);
 });
+
+test('同期の応答に、共有ページが残る期限（最後の更新から90日）が入る。公開するたびに延びる', async () => {
+  const { api, clock } = setup();
+  const room = await newRoom(api);
+  const DAY = 24 * 60 * 60;
+  const first = await api('GET', `/api/rooms/${room.code}/sync?rev=0&crev=0`, { token: room.token });
+  assert.equal(first.data.keepUntil, first.data.updatedAt + 90 * DAY);
+  clock.t += 10 * DAY;
+  const login = await api('POST', `/api/rooms/${room.code}/login`, { body: { password: ADMIN } }); // 運営トークンは12時間で切れる
+  const token = login.data.token;
+  const put = await api('PUT', `/api/rooms/${room.code}/state`, { token, body: { state: sampleState() } });
+  assert.equal(put.data.keepUntil, clock.t + 90 * DAY);
+  const after = await api('GET', `/api/rooms/${room.code}/sync?rev=0&crev=0`, { token });
+  assert.equal(after.data.updatedAt, clock.t);
+  assert.equal(after.data.keepUntil, clock.t + 90 * DAY);
+  // 閲覧者にも同じ期限が返る
+  const v = await viewerToken(api, room.code);
+  const vs = await api('GET', `/api/rooms/${room.code}/sync?rev=0&crev=0`, { token: v });
+  assert.equal(vs.data.keepUntil, clock.t + 90 * DAY);
+});

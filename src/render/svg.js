@@ -4,6 +4,7 @@
 import { resolveBracket, roundName } from '../core/bracket.js';
 import { playerName, tableName } from '../core/state.js';
 import { eventTitle } from '../core/edition.js';
+import { formatEventDate } from '../core/schedule.js';
 
 export const FONT_FAMILY = "'BIZ UDPGothic','Yu Gothic UI','Yu Gothic','Meiryo','Hiragino Sans','Noto Sans JP','Noto Sans CJK JP',sans-serif";
 
@@ -36,7 +37,8 @@ function svgDoc(width, height, body, extraAttrs = '') {
 }
 
 function footer(state, width, height) {
-  const d = state.meta.date ? `開催日 ${state.meta.date}　` : '';
+  const when = formatEventDate(state.meta.date, state.meta.time);
+  const d = when ? `開催日時 ${when}　` : '';
   return text(width - 12, height - 14, `${d}出力 ${formatNow()}`, { size: 11, color: '#888', anchor: 'end' });
 }
 

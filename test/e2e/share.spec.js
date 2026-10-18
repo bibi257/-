@@ -240,7 +240,7 @@ test('共有中に次の回を始めると、閲覧者の画面も新しい回�
   // 運営が次の回を始める（確認に「閲覧者の画面も変わる」と出る）
   await a.click('.tabs [data-tab=setup]');
   await a.click('#editions-card [data-edition=next]');
-  expect(dialogs.some((m) => m.includes('閲覧者の画面も新しい回の内容に変わります'))).toBe(true);
+  expect(dialogs.some((m) => m.includes('閲覧者の画面も新しい大会（第2回大会）の内容に変わります'))).toBe(true);
   await untilSynced(v, () => expect(v.locator('#print-title')).toHaveText('部内大会 第2回', { timeout: 1000 }));
   await expect(v.locator('#panel-tournament')).toContainText('まだ作成されていません');
   // 閲覧者には「次の回を始める」・過去の回の一覧（運営用のカード）は出ない
@@ -286,12 +286,12 @@ test('閲覧者も過去の回の結果を見られる。見ている間に運�
   await v.goto(link);
   await untilSynced(v, () => expect(v.locator('#print-title')).toHaveText('部内大会 第2回', { timeout: 1000 })); // 運営の送信を待つ
   await expect(v.locator('.results tbody tr.st-done')).toHaveCount(0);
-  await expect(v.locator('#edition-banner')).toContainText('過去の回の結果も見られます');
-  await expect(v.locator('#eb-select-past option')).toHaveText(['選んでください', '第1回']);
+  await expect(v.locator('#edition-banner')).toContainText('過去の大会の結果も見られます');
+  await expect(v.locator('#eb-select-past option')).toHaveText(['選んでください', '第1回大会']);
 
   // 第1回を選ぶと、結果が見える。閲覧専用で、コメントタブや共有は隠れる
   await v.selectOption('#eb-select-past', '1');
-  await expect(v.locator('#edition-banner')).toContainText('第1回の記録を見ています');
+  await expect(v.locator('#edition-banner')).toContainText('第1回大会の記録を見ています');
   await expect(v.locator('#print-title')).toHaveText('部内大会 第1回');
   await expect(v.locator('.results tbody tr.st-done')).toHaveCount(3);
   await expect(v.locator('#tab-comments')).toBeHidden();
@@ -317,7 +317,7 @@ test('閲覧者も過去の回の結果を見られる。見ている間に運�
 
   // 見ている回を運営が削除すると、閲覧者の画面は現在の回に戻り、選択肢も消える
   await v.selectOption('#eb-select-past', '1');
-  await expect(v.locator('#edition-banner')).toContainText('第1回の記録を見ています');
+  await expect(v.locator('#edition-banner')).toContainText('第1回大会の記録を見ています');
   await a.click('.tabs [data-tab=setup]');
   await a.click('[data-edition-del="1"]');
   await untilSynced(v, () => expect(v.locator('#edition-banner')).toBeHidden({ timeout: 1000 }));
@@ -353,6 +353,36 @@ test('閲覧者の呼び出し画面は、開いたまま運営の結果入力�
   await enterScore(a, 2, 1);
   await untilSynced(v, () => expect(v.locator('#cs-progress')).toContainText('1 /', { timeout: 1000 }));
   await expect(v.locator('#call-screen')).toBeVisible();
+  await a.close();
+  await v.close();
+  await admin.close();
+  await viewer.close();
+});
+
+test('共有ページが残る期限（最後の更新から90日）が、運営にも閲覧者にも共有の画面に出る', async ({ browser }) => {
+  const admin = await browser.newContext();
+  const viewer = await browser.newContext();
+  await withIp(admin, '10.0.5.1');
+  await withIp(viewer, '10.0.5.2');
+  const a = await admin.newPage();
+  const v = await viewer.newPage();
+  acceptDialogs(a);
+  acceptDialogs(v);
+  await open(a);
+  await makeTournament(a);
+  await startShare(a);
+  const link = await a.inputValue('#sh-link');
+  const d = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
+  const expected = `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
+  // 共有を始めると大会データがすぐ送信され、その応答で期限が分かる
+  await expect(a.locator('.sh-keep')).toContainText('まで残ります');
+  await expect(a.locator('.sh-keep')).toContainText(expected);
+  await a.click('#sh-close');
+
+  await v.goto(link);
+  await expect(v.locator('#bracket-wrap svg')).toBeVisible();
+  await v.click('[data-action=share]');
+  await untilSynced(v, () => expect(v.locator('.sh-keep')).toContainText(expected, { timeout: 1000 }));
   await a.close();
   await v.close();
   await admin.close();

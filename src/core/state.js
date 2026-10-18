@@ -5,12 +5,16 @@ import { DEFAULT_POINTS, MAX_LEAGUE_PLAYERS } from './league.js';
 import { MAX_SCORE } from './result.js';
 import { MAX_PLAYERS, bracketSize } from './bracket.js';
 import { MAX_HISTORY } from './edition.js';
+import { SEED_MODES } from './seeds.js';
+import { isValidDate, isValidTime } from './schedule.js';
 
 export const STATE_VERSION = 1;
 export const FILE_KIND = 'bukatsu-taikai';
 
 export function defaultSettings() {
   return {
+    seedMode: 'none', // シードの決め方: 'none'（なし）／'random'（ランダム。人数は seedCount）／'pick'（名簿で指名。seedIds）
+    seedIds: [],
     seedCount: 0,
     placement: 'order',
     thirdPlace: false,
@@ -22,7 +26,7 @@ export function createState() {
   return {
     kind: FILE_KIND,
     version: STATE_VERSION,
-    meta: { title: '部内大会', date: '', updatedAt: null },
+    meta: { title: '部内大会', date: '', time: '', updatedAt: null },
     players: [],
     tables: resizeTables([], 2),
     settings: defaultSettings(),
@@ -125,12 +129,25 @@ function parseLeague(l) {
   return { playerIds, matches, results, tableOverrides: cleanOverrides(l.tableOverrides) };
 }
 
-function parseSettings(s, base) {
+/** シードの設定。古い形式（seedMode なし）で seedCount が1以上なら、名簿の上から指名した扱いにする */
+function parseSeeds(src, base, players) {
+  const seedCount = intIn(src.seedCount, 0, MAX_PLAYERS) ? src.seedCount : base.seedCount;
+  const ids = new Set(players.map((p) => p.id));
+  const clean = (list) => [...new Set(Array.isArray(list) ? list.filter((id) => isId(id) && ids.has(id)) : [])];
+  if (!SEED_MODES.includes(src.seedMode)) {
+    return seedCount > 0
+      ? { seedMode: 'pick', seedIds: players.slice(0, seedCount).map((p) => p.id), seedCount }
+      : { seedMode: 'none', seedIds: [], seedCount };
+  }
+  return { seedMode: src.seedMode, seedIds: clean(src.seedIds), seedCount };
+}
+
+function parseSettings(s, base, players) {
   const src = isObj(s) ? s : {};
   const lg = isObj(src.league) ? src.league : {};
   const pt = (v, fb) => (intIn(v, 0, 99) ? v : fb);
   return {
-    seedCount: intIn(src.seedCount, 0, MAX_PLAYERS) ? src.seedCount : base.seedCount,
+    ...parseSeeds(src, base, players),
     placement: src.placement === 'random' ? 'random' : 'order',
     thirdPlace: src.thirdPlace === true,
     league: {
@@ -161,18 +178,20 @@ function parseTables(list) {
 /** 過去の回。無い（古い形式のファイル）なら空。各回の中身も今の回と同じ検査を通す */
 function parseHistory(list, baseSettings) {
   if (list === undefined || list === null) return [];
-  if (!Array.isArray(list) || list.length > MAX_HISTORY) fail('過去の回の');
+  if (!Array.isArray(list) || list.length > MAX_HISTORY) fail('過去の大会の');
   const seen = new Set();
   return list.map((e) => {
-    if (!isObj(e) || !intIn(e.edition, 1, 9999) || seen.has(e.edition)) fail('過去の回の');
+    if (!isObj(e) || !intIn(e.edition, 1, 9999) || seen.has(e.edition)) fail('過去の大会の');
     seen.add(e.edition);
+    const players = parsePlayers(e.players);
     return {
       edition: e.edition,
-      date: isStr(e.date) ? e.date.slice(0, 10) : '',
+      date: isValidDate(e.date) ? e.date : '',
+      time: isValidTime(e.time) ? e.time : '',
       archivedAt: isStr(e.archivedAt) ? e.archivedAt.slice(0, 40) : '',
-      players: parsePlayers(e.players),
+      players,
       tables: parseTables(e.tables),
-      settings: parseSettings(e.settings, baseSettings),
+      settings: parseSettings(e.settings, baseSettings, players),
       tournament: e.tournament ? parseTournament(e.tournament) : null,
       league: e.league ? parseLeague(e.league) : null,
     };
@@ -200,12 +219,13 @@ export function parseState(raw) {
       ...base,
       meta: {
         title: isStr(meta.title) ? meta.title : base.meta.title,
-        date: isStr(meta.date) ? meta.date : '',
+        date: isValidDate(meta.date) ? meta.date : '',
+        time: isValidTime(meta.time) ? meta.time : '',
         updatedAt: isStr(meta.updatedAt) ? meta.updatedAt : null,
       },
       players,
       tables,
-      settings: parseSettings(data.settings, base.settings),
+      settings: parseSettings(data.settings, base.settings, players),
       tournament: data.tournament ? parseTournament(data.tournament) : null,
       league: data.league ? parseLeague(data.league) : null,
       history: parseHistory(data.history, base.settings),

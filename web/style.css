@@ -112,6 +112,7 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--primary); widt
 .form-row { display: flex; align-items: center; gap: 8px 10px; flex-wrap: wrap; margin: 8px 0; }
 .form-row > label:first-child { min-width: 7.5em; color: var(--muted); font-size: 14px; }
 .error { color: var(--danger); font-size: 14px; margin: 6px 0; min-height: 1em; }
+#schedule-error:empty { margin: 0; min-height: 0; }
 .errors { color: var(--danger); background: var(--danger-weak); border: 1px solid #efc3bf; border-radius: var(--r-ctl); padding: 8px 12px 8px 28px; margin: 10px 0; font-size: 14px; }
 .notice {
   background: var(--warn-bg); border: 1px solid var(--warn-line); border-left: 4px solid var(--warn-line);
@@ -141,6 +142,10 @@ table.data tr.st-waiting td, table.data tr.st-bye td { color: #8791a0; }
 .players td.idx { width: 3em; text-align: center; color: var(--muted); }
 .players td.ops { white-space: nowrap; width: 1%; }
 .players input.name { width: 100%; min-width: 8em; }
+.table-wrap td.seed-cell, .table-wrap th.seed-col { text-align: left; white-space: nowrap; }
+.seed-pick { display: inline-flex; align-items: center; gap: 6px; width: 7.5em; cursor: pointer; }
+.seed-pick input { width: 18px; height: 18px; margin: 0; flex: none; }
+.seed-pick .seed-badge { margin-left: 0; }
 .seed-badge { display: inline-block; background: var(--gold-weak); color: var(--gold); border: 1px solid var(--gold-line); border-radius: 999px; padding: 0 8px; font-size: 12px; margin-left: 6px; white-space: nowrap; line-height: 1.5; }
 .add-row { display: flex; gap: 8px; margin-top: 12px; }
 .add-row input { flex: 1; }

@@ -306,7 +306,7 @@ async function sync(env, request, url, code) {
   const { room } = auth;
   const rev = Number(url.searchParams.get('rev'));
   const crev = Number(url.searchParams.get('crev'));
-  const out = { ok: true, role: auth.role, title: room.title, rev: room.rev, crev: room.crev, updatedAt: room.updated_at, serverTime: now(env) };
+  const out = { ok: true, role: auth.role, title: room.title, rev: room.rev, crev: room.crev, updatedAt: room.updated_at, keepUntil: room.updated_at + ROOM_TTL, serverTime: now(env) };
   if (rev !== room.rev) {
     const row = await env.DB.prepare('SELECT state FROM rooms WHERE code = ?').bind(code).first();
     out.state = row?.state ? JSON.parse(row.state) : null;
@@ -331,7 +331,7 @@ async function putState(env, request, code) {
   const rev = await env.DB.prepare('UPDATE rooms SET state = ?, title = ?, rev = rev + 1, updated_at = ? WHERE code = ? RETURNING rev')
     .bind(text, title, now(env), code).first('rev');
   if (rev === null) throw new HttpError(404, 'この共有は終了したか、存在しません');
-  return json({ ok: true, rev });
+  return json({ ok: true, rev, keepUntil: now(env) + ROOM_TTL });
 }
 
 async function postComment(env, request, code) {

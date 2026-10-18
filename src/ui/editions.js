@@ -12,6 +12,7 @@ import {
 } from '../core/edition.js';
 import { resolveBracket, tournamentProgress } from '../core/bracket.js';
 import { resolveLeague, leagueProgress } from '../core/league.js';
+import { formatEventDate } from '../core/schedule.js';
 
 let real = null; // 過去の回を見ている間の、現在の回を含む大会データ（自分のデータ。共有の閲覧者なら、最新に届いた公開内容）
 let viewing = null; // 見ている過去の回の番号
@@ -35,7 +36,7 @@ function unfinishedNotes(st) {
 
 /** トーナメント・総当たりが終わったときに出す「次の回を始める」ボタン */
 export function nextEditionButton() {
-  return `<button type="button" class="owner-only" data-edition="next">第${currentEdition(getState()) + 1}回を始める</button>`;
+  return `<button type="button" class="owner-only" data-edition="next">第${currentEdition(getState()) + 1}回大会を始める</button>`;
 }
 
 /** 参加者・設定タブの「回」のカード */
@@ -44,17 +45,17 @@ export function editionsCardHtml(st) {
   const canStart = !!(st.tournament || st.league);
   const past = [...(st.history ?? [])].reverse();
   return `<div class="card" id="editions-card">
-    <h2>回 <span class="muted">今は第${n}回</span></h2>
-    <p class="hint">同じ参加者・卓・設定のまま、次の回を始められます。今の表と結果は「過去の回」に残り、あとから見たり、CSV・PNG で出力したりできます。</p>
-    <p><button type="button" class="primary" data-edition="next" ${canStart ? '' : 'disabled'}>第${n + 1}回を始める</button>
+    <h2>大会の回数 <span class="muted">今は第${n}回大会</span></h2>
+    <p class="hint">同じ参加者・卓・設定のまま、次の大会（第${n + 1}回大会）を始められます。今の大会の表と結果は「過去の大会」に残り、あとから見たり、CSV・PNG で出力したりできます。</p>
+    <p><button type="button" class="primary" data-edition="next" ${canStart ? '' : 'disabled'}>第${n + 1}回大会を始める</button>
       ${canStart ? '' : '<span class="hint">表を作成すると始められます</span>'}</p>
     ${past.length ? `<div class="table-wrap"><table class="data editions">
-      <thead><tr><th>回</th><th>開催日</th><th>結果</th><th>操作</th></tr></thead>
+      <thead><tr><th>過去の大会</th><th>開催日時</th><th>結果</th><th>操作</th></tr></thead>
       <tbody>${past.map((e) => `<tr>
-        <td>第${e.edition}回</td><td>${h(e.date || '－')}</td><td>${h(editionSummary(e))}</td>
+        <td>第${e.edition}回大会</td><td>${h(formatEventDate(e.date, e.time) || '－')}</td><td>${h(editionSummary(e))}</td>
         <td class="ops"><button type="button" class="small" data-edition-view="${e.edition}">見る</button>
           <button type="button" class="small danger" data-edition-del="${e.edition}">削除</button></td></tr>`).join('')}</tbody>
-    </table></div>` : '<p class="muted">過去の回はまだありません。</p>'}
+    </table></div>` : '<p class="muted">過去の大会はまだありません。</p>'}
   </div>`;
 }
 
@@ -66,8 +67,8 @@ export function qualifyHtml(st) {
   if (max < 2) return '';
   return `<div class="qualify owner-only">
     <label>上位 <input type="number" id="qualify-count" min="2" max="${max}" value="${Math.min(4, max)}" style="width:5em"> 人</label>
-    <button type="button" data-edition="qualify">この人たちで第${n + 1}回を始める</button>
-    <p class="hint">予選リーグのあとに決勝トーナメントを行うときなどに使います。上位の選手だけを、順位順の名簿にして次の回を始めます（前の回の記録は「過去の回」に残ります）。</p>
+    <button type="button" data-edition="qualify">この人たちで第${n + 1}回大会を始める</button>
+    <p class="hint">予選リーグのあとに決勝トーナメントを行うときなどに使います。上位の選手だけを、順位順の名簿にして次の大会を始めます（今の大会の記録は「過去の大会」に残ります）。</p>
   </div>`;
 }
 
@@ -82,19 +83,19 @@ function nextEdition(topCount) {
     ? '参加者・卓・設定はそのまま引き継ぎます。'
     : `総当たりの順位表の上位${topCount}人（${r.state.players.map((p) => p.name).join('、')}）を、順位順の名簿として引き継ぎます。卓・設定はそのまま引き継ぎます。` +
       `${r.tie ? `\n※${r.tie.rank}位が${r.tie.total}人いて、人数の境目に同順位の選手がいます。名簿の並びで選んでいるので、必要なら始めたあとに名簿で入れ替えてください。` : ''}`;
-  const msg = `第${n}回の表と結果を「過去の回」に残して、第${n + 1}回を始めます。\n${carry}` +
+  const msg = `第${n}回大会の表と結果を「過去の大会」に残して、第${n + 1}回大会を始めます。\n${carry}` +
     `${notes.length ? `\n\n※まだ終わっていない試合があります（${notes.join('、')}）。順位は途中経過です。` : ''}` +
-    `${isAdmin() ? '\n※共有中のため、閲覧者の画面も新しい回の内容に変わります。' : ''}\n\nよろしいですか？`;
+    `${isAdmin() ? `\n※共有中のため、閲覧者の画面も新しい大会（第${n + 1}回大会）の内容に変わります。` : ''}\n\nよろしいですか？`;
   if (!confirm(msg)) return;
   setState(r.state);
-  toast(`第${n + 1}回を始めました。参加者を確認して、表を作成してください`);
+  toast(`第${n + 1}回大会を始めました。参加者を確認して、表を作成してください`);
   window.dispatchEvent(new CustomEvent('app:tab', { detail: 'setup' }));
 }
 
 function removeEdition(n) {
-  if (!confirm(`第${n}回の記録を削除します。元に戻せません（必要なら先に「保存」でファイルに残してください）。\n\nよろしいですか？`)) return;
+  if (!confirm(`第${n}回大会の記録を削除します。元に戻せません（必要なら先に「保存」でファイルに残してください）。\n\nよろしいですか？`)) return;
   setState(deleteEdition(getState(), n));
-  toast(`第${n}回の記録を削除しました`);
+  toast(`第${n}回大会の記録を削除しました`);
 }
 
 function renderBanner() {
@@ -105,16 +106,16 @@ function renderBanner() {
     const past = isViewer() ? getState().history ?? [] : [];
     if (!past.length) { el.hidden = true; el.innerHTML = ''; return; }
     el.hidden = false;
-    el.innerHTML = `<b>過去の回の結果も見られます</b>
-      <label>回を選ぶ <select id="eb-select-past"><option value="">選んでください</option>${numbers(past).reverse().map((n) => `<option value="${n}">第${n}回</option>`).join('')}</select></label>`;
+    el.innerHTML = `<b>過去の大会の結果も見られます</b>
+      <label>大会を選ぶ <select id="eb-select-past"><option value="">選んでください</option>${numbers(past).reverse().map((n) => `<option value="${n}">第${n}回大会</option>`).join('')}</select></label>`;
     return;
   }
   const cur = currentEdition(real);
-  const options = numbers(real.history).map((n) => `<option value="${n}" ${n === viewing ? 'selected' : ''}>第${n}回</option>`).join('');
+  const options = numbers(real.history).map((n) => `<option value="${n}" ${n === viewing ? 'selected' : ''}>第${n}回大会</option>`).join('');
   el.hidden = false;
-  el.innerHTML = `<b>第${viewing}回の記録を見ています</b>（閲覧専用です。変更はできません）
-    <label>他の回 <select id="eb-select">${options}<option value="current">第${cur}回（現在）</option></select></label>
-    <button type="button" class="primary" data-edition="back">現在の回（第${cur}回）に戻る</button>`;
+  el.innerHTML = `<b>第${viewing}回大会の記録を見ています</b>（閲覧専用です。変更はできません）
+    <label>他の大会 <select id="eb-select">${options}<option value="current">第${cur}回大会（今の大会）</option></select></label>
+    <button type="button" class="primary" data-edition="back">今の大会（第${cur}回大会）に戻る</button>`;
 }
 
 function viewEdition(n) {
