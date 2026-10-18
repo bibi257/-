@@ -358,3 +358,33 @@ test('閲覧者の呼び出し画面は、開いたまま運営の結果入力�
   await admin.close();
   await viewer.close();
 });
+
+test('共有ページが残る期限（最後の更新から90日）が、運営にも閲覧者にも共有の画面に出る', async ({ browser }) => {
+  const admin = await browser.newContext();
+  const viewer = await browser.newContext();
+  await withIp(admin, '10.0.5.1');
+  await withIp(viewer, '10.0.5.2');
+  const a = await admin.newPage();
+  const v = await viewer.newPage();
+  acceptDialogs(a);
+  acceptDialogs(v);
+  await open(a);
+  await makeTournament(a);
+  await startShare(a);
+  const link = await a.inputValue('#sh-link');
+  const d = new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
+  const expected = `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
+  // 共有を始めると大会データがすぐ送信され、その応答で期限が分かる
+  await expect(a.locator('.sh-keep')).toContainText('まで残ります');
+  await expect(a.locator('.sh-keep')).toContainText(expected);
+  await a.click('#sh-close');
+
+  await v.goto(link);
+  await expect(v.locator('#bracket-wrap svg')).toBeVisible();
+  await v.click('[data-action=share]');
+  await untilSynced(v, () => expect(v.locator('.sh-keep')).toContainText(expected, { timeout: 1000 }));
+  await a.close();
+  await v.close();
+  await admin.close();
+  await viewer.close();
+});

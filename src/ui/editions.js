@@ -12,6 +12,7 @@ import {
 } from '../core/edition.js';
 import { resolveBracket, tournamentProgress } from '../core/bracket.js';
 import { resolveLeague, leagueProgress } from '../core/league.js';
+import { formatEventDate } from '../core/schedule.js';
 
 let real = null; // 過去の回を見ている間の、現在の回を含む大会データ（自分のデータ。共有の閲覧者なら、最新に届いた公開内容）
 let viewing = null; // 見ている過去の回の番号
@@ -49,9 +50,9 @@ export function editionsCardHtml(st) {
     <p><button type="button" class="primary" data-edition="next" ${canStart ? '' : 'disabled'}>第${n + 1}回を始める</button>
       ${canStart ? '' : '<span class="hint">表を作成すると始められます</span>'}</p>
     ${past.length ? `<div class="table-wrap"><table class="data editions">
-      <thead><tr><th>回</th><th>開催日</th><th>結果</th><th>操作</th></tr></thead>
+      <thead><tr><th>回</th><th>開催日時</th><th>結果</th><th>操作</th></tr></thead>
       <tbody>${past.map((e) => `<tr>
-        <td>第${e.edition}回</td><td>${h(e.date || '－')}</td><td>${h(editionSummary(e))}</td>
+        <td>第${e.edition}回</td><td>${h(formatEventDate(e.date, e.time) || '－')}</td><td>${h(editionSummary(e))}</td>
         <td class="ops"><button type="button" class="small" data-edition-view="${e.edition}">見る</button>
           <button type="button" class="small danger" data-edition-del="${e.edition}">削除</button></td></tr>`).join('')}</tbody>
     </table></div>` : '<p class="muted">過去の回はまだありません。</p>'}

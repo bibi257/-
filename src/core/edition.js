@@ -24,6 +24,7 @@ function archiveOf(state) {
   return structuredClone({
     edition: currentEdition(state),
     date: state.meta.date ?? '',
+    time: state.meta.time ?? '',
     archivedAt: new Date().toISOString(),
     players: state.players,
     tables: state.tables,
@@ -67,7 +68,7 @@ export function startNextEdition(state, { topCount } = {}) {
     tie,
     state: {
       ...state,
-      meta: { ...state.meta, date: '' },
+      meta: { ...state.meta, date: '', time: '' },
       players,
       history: [...(state.history ?? []), archiveOf(state)],
       tournament: null,
@@ -86,7 +87,7 @@ export function editionState(state, edition) {
   if (!e) return null;
   return {
     ...state,
-    meta: { ...state.meta, date: e.date },
+    meta: { ...state.meta, date: e.date, time: e.time ?? '' },
     players: e.players,
     tables: e.tables,
     settings: e.settings,

@@ -7,6 +7,7 @@ import { generateTournament, bracketSize, MAX_PLAYERS, MIN_PLAYERS } from '../co
 import { generateLeague, MAX_LEAGUE_PLAYERS } from '../core/league.js';
 import { decodeText, namesFromCSV } from '../core/csv.js';
 import { editionsCardHtml } from './editions.js';
+import { localToday, validateSchedule } from '../core/schedule.js';
 import { planSeeds, effectiveSeedCount, seedOrderNumbers } from '../core/seeds.js';
 
 const panel = () => document.getElementById('panel-setup');
@@ -30,7 +31,12 @@ export function renderSetup() {
       <div class="card">
         <h2>大会情報</h2>
         <div class="form-row"><label for="meta-title">大会名</label><input type="text" id="meta-title" value="${h(st.meta.title)}" maxlength="60" style="flex:1"></div>
-        <div class="form-row"><label for="meta-date">開催日</label><input type="date" id="meta-date" value="${h(st.meta.date)}"></div>
+        <div class="form-row"><label for="meta-date">開催日時</label>
+          <input type="date" id="meta-date" value="${h(st.meta.date)}" min="${localToday()}">
+          <input type="time" id="meta-time" value="${h(st.meta.time)}" aria-label="開始時刻" ${st.meta.date ? '' : 'disabled'}>
+          ${st.meta.date ? '<button type="button" class="small" data-act="clear-schedule">日時を消す</button>' : ''}</div>
+        <p class="hint">過去の日付・時刻は設定できません。時刻は決まっていなければ空欄のままで構いません（日付を入れると時刻を入力できます）。</p>
+        <p class="error" id="schedule-error" role="alert"></p>
       </div>
       ${editionsCardHtml(st)}
       <div class="card">
@@ -173,6 +179,8 @@ function onClick(e) {
   } else if (act === 'clear-players') {
     if (!confirm(`参加者 ${st.players.length}人をすべて削除しますか？`)) return;
     update({ players: [] });
+  } else if (act === 'clear-schedule') {
+    update({ meta: { ...st.meta, date: '', time: '' } });
   } else if (act === 'import') {
     openImport();
   } else if (act === 'gen-tournament') {
@@ -208,15 +216,31 @@ function onInput(e) {
   } else if (el.id === 'meta-title') {
     update({ meta: { ...st.meta, title: el.value } }, { render: false });
     document.getElementById('print-title').textContent = el.value;
-  } else if (el.id === 'meta-date') {
-    update({ meta: { ...st.meta, date: el.value } }, { render: false });
   }
+}
+
+/** 開催日時の変更。過去の日時は受け付けず、元の値に戻す（日付・時刻が変わるたびに検査する） */
+function changeSchedule(el) {
+  const st = getState();
+  const date = document.getElementById('meta-date').value;
+  const time = date ? document.getElementById('meta-time').value : '';
+  const err = validateSchedule(date, time);
+  const msg = document.getElementById('schedule-error');
+  if (err) {
+    msg.textContent = err;
+    el.value = el.id === 'meta-date' ? st.meta.date : st.meta.time; // 元の値に戻す
+    return;
+  }
+  msg.textContent = '';
+  update({ meta: { ...st.meta, date, time } }, { render: el.id === 'meta-date' }); // 日付の有無で時刻欄・ボタンの状態が変わる
 }
 
 function onChangeEvt(e) {
   const el = e.target;
   const st = getState();
-  if (el.id === 'table-count') {
+  if (el.id === 'meta-date' || el.id === 'meta-time') {
+    changeSchedule(el);
+  } else if (el.id === 'table-count') {
     const n = intVal(el, 1, MAX_TABLES, st.tables.length);
     update({ tables: resizeTables(st.tables, n) });
   } else if (el.id === 'seed-mode') {

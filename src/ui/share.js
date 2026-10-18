@@ -25,6 +25,7 @@ export const S = {
   comments: [],
   title: '',
   updatedAt: null, // サーバー側の最終更新（秒）
+  keepUntil: null, // 共有ページが残る期限（秒。運営が最後に更新してから90日。サーバーが返す）
   lastPush: null,
 };
 
@@ -129,6 +130,7 @@ function useSession(base, data, role) {
   S.comments = [];
   S.title = '';
   S.updatedAt = null;
+  S.keepUntil = null;
   saveCfg();
   if (role === 'viewer') enterViewer();
   setStatus('ok');
@@ -230,6 +232,7 @@ export async function pushNow() {
   try {
     const r = await call('PUT', '/state', { state: fitForShare(getState()) });
     S.rev = r.rev;
+    S.keepUntil = r.keepUntil ?? S.keepUntil;
     S.lastPush = new Date();
     setStatus('ok');
   } catch (e) {
@@ -270,6 +273,7 @@ async function pollOnce() {
     const r = await call('GET', `/sync?rev=${S.rev}&crev=${S.crev}`);
     S.title = r.title;
     S.updatedAt = r.updatedAt;
+    S.keepUntil = r.keepUntil ?? null;
     if (r.rev !== S.rev) {
       S.rev = r.rev;
       if (isViewer() && r.state) {
@@ -332,6 +336,13 @@ function statusLine() {
   return S.updatedAt ? `運営の最終更新 ${t(new Date(S.updatedAt * 1000))}（自動で更新されます）` : '運営がまだ大会データを公開していません';
 }
 
+/** 共有ページが残る期間の案内。運営が最後に更新してから90日で自動的に消える（更新のたびに延びる） */
+function keepText() {
+  if (!S.keepUntil) return '';
+  const d = new Date(S.keepUntil * 1000);
+  return `この共有ページは <b>${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日</b> まで残ります（運営が最後に更新してから90日。更新のたびに延びます。過ぎると自動で消えます）。`;
+}
+
 function bodyHtml(prefill) {
   const base = prefill.base ?? defaultBase(location);
   const baseField = field('sh-base', '共有サーバーのURL', `value="${h(base)}" placeholder="https://tournament.○○.workers.dev" autocomplete="url" inputmode="url"`);
@@ -346,6 +357,7 @@ function bodyHtml(prefill) {
     return `<p class="sh-state">${statusLine()}</p>
     <div class="sh-row"><span>共有コード</span><b class="sh-code">${h(S.cfg.code)}</b></div>
     <div class="sh-row"><span>閲覧リンク</span><input id="sh-link" readonly value="${h(link)}"><button type="button" data-sh="copy">コピー</button></div>
+    <p class="hint sh-keep">${keepText()}</p>
     <p class="hint">閲覧者には、この<b>閲覧リンク</b>を伝えてください。リンクを知っている人は、パスワードなしで閲覧・コメントできます（リンクを知らない人は入れません）。個人情報は載せない運用にしてください。</p>
     <p class="sh-actions"><button type="button" class="primary" data-sh="push">今すぐ送信</button></p>
     <details class="sh-details"><summary>運営用パスワードを変更する</summary>
@@ -356,6 +368,7 @@ function bodyHtml(prefill) {
   if (isViewer()) {
     return `<p class="sh-state">${statusLine()}</p>
     <div class="sh-row"><span>共有コード</span><b class="sh-code">${h(S.cfg.code)}</b></div>
+    <p class="hint sh-keep">${keepText()}</p>
     <p class="hint">閲覧専用です。コメントタブからコメントを書けます。</p>
     <p class="sh-actions"><button type="button" data-sh="disconnect">閲覧をやめる</button></p>`;
   }
@@ -388,6 +401,8 @@ export function renderShareDialog() {
   } else {
     const line = body.querySelector('.sh-state');
     if (line) line.innerHTML = statusLine();
+    const keep = body.querySelector('.sh-keep');
+    if (keep) keep.innerHTML = keepText();
   }
 }
 

@@ -6,6 +6,7 @@ import { MAX_SCORE } from './result.js';
 import { MAX_PLAYERS, bracketSize } from './bracket.js';
 import { MAX_HISTORY } from './edition.js';
 import { SEED_MODES } from './seeds.js';
+import { isValidDate, isValidTime } from './schedule.js';
 
 export const STATE_VERSION = 1;
 export const FILE_KIND = 'bukatsu-taikai';
@@ -25,7 +26,7 @@ export function createState() {
   return {
     kind: FILE_KIND,
     version: STATE_VERSION,
-    meta: { title: '部内大会', date: '', updatedAt: null },
+    meta: { title: '部内大会', date: '', time: '', updatedAt: null },
     players: [],
     tables: resizeTables([], 2),
     settings: defaultSettings(),
@@ -185,7 +186,8 @@ function parseHistory(list, baseSettings) {
     const players = parsePlayers(e.players);
     return {
       edition: e.edition,
-      date: isStr(e.date) ? e.date.slice(0, 10) : '',
+      date: isValidDate(e.date) ? e.date : '',
+      time: isValidTime(e.time) ? e.time : '',
       archivedAt: isStr(e.archivedAt) ? e.archivedAt.slice(0, 40) : '',
       players,
       tables: parseTables(e.tables),
@@ -217,7 +219,8 @@ export function parseState(raw) {
       ...base,
       meta: {
         title: isStr(meta.title) ? meta.title : base.meta.title,
-        date: isStr(meta.date) ? meta.date : '',
+        date: isValidDate(meta.date) ? meta.date : '',
+        time: isValidTime(meta.time) ? meta.time : '',
         updatedAt: isStr(meta.updatedAt) ? meta.updatedAt : null,
       },
       players,

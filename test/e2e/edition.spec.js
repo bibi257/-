@@ -19,8 +19,9 @@ test('同じメンバーで次の回を始め、過去の回を見て、保存�
   await open(page);
   await importNames(page, FOUR);
   await page.fill('#meta-title', '春の大会');
-  await page.fill('#meta-date', '2026-04-01');
-  await page.press('#meta-date', 'Tab');
+  await page.fill('#meta-date', '2099-04-01');
+  await page.fill('#meta-time', '13:30');
+  await page.press('#meta-time', 'Tab');
 
   // 表が無いうちは始められない
   await expect(page.locator('#editions-card')).toContainText('今は第1回');
@@ -48,7 +49,7 @@ test('同じメンバーで次の回を始め、過去の回を見て、保存�
   await page.click('.tabs [data-tab=setup]');
   await expect(page.locator('table.editions tbody tr')).toHaveCount(1);
   await expect(page.locator('table.editions')).toContainText('第1回');
-  await expect(page.locator('table.editions')).toContainText('2026-04-01');
+  await expect(page.locator('table.editions')).toContainText('2099/04/01 13:30');
   await expect(page.locator('table.editions')).toContainText(`トーナメント 優勝 ${champ}`);
 
   // 過去の回を見る: 閲覧専用で、結果が見え、出力のファイル名に回が入る
