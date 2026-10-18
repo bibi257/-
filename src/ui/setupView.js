@@ -6,7 +6,7 @@ import { makePlayers, validatePlayers, movePlayer, resizeTables, cleanName, setu
 import { generateTournament, bracketSize, MAX_PLAYERS, MIN_PLAYERS } from '../core/bracket.js';
 import { generateLeague, MAX_LEAGUE_PLAYERS } from '../core/league.js';
 import { decodeText, namesFromCSV } from '../core/csv.js';
-import { editionsCardHtml, rememberEditionsFold } from './editions.js';
+import { editionsCardHtml, keepEditionsFold } from './editions.js';
 import { localToday, validateSchedule } from '../core/schedule.js';
 import { planSeeds, effectiveSeedCount, seedOrderNumbers } from '../core/seeds.js';
 
@@ -17,6 +17,7 @@ function hasResults(obj) {
 }
 
 export function renderSetup() {
+  keepEditionsFold();
   const st = getState();
   const n = st.players.length;
   const s = st.settings;
@@ -359,6 +360,5 @@ export function setupSetupView() {
   p.addEventListener('input', onInput);
   p.addEventListener('change', onChangeEvt);
   p.addEventListener('submit', onSubmit);
-  rememberEditionsFold(p);
   setupImport();
 }

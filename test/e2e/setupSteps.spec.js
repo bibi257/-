@@ -97,6 +97,19 @@ for (const [w, h] of [[390, 844], [1280, 800]]) {
       await expect(card.locator('[data-edition=next]')).toBeVisible();
       await page.fill('#new-player', 'A'); await page.press('#new-player', 'Enter'); // 画面を作り直しても開いたまま
       await expect(page.locator('#editions-card [data-edition=next]')).toBeVisible();
+      // 閉じた直後（toggle イベントが届く前）に画面が作り直されても、閉じたまま・開いたままを保つ
+      await page.evaluate(() => {
+        document.querySelector('#editions-card > summary').click(); // 閉じる
+        document.getElementById('new-player').value = 'B';
+        document.getElementById('add-player-form').requestSubmit();
+      });
+      await expect(page.locator('#editions-card')).not.toHaveAttribute('open', '');
+      await page.evaluate(() => {
+        document.querySelector('#editions-card > summary').click(); // 開く
+        document.getElementById('new-player').value = 'C';
+        document.getElementById('add-player-form').requestSubmit();
+      });
+      await expect(page.locator('#editions-card [data-edition=next]')).toBeVisible();
     });
   });
 }

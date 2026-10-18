@@ -62,11 +62,10 @@ export function editionsCardHtml(st) {
   return `<details class="card editions-fold" id="editions-card" ${editionsOpen ? 'open' : ''}><summary><h2>${head}</h2></summary>${body}</details>`;
 }
 
-/** 「大会の回数」の折りたたみを開け閉めしたことを覚える（toggle は伝わらないので、捕捉段階で受ける） */
-export function rememberEditionsFold(root) {
-  root.addEventListener('toggle', (e) => {
-    if (e.target instanceof Element && e.target.id === 'editions-card') editionsOpen = e.target.open;
-  }, true);
+/** 画面を作り直す直前に呼び、いま開いているかを覚える（toggle イベントは遅れて届くので、使わず今の状態を読む） */
+export function keepEditionsFold() {
+  const el = document.getElementById('editions-card');
+  if (el instanceof HTMLDetailsElement) editionsOpen = el.open;
 }
 
 /** 順位表タブの、「上位N人で次の回を始める」欄（総当たりの順位表の下に出す。運営のみ） */
