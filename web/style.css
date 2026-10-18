@@ -141,6 +141,10 @@ table.data tr.st-waiting td, table.data tr.st-bye td { color: #8791a0; }
 .players td.idx { width: 3em; text-align: center; color: var(--muted); }
 .players td.ops { white-space: nowrap; width: 1%; }
 .players input.name { width: 100%; min-width: 8em; }
+.table-wrap td.seed-cell, .table-wrap th.seed-col { text-align: left; white-space: nowrap; }
+.seed-pick { display: inline-flex; align-items: center; gap: 6px; width: 7.5em; cursor: pointer; }
+.seed-pick input { width: 18px; height: 18px; margin: 0; flex: none; }
+.seed-pick .seed-badge { margin-left: 0; }
 .seed-badge { display: inline-block; background: var(--gold-weak); color: var(--gold); border: 1px solid var(--gold-line); border-radius: 999px; padding: 0 8px; font-size: 12px; margin-left: 6px; white-space: nowrap; line-height: 1.5; }
 .add-row { display: flex; gap: 8px; margin-top: 12px; }
 .add-row input { flex: 1; }

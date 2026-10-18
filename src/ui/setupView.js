@@ -7,6 +7,7 @@ import { generateTournament, bracketSize, MAX_PLAYERS, MIN_PLAYERS } from '../co
 import { generateLeague, MAX_LEAGUE_PLAYERS } from '../core/league.js';
 import { decodeText, namesFromCSV } from '../core/csv.js';
 import { editionsCardHtml } from './editions.js';
+import { planSeeds, effectiveSeedCount, seedOrderNumbers } from '../core/seeds.js';
 
 const panel = () => document.getElementById('panel-setup');
 
@@ -18,8 +19,11 @@ export function renderSetup() {
   const st = getState();
   const n = st.players.length;
   const s = st.settings;
-  const seedMax = n;
   const size = n >= 2 ? bracketSize(n) : 0;
+  const pick = s.seedMode === 'pick';
+  const picked = new Set(s.seedIds);
+  const seedNo = seedOrderNumbers(st.players, s);
+  const seedN = effectiveSeedCount(s, st.players);
   panel().innerHTML = `
   <div class="grid-2">
     <div class="stack">
@@ -35,22 +39,25 @@ export function renderSetup() {
           <button type="button" data-act="import">一括入力・CSV取込</button>
           <button type="button" class="danger" data-act="clear-players" ${n ? '' : 'disabled'}>全員削除</button>
         </h2>
-        <p class="hint">上から順にシード順位になります（シード人数は右の設定で指定）。名前は作成後も変更でき、表に反映されます。</p>
+        <p class="hint">${pick
+          ? 'シードにしたい選手に、名前の左のチェックを付けてください。シードの順位は名簿の上から順です（↑↓で並べ替え）。'
+          : 'シードの決め方は、右の「トーナメント」で選べます（ランダム／名簿でチェックして指名）。'}名前は作成後も変更でき、表に反映されます。</p>
         <ul class="errors" id="player-errors" hidden></ul>
         <div class="table-wrap">
           <table class="data players">
-            <thead><tr><th class="num">No</th><th>名前</th><th>並べ替え・削除</th></tr></thead>
+            <thead><tr><th class="num">No</th>${pick ? '<th class="seed-col">シード</th>' : ''}<th>名前</th><th>並べ替え・削除</th></tr></thead>
             <tbody>
               ${st.players.map((p, i) => `
               <tr data-id="${h(p.id)}">
-                <td class="idx">${i + 1}${i < Math.min(s.seedCount, n) ? `<span class="seed-badge">第${i + 1}シード</span>` : ''}</td>
+                <td class="idx">${i + 1}</td>
+                ${pick ? `<td class="seed-cell"><label class="seed-pick"><input type="checkbox" class="seed-pick-box" data-id="${h(p.id)}" ${picked.has(p.id) ? 'checked' : ''} aria-label="${h(p.name || `${i + 1}番目`)}をシードにする">${seedNo.has(p.id) ? `<span class="seed-badge">第${seedNo.get(p.id)}シード</span>` : ''}</label></td>` : ''}
                 <td><input type="text" class="name" data-id="${h(p.id)}" value="${h(p.name)}" maxlength="40" aria-label="${i + 1}番目の名前"></td>
                 <td class="ops">
                   <button type="button" class="icon" data-act="up" data-i="${i}" ${i === 0 ? 'disabled' : ''} aria-label="上へ">↑</button>
                   <button type="button" class="icon" data-act="down" data-i="${i}" ${i === n - 1 ? 'disabled' : ''} aria-label="下へ">↓</button>
                   <button type="button" class="icon danger" data-act="del" data-i="${i}" aria-label="削除">×</button>
                 </td>
-              </tr>`).join('') || '<tr><td colspan="3" class="muted">まだ参加者がいません。下の欄に名前を入力して追加してください。</td></tr>'}
+              </tr>`).join('') || '<tr><td colspan="${pick ? 4 : 3}" class="muted">まだ参加者がいません。下の欄に名前を入力して追加してください。</td></tr>'}
             </tbody>
           </table>
         </div>
@@ -72,9 +79,15 @@ export function renderSetup() {
       </div>
       <div class="card">
         <h2>トーナメント</h2>
-        <div class="form-row"><label for="seed-count">シード人数</label>
-          <input type="number" id="seed-count" min="0" max="${seedMax}" value="${Math.min(s.seedCount, seedMax)}" style="width:6em">
-          <span class="hint">${n >= 2 ? `枠 ${size}・1回戦不戦（シード上位から） ${size - n}枠` : ''}</span></div>
+        <div class="form-row"><label for="seed-mode">シード</label>
+          <select id="seed-mode">
+            <option value="none" ${s.seedMode === 'none' ? 'selected' : ''}>なし</option>
+            <option value="random" ${s.seedMode === 'random' ? 'selected' : ''}>ランダムに決める</option>
+            <option value="pick" ${pick ? 'selected' : ''}>名簿で指名する（チェック）</option>
+          </select>
+          ${s.seedMode === 'random' ? `<label for="seed-count">人数</label><input type="number" id="seed-count" min="0" max="${n}" value="${Math.min(s.seedCount, n)}" style="width:5.5em">` : ''}
+          ${pick ? `<span class="muted">指名 ${seedN}人</span>` : ''}</div>
+        <p class="hint">${s.seedMode === 'random' ? '表を作成（作り直し）するたびに、全員から抽選します。' : pick ? '「参加者」の名簿でチェックした選手がシードです。' : ''}${n >= 2 ? `枠 ${size}・1回戦不戦（シード上位から） ${size - n}枠` : ''}</p>
         <div class="form-row"><label for="placement">シード以外の配置</label>
           <select id="placement">
             <option value="order" ${s.placement === 'order' ? 'selected' : ''}>名簿順</option>
@@ -82,7 +95,7 @@ export function renderSetup() {
           </select></div>
         <div class="form-row"><label for="third-place">3位決定戦</label>
           <label><input type="checkbox" id="third-place" ${s.thirdPlace ? 'checked' : ''}> 行う</label></div>
-        <p class="hint">シード人数・配置・3位決定戦は、表を作成（作り直し）したときに反映されます。</p>
+        <p class="hint">シードの決め方・配置・3位決定戦は、表を作成（作り直し）したときに反映されます。</p>
         <button type="button" class="primary" data-act="gen-tournament">${st.tournament ? 'トーナメント表を作り直す' : 'トーナメント表を作成'}</button>
       </div>
       <div class="card">
@@ -167,7 +180,8 @@ function onClick(e) {
     if (st.tournament && !confirm(hasResults(st.tournament)
       ? 'トーナメント表を作り直すと、入力済みの結果はすべて消えます。作り直しますか？'
       : 'トーナメント表を作り直しますか？')) return;
-    const t = generateTournament(st.players.map((p) => p.id), st.settings);
+    const plan = planSeeds(st.players, st.settings);
+    const t = generateTournament(plan.playerIds, { ...st.settings, seedCount: plan.seedCount });
     setState({ ...st, tournament: t }, { render: false });
     toast('トーナメント表を作成しました');
     window.dispatchEvent(new CustomEvent('app:tab', { detail: 'tournament' }));
@@ -205,8 +219,14 @@ function onChangeEvt(e) {
   if (el.id === 'table-count') {
     const n = intVal(el, 1, MAX_TABLES, st.tables.length);
     update({ tables: resizeTables(st.tables, n) });
+  } else if (el.id === 'seed-mode') {
+    updateSettings({ seedMode: ['random', 'pick'].includes(el.value) ? el.value : 'none' }, { render: true });
   } else if (el.id === 'seed-count') {
     updateSettings({ seedCount: intVal(el, 0, st.players.length, 0) }, { render: true });
+  } else if (el.matches('input.seed-pick-box')) {
+    const ids = new Set(st.settings.seedIds);
+    if (el.checked) ids.add(el.dataset.id); else ids.delete(el.dataset.id);
+    updateSettings({ seedIds: [...ids] }, { render: true });
   } else if (el.id === 'placement') {
     updateSettings({ placement: el.value === 'random' ? 'random' : 'order' });
   } else if (el.id === 'third-place') {
