@@ -11,6 +11,7 @@ import { setupResultDialog } from './resultDialog.js';
 import { setupCallScreen, refreshCallScreen } from './callScreen.js';
 import { renderComments, setupCommentsView } from './commentsView.js';
 import { setupEditions } from './editions.js';
+import { setupMenu } from './menu.js';
 import { eventTitle } from '../core/edition.js';
 import { S, initShare, isSharing, isViewer, isAdmin, onShareChange, openShareDialog, setupShareDialog } from './share.js';
 
@@ -77,6 +78,7 @@ async function loadFile(file) {
 }
 
 function setupHeader() {
+  setupMenu();
   const fileInput = document.getElementById('load-file');
   document.querySelector('.header-actions').addEventListener('click', (e) => {
     const act = e.target.closest('button[data-action]')?.dataset.action;
@@ -108,6 +110,7 @@ function setupHeader() {
   const status = document.getElementById('save-status');
   onSaveStatus(({ ok, at }) => {
     status.textContent = ok ? `自動保存 ${at.toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}` : '自動保存できません';
+    status.dataset.short = ok ? '保存済み' : '保存できません'; // スマホ幅では、この短い表記を出す
     status.title = ok ? 'このブラウザに自動保存しています' : 'ブラウザの設定で保存が無効です。「保存」でファイルに保存してください';
   });
 }

@@ -89,3 +89,17 @@ test('呼び出し画面は白ベース（背景は --canvas、札は --paper）
   assert.match(rule('.cs-card'), /background:\s*var\(--paper\)/);
   assert.doesNotMatch(css.match(/#call-screen\s*\{[^}]*\}/)[0], /background:\s*var\(--ink/);
 });
+
+test('web/style.css は { と } の数が合っている（括弧が余ると、後ろのルールが無効になる）', () => {
+  const stripped = css.replace(/\/\*[\s\S]*?\*\//g, '');
+  const open = (stripped.match(/\{/g) || []).length;
+  const close = (stripped.match(/\}/g) || []).length;
+  assert.equal(open, close);
+  // 途中で閉じすぎていない（どの位置でも { の数 ≧ } の数）
+  let depth = 0;
+  for (const ch of stripped) {
+    if (ch === '{') depth += 1;
+    if (ch === '}') depth -= 1;
+    assert.ok(depth >= 0, '閉じ括弧が余っている');
+  }
+});
