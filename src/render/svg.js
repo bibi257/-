@@ -27,9 +27,9 @@ function line(x1, y1, x2, y2, color, width) {
   return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${color}" stroke-width="${width}" stroke-linecap="square"/>`;
 }
 
-// 色は theme.js（web/style.css の :root と同じ値）から取る。赤は勝ち上がりの線と勝者の枠だけ
+// 色は theme.js（web/style.css の :root と同じ値）から取る。勝ち上がりの線と勝者の枠は青（結果入力の勝者の行と同じ）
 const C = {
-  line: T.faint, win: T.win, box: T.muted, boxFill: T.paper, winFill: T.winWeak,
+  line: T.faint, win: T.primary, box: T.muted, boxFill: T.paper, winFill: T.primaryWeak,
   champFill: T.goldWeak, champ: T.goldLine, ready: T.primary, done: T.muted, waiting: T.faint, sub: T.muted,
 };
 
