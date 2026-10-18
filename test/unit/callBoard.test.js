@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createState } from '../../src/core/state.js';
 import { makePlayers } from '../../src/core/players.js';
-import { generateTournament, setTournamentResult } from '../../src/core/bracket.js';
+import { generateTournament, setTournamentResult, THIRD_PLACE_ID } from '../../src/core/bracket.js';
 import { generateLeague, setLeagueResult } from '../../src/core/league.js';
 import { callBoard } from '../../src/core/callBoard.js';
 
@@ -94,4 +94,37 @@ test('過去の回があるときは大会名に第N回が付く', () => {
   const st = sample(4);
   st.history = [{ edition: 1, title: '春季大会', archivedAt: '2026-01-01T00:00:00.000Z', players: [], tables: [], settings: st.settings, tournament: null, league: null }];
   assert.equal(callBoard(st, 'tournament').title, '春季大会 第2回');
+});
+
+test('トーナメント: 終われば準優勝と3位も返す（3位決定戦なしは準決勝の敗者2人）。途中は空', () => {
+  const st = sample(4);
+  let t = st.tournament;
+  t = setTournamentResult(t, 'R1-M1', { score1: 3, score2: 0 }).tournament;
+  t = setTournamentResult(t, 'R1-M2', { score1: 1, score2: 2 }).tournament;
+  st.tournament = t;
+  let b = callBoard(st, 'tournament');
+  assert.equal(b.runnerUp, '');
+  assert.deepEqual(b.thirds, []);
+  t = setTournamentResult(t, 'R2-M1', { score1: 2, score2: 1 }).tournament;
+  st.tournament = t;
+  b = callBoard(st, 'tournament');
+  assert.equal(b.champion, '選手1');
+  assert.equal(b.runnerUp, '選手3');
+  assert.deepEqual([...b.thirds].sort(), ['選手2', '選手4']);
+});
+
+test('トーナメント: 3位決定戦があるときは、その終了まで表彰が出ず、3位は勝者1人', () => {
+  const st = sample(4, { thirdPlace: true });
+  let t = st.tournament;
+  for (const [id, a, b2] of [['R1-M1', 3, 0], ['R1-M2', 1, 2], ['R2-M1', 2, 1]]) t = setTournamentResult(t, id, { score1: a, score2: b2 }).tournament;
+  st.tournament = t;
+  let b = callBoard(st, 'tournament');
+  assert.equal(b.finished, false);
+  assert.equal(b.runnerUp, '');
+  t = setTournamentResult(t, THIRD_PLACE_ID, { score1: 0, score2: 1 }).tournament;
+  st.tournament = t;
+  b = callBoard(st, 'tournament');
+  assert.equal(b.finished, true);
+  assert.equal(b.runnerUp, '選手3');
+  assert.equal(b.thirds.length, 1);
 });

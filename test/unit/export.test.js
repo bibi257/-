@@ -165,3 +165,19 @@ test('トーナメント順位表: 大会が終わると 1〜3位の印（rowMed
   const mid = sample(4);
   assert.ok(!tableSvg(mid, tournamentStandingsTable(mid)).svg.includes('width="4" height="28"'));
 });
+
+test('SVG（PNG出力）: 優勝が決まったら右上に優勝者名を小さく入れる。決まるまでは入れない', () => {
+  const st = sample(4);
+  assert.ok(!bracketSvg(st).svg.includes('優勝　'));
+  let t = st.tournament;
+  for (const id of ['R1-M1', 'R1-M2', 'R2-M1']) t = setTournamentResult(t, id, { score1: 2, score2: 1 }).tournament;
+  st.tournament = t;
+  const { svg, width } = bracketSvg(st);
+  assert.ok(svg.includes('優勝　選手1'));
+  // 右上（右端から16px、タイトルと同じ高さ）に、右寄せで置く
+  assert.ok(svg.includes(`x="${width - 16}" y="24"`));
+  assert.ok(svg.includes('text-anchor="end"'));
+  // 長い大会名でタイトルと重なるときは、1行下げる
+  st.meta.title = 'あ'.repeat(40);
+  assert.ok(bracketSvg(st).svg.includes(`y="44"`));
+});

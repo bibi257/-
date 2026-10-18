@@ -294,6 +294,20 @@ export function tournamentRanking(t, res = resolveBracket(t)) {
   });
 }
 
+/**
+ * 表彰（優勝・準優勝・3位）。決勝と、3位決定戦があればそれも終わったときだけ返す（途中は null）。
+ * 3位決定戦がないときは、準決勝で敗れた選手（最大2人）がどちらも3位。2人の大会は3位なし。
+ * @returns {{first:string, second:string|null, thirds:string[]}|null} 選手の ID
+ */
+export function tournamentPodium(t, res = resolveBracket(t)) {
+  if (!res.finished) return null;
+  const rows = tournamentRanking(t, res);
+  const at = (rank) => rows.filter((r) => r.rank === rank).map((r) => r.playerId);
+  const first = at(1)[0];
+  if (!first) return null;
+  return { first, second: at(2)[0] ?? null, thirds: at(3) };
+}
+
 export function tournamentProgress(res) {
   const total = res.playable.length;
   const done = res.playable.filter((m) => m.status === 'done').length;
