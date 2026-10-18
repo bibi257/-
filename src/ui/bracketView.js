@@ -27,6 +27,27 @@ export function controlsHtml(columnNames) {
 
 const state = { mode: 'pct', pct: 100 }; // mode: 'fit'（全体表示）| 'pct'（拡大率を指定）
 
+// スマホ幅（700px 以下）の表示: 'rounds'（回戦ごと。初期表示）| 'table'（今の SVG の表）。PC 幅は常に表
+const MOBILE = '(max-width: 700px)';
+const view = { mode: 'rounds', round: null };
+let refreshRounds = () => {};
+
+export const getRoundSel = () => view.round;
+export const roundsActive = () => window.matchMedia(MOBILE).matches && view.mode === 'rounds';
+
+/** 回戦ごと／表の切り替え（スマホ幅だけ） */
+export function viewSwitchHtml() {
+  return `<div class="view-switch no-print" role="group" aria-label="表示の切り替え">
+    <button type="button" class="small" data-view-mode="rounds" aria-pressed="${view.mode === 'rounds'}">回戦ごと</button>
+    <button type="button" class="small" data-view-mode="table" aria-pressed="${view.mode === 'table'}">表で見る</button>
+  </div>`;
+}
+
+/** 今の表示（data-view）を、操作の入るカードに付ける */
+export function viewMode() {
+  return view.mode;
+}
+
 const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const behavior = () => (reducedMotion() ? 'auto' : 'smooth');
 
@@ -75,8 +96,18 @@ function scrollToColumn(wrap, k) {
   wrap.scrollTo({ left: Math.max(0, cols[k] * currentScale(wrap) - 12), behavior: behavior() });
 }
 
-/** その試合がある位置までスクロールし、枠を1.5秒強調する（動きを減らす設定のときは、すぐに移動する） */
-export function revealMatch(id) {
+/** その試合がある位置までスクロールし、枠を1.5秒強調する（動きを減らす設定のときは、すぐに移動する）。
+ *  スマホ幅の「回戦ごと」表示では、その回戦のタブを開いて、カードを強調する。roundKey は試合の回戦（'1'…、3位決定戦は 'third'） */
+export function revealMatch(id, roundKey) {
+  if (roundsActive()) {
+    if (roundKey !== undefined) { view.round = String(roundKey); refreshRounds(); }
+    const card = [...document.querySelectorAll('#round-view [data-match]')].find((x) => x.dataset.match === id);
+    if (!card) return;
+    card.scrollIntoView({ block: 'center', inline: 'nearest', behavior: behavior() });
+    card.classList.add('flash');
+    setTimeout(() => card.classList.remove('flash'), 1500);
+    return;
+  }
   const wrap = document.getElementById('bracket-wrap');
   const g = wrap && [...wrap.querySelectorAll('g.match')].find((x) => x.dataset.id === id);
   if (!g) return;
@@ -85,9 +116,26 @@ export function revealMatch(id) {
   setTimeout(() => g.classList.remove('flash'), 1500);
 }
 
-/** @param {HTMLElement} panel トーナメントタブ */
-export function setupBracketControls(panel) {
+/**
+ * @param {HTMLElement} panel トーナメントタブ
+ * @param {{refreshRounds:() => void}} hooks 回戦ごとの表示を、今の状態から描き直す関数（tournamentView が渡す）
+ */
+export function setupBracketControls(panel, hooks = {}) {
+  refreshRounds = hooks.refreshRounds || (() => {});
   panel.addEventListener('click', (e) => {
+    const sw = e.target.closest('[data-view-mode]');
+    if (sw) {
+      view.mode = sw.dataset.viewMode;
+      const card = sw.closest('.bracket-card');
+      if (card) card.dataset.view = view.mode;
+      card?.querySelectorAll('[data-view-mode]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.viewMode === view.mode)));
+      const wrap = document.getElementById('bracket-wrap');
+      if (view.mode === 'table' && wrap) applyZoom(wrap);
+      else refreshRounds();
+      return;
+    }
+    const tab = e.target.closest('[data-round-tab]');
+    if (tab) { view.round = tab.dataset.roundTab; refreshRounds(); return; }
     const z = e.target.closest('[data-zoom]');
     const c = e.target.closest('[data-col]');
     const wrap = document.getElementById('bracket-wrap');

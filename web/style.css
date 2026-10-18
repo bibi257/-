@@ -215,6 +215,15 @@ button.rc:hover:not(:disabled) { background: var(--primary-weak); border-color: 
 .bracket-wrap { overflow-x: auto; overflow-y: hidden; border: 1px solid var(--rule); border-radius: var(--r-ctl); background: var(--paper); }
 .bracket-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin: 8px 0 10px; }
 .bracket-controls .group-label { margin-left: 8px; font-size: 13px; color: var(--muted); }
+/* スマホ幅（700px 以下）の「回戦ごと」表示（src/ui/roundView.js）。PC 幅は表だけ */
+.view-switch, .round-view { display: none; }
+.round-tabs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin: 0 -2px 10px; padding: 2px; }
+.round-tabs::-webkit-scrollbar { display: none; }
+.round-tabs button { flex: none; min-height: 44px; padding: 0 14px; border-radius: 999px; white-space: nowrap; }
+.round-tabs button[aria-selected="true"] { background: var(--primary); border-color: var(--primary); color: #fff; font-weight: bold; }
+.round-view .result-cards { margin-top: 2px; }
+.view-switch button[aria-pressed="true"] { background: var(--primary-weak); border-color: var(--primary); color: var(--primary); font-weight: bold; }
+.rc.flash { outline: 2px solid var(--primary); outline-offset: -2px; background: var(--primary-weak); }
 /* 画面の拡大縮小（src/ui/bracketView.js）。印刷には効かせない */
 @media screen {
   .bracket-wrap svg[style*="--bz"] { width: calc(var(--bw) * var(--bz) * 1px); height: calc(var(--bh) * var(--bz) * 1px); }
@@ -388,6 +397,10 @@ table.editions td.ops { white-space: nowrap; }
   .next-list { grid-template-columns: 1fr; }
   .results-table { display: none; }
   .result-cards { display: grid; gap: 8px; }
+  /* トーナメント表は、初期表示を「回戦ごと」にする。「表で見る」で今の表（拡大縮小つき）に切り替える */
+  .view-switch { display: flex; gap: 6px; margin: 0 0 10px; }
+  .bracket-card[data-view="rounds"] .round-view { display: block; }
+  .bracket-card[data-view="rounds"] .bracket-controls, .bracket-card[data-view="rounds"] .bracket-wrap { display: none; }
   .progress-bar { flex-basis: 100%; }
   .edition-banner { margin: 12px 12px 0; }
 }
@@ -449,6 +462,7 @@ table.editions td.ops { white-space: nowrap; }
   .table-wrap { overflow: visible; border: none; }
   table.data.results { min-width: 0; }
   table.data.results th, table.data.results td { white-space: normal; }
-  .result-cards { display: none !important; }
+  .result-cards, .round-view, .view-switch { display: none !important; }
+  .bracket-card .bracket-wrap { display: block !important; }
   #panel-comments, .share-chip, .edition-banner, #call-screen, .qualify { display: none !important; }
 }
