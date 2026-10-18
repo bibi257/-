@@ -2,11 +2,11 @@
 
 import { getState, setState } from './store.js';
 import { h, toast, readFileBytes } from './io.js';
-import { makePlayers, validatePlayers, movePlayer, resizeTables, cleanName, MAX_TABLES } from '../core/players.js';
+import { makePlayers, validatePlayers, movePlayer, resizeTables, cleanName, setupProgress, MAX_TABLES } from '../core/players.js';
 import { generateTournament, bracketSize, MAX_PLAYERS, MIN_PLAYERS } from '../core/bracket.js';
 import { generateLeague, MAX_LEAGUE_PLAYERS } from '../core/league.js';
 import { decodeText, namesFromCSV } from '../core/csv.js';
-import { editionsCardHtml } from './editions.js';
+import { editionsCardHtml, keepEditionsFold } from './editions.js';
 import { localToday, validateSchedule } from '../core/schedule.js';
 import { planSeeds, effectiveSeedCount, seedOrderNumbers } from '../core/seeds.js';
 
@@ -17,6 +17,7 @@ function hasResults(obj) {
 }
 
 export function renderSetup() {
+  keepEditionsFold();
   const st = getState();
   const n = st.players.length;
   const s = st.settings;
@@ -26,24 +27,26 @@ export function renderSetup() {
   const seedNo = seedOrderNumbers(st.players, s);
   const seedN = effectiveSeedCount(s, st.players);
   panel().innerHTML = `
+  ${stepsHtml(setupProgress(st))}
   <div class="grid-2">
     <div class="stack">
-      <div class="card">
+      <div class="card" id="setup-info">
         <h2>大会情報</h2>
         <div class="form-row"><label for="meta-title">大会名</label><input type="text" id="meta-title" value="${h(st.meta.title)}" maxlength="60" style="flex:1"></div>
-        <div class="form-row"><label for="meta-date">開催日時</label>
+        <div class="form-row schedule-row"><label for="meta-date">開催日時</label>
           <input type="date" id="meta-date" value="${h(st.meta.date)}" min="${localToday()}">
           <input type="time" id="meta-time" value="${h(st.meta.time)}" aria-label="開始時刻" ${st.meta.date ? '' : 'disabled'}>
           ${st.meta.date ? '<button type="button" class="small" data-act="clear-schedule">日時を消す</button>' : ''}</div>
         <p class="hint">過去の日付・時刻は設定できません。時刻は決まっていなければ空欄のままで構いません（日付を入れると時刻を入力できます）。</p>
         <p class="error" id="schedule-error" role="alert"></p>
       </div>
-      ${editionsCardHtml(st)}
-      <div class="card">
+      <div class="card" id="setup-players">
         <h2>参加者 <span class="muted" id="player-count">${n}人</span>
           <span class="spacer"></span>
-          <button type="button" data-act="import">一括入力・CSV取込</button>
-          <button type="button" class="danger" data-act="clear-players" ${n ? '' : 'disabled'}>全員削除</button>
+          <span class="h2-actions">
+            <button type="button" data-act="import">一括入力・CSV取込</button>
+            <button type="button" class="danger" data-act="clear-players" ${n ? '' : 'disabled'}>全員削除</button>
+          </span>
         </h2>
         <p class="hint">${pick
           ? 'シードにしたい選手に、名前の左のチェックを付けてください。シードの順位は名簿の上から順です（↑↓で並べ替え）。'
@@ -63,7 +66,7 @@ export function renderSetup() {
                   <button type="button" class="icon" data-act="down" data-i="${i}" ${i === n - 1 ? 'disabled' : ''} aria-label="下へ">↓</button>
                   <button type="button" class="icon danger" data-act="del" data-i="${i}" aria-label="削除">×</button>
                 </td>
-              </tr>`).join('') || '<tr><td colspan="${pick ? 4 : 3}" class="muted">まだ参加者がいません。下の欄に名前を入力して追加してください。</td></tr>'}
+              </tr>`).join('') || `<tr><td colspan="${pick ? 4 : 3}" class="muted">まだ参加者がいません。下の欄に名前を入力して追加してください。</td></tr>`}
             </tbody>
           </table>
         </div>
@@ -74,7 +77,7 @@ export function renderSetup() {
       </div>
     </div>
     <div class="stack">
-      <div class="card">
+      <div class="card" id="setup-tables">
         <h2>卓</h2>
         <div class="form-row"><label for="table-count">使用する卓の数</label>
           <input type="number" id="table-count" min="1" max="${MAX_TABLES}" value="${st.tables.length}" style="width:6em"></div>
@@ -83,7 +86,7 @@ export function renderSetup() {
           ${st.tables.map((t, i) => `<input type="text" class="table-name" data-id="${h(t.id)}" value="${h(t.name)}" maxlength="20" aria-label="卓${i + 1}の名前">`).join('')}
         </div>
       </div>
-      <div class="card">
+      <div class="card" id="setup-tournament">
         <h2>トーナメント</h2>
         <div class="form-row"><label for="seed-mode">シード</label>
           <select id="seed-mode">
@@ -102,22 +105,46 @@ export function renderSetup() {
         <div class="form-row"><label for="third-place">3位決定戦</label>
           <label><input type="checkbox" id="third-place" ${s.thirdPlace ? 'checked' : ''}> 行う</label></div>
         <p class="hint">シードの決め方・配置・3位決定戦は、表を作成（作り直し）したときに反映されます。</p>
-        <button type="button" class="primary" data-act="gen-tournament">${st.tournament ? 'トーナメント表を作り直す' : 'トーナメント表を作成'}</button>
+        ${createHtml('gen-tournament', st.tournament, 'トーナメント表')}
       </div>
-      <div class="card">
+      <div class="card" id="setup-league">
         <h2>総当たり</h2>
-        <div class="form-row"><label>勝点</label>
-          勝 <input type="number" id="pt-win" min="0" max="99" value="${s.league.win}" style="width:4.5em">
-          分 <input type="number" id="pt-draw" min="0" max="99" value="${s.league.draw}" style="width:4.5em">
-          敗 <input type="number" id="pt-loss" min="0" max="99" value="${s.league.loss}" style="width:4.5em"></div>
+        <div class="form-row pt-row"><label>勝点</label>
+          <div class="pt-grid">
+            <label>勝 <input type="number" id="pt-win" min="0" max="99" value="${s.league.win}"></label>
+            <label>分 <input type="number" id="pt-draw" min="0" max="99" value="${s.league.draw}"></label>
+            <label>敗 <input type="number" id="pt-loss" min="0" max="99" value="${s.league.loss}"></label>
+          </div></div>
         <div class="form-row"><label for="allow-draw">引き分け</label>
           <label><input type="checkbox" id="allow-draw" ${s.league.allowDraw ? 'checked' : ''}> あり</label></div>
         <p class="hint">順位は 勝点 → 同勝点内の直接対決 → 得失点差 → 総得点 の順に決めます。勝点の変更はすぐ反映されます。</p>
-        <button type="button" class="primary" data-act="gen-league">${st.league ? '総当たり表を作り直す' : '総当たり表を作成'}</button>
+        ${createHtml('gen-league', st.league, '総当たり表')}
       </div>
     </div>
-  </div>`;
+  </div>
+  ${editionsCardHtml(st)}`;
   updateValidation();
+}
+
+const STEPS = [
+  { target: 'setup-info', no: 1, label: '大会情報と参加者', key: 'players' },
+  { target: 'setup-tables', no: 2, label: '卓と形式', key: null },
+  { target: 'setup-create', no: 3, label: '表を作成', key: 'created' },
+];
+
+/** タブ最上部の3段階。押すとその位置へスクロールする。済んだ段階にはチェック印を付ける */
+function stepsHtml(progress) {
+  return `<nav class="steps" aria-label="作成の流れ"><ol>${STEPS.map((p) => {
+    const done = p.key && progress[p.key];
+    return `<li><button type="button" class="step ${done ? 'done' : ''}" data-act="step" data-target="${p.target}" aria-label="${p.no} ${p.label}${done ? '（済み）' : ''}">`
+      + `<span class="step-no" aria-hidden="true">${done ? '✓' : p.no}</span><span class="step-label">${p.label}</span></button></li>`;
+  }).join('')}</ol></nav>`;
+}
+
+/** 表を作成するボタン（カードの下で全幅）。作成済みのときは「作り直す」にして、結果が消えることを添える */
+function createHtml(act, made, name) {
+  return `${made ? '<p class="hint create-note">作り直すと、入力済みの結果はすべて消えます。</p>' : ''}
+        <button type="button" class="primary create-btn" data-act="${act}"${act === 'gen-tournament' ? ' id="setup-create"' : ''}>${name}を${made ? '作り直す' : '作成'}</button>`;
 }
 
 /** 名簿のエラー表示だけを更新（入力中に再描画しないため） */
@@ -167,7 +194,10 @@ function onClick(e) {
   const st = getState();
   const act = btn.dataset.act;
   const i = Number(btn.dataset.i);
-  if (act === 'up' || act === 'down') {
+  if (act === 'step') {
+    const el = document.getElementById(btn.dataset.target);
+    if (el) el.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: btn.dataset.target === 'setup-create' ? 'center' : 'start' });
+  } else if (act === 'up' || act === 'down') {
     update({ players: movePlayer(st.players, i, act === 'up' ? -1 : 1) });
   } else if (act === 'del') {
     const p = st.players[i];

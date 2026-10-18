@@ -186,6 +186,29 @@ button.rc:hover:not(:disabled) { background: var(--primary-weak); border-color: 
 .seed-badge { display: inline-block; background: var(--gold-weak); color: var(--gold); border: 1px solid var(--gold-line); border-radius: 999px; padding: 0 8px; font-size: 12px; margin-left: 6px; white-space: nowrap; line-height: 1.5; }
 .add-row { display: flex; gap: 8px; margin-top: 12px; }
 .add-row input { flex: 1; }
+/* 参加者・設定：3段階の流れ */
+.steps { margin: 0 0 16px; }
+.steps ol { list-style: none; margin: 0; padding: 0; display: flex; gap: 8px; }
+.steps li { flex: 1 1 0; min-width: 0; }
+.steps .step { width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 8px 10px; background: var(--paper); border: 1px solid var(--rule-strong); border-radius: var(--r-card); color: var(--ink); font-weight: bold; font-size: 14px; }
+.steps .step-no { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%; background: var(--canvas); border: 1px solid var(--rule-strong); font-size: 13px; line-height: 1; }
+.steps .step.done .step-no { background: var(--primary); border-color: var(--primary); color: #fff; }
+.steps .step-label { min-width: 0; text-align: left; }
+#setup-info, #setup-tables { scroll-margin-top: 64px; }
+.create-btn { width: 100%; margin-top: 4px; }
+.create-note { margin: 4px 0 6px; }
+.h2-actions { display: inline-flex; gap: 8px; flex-wrap: wrap; }
+.pt-grid { display: flex; align-items: center; gap: 8px 14px; flex-wrap: wrap; }
+.pt-grid label { display: inline-flex; align-items: center; gap: 6px; }
+.pt-grid input { width: 4.5em; }
+.grid-2 + .card, .grid-2 + .editions-fold { margin-top: 20px; }
+.editions-fold > summary { cursor: pointer; list-style: none; display: block; }
+.editions-fold > summary::-webkit-details-marker { display: none; }
+.editions-fold > summary h2 { margin: 0; }
+.editions-fold > summary h2::after { content: '▾'; margin-left: auto; color: var(--muted); font-size: 14px; }
+.editions-fold[open] > summary h2 { margin-bottom: 12px; }
+.editions-fold[open] > summary h2::after { content: '▴'; }
+.editions-fold > summary:focus-visible { outline: 2px solid var(--primary); outline-offset: 4px; border-radius: 4px; }
 .tables-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
 .tables-list input { width: 100%; }
 
@@ -390,7 +413,7 @@ table.editions td.ops { white-space: nowrap; }
   .card { padding: 14px 14px; border-radius: 10px; }
   button { min-height: 40px; }
   button.small { min-height: 34px; }
-  input[type="text"], input[type="number"], input[type="date"], input:not([type]), select { min-height: 40px; }
+  input[type="text"], input[type="number"], input[type="date"], input[type="time"], input:not([type]), select { min-height: 40px; }
   /* タブは画面の上に固定する（スクロールしても見える）。全タブが1画面に収まるよう、字と余白を詰める */
   .tabs { position: sticky; top: 0; z-index: 20; gap: 0; padding: 0 4px; }
   .tabs button { flex: 1 1 auto; padding: 14px 6px 11px; font-size: 13px; min-height: 48px; }
@@ -403,6 +426,21 @@ table.editions td.ops { white-space: nowrap; }
   .bracket-card[data-view="rounds"] .bracket-controls, .bracket-card[data-view="rounds"] .bracket-wrap { display: none; }
   .progress-bar { flex-basis: 100%; }
   .edition-banner { margin: 12px 12px 0; }
+  /* 参加者・設定：3段階は番号とチェックだけにして1行に収める。開催日時・勝点・参加者の見出しを崩さない */
+  .steps ol { gap: 6px; }
+  .steps .step { flex-direction: column; gap: 4px; padding: 8px 4px; font-size: 12px; line-height: 1.3; min-height: 64px; }
+  .steps .step-label { text-align: center; }
+  .schedule-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .schedule-row > label:first-child, .schedule-row > button { grid-column: 1 / -1; }
+  .schedule-row input { min-width: 0; width: 100%; }
+  .pt-row { display: block; }
+  .pt-row > label:first-child { display: block; margin-bottom: 6px; }
+  .pt-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .pt-grid label { display: flex; align-items: center; gap: 6px; }
+  .pt-grid input { min-width: 0; width: 100%; }
+  .h2-actions { flex: 1 0 100%; display: flex; gap: 8px; margin-top: 4px; }
+  .h2-actions button { flex: 1 1 0; }
+  .card h2 .spacer { display: none; }
 }
 
 /* ===== 結果入力：スマホでは画面下から出るシート（PC の見た目は変えない） ===== */

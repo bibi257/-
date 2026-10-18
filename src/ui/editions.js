@@ -39,13 +39,15 @@ export function nextEditionButton() {
   return `<button type="button" class="owner-only" data-edition="next">第${currentEdition(getState()) + 1}回大会を始める</button>`;
 }
 
-/** 参加者・設定タブの「回」のカード */
+let editionsOpen = false; // 過去の大会がないときの折りたたみを、画面を作り直しても保つ
+
+/** 参加者・設定タブの「回」のカード。過去の大会がまだないときは折りたたんで、見出しだけ見せる */
 export function editionsCardHtml(st) {
   const n = currentEdition(st);
   const canStart = !!(st.tournament || st.league);
   const past = [...(st.history ?? [])].reverse();
-  return `<div class="card" id="editions-card">
-    <h2>大会の回数 <span class="muted">今は第${n}回大会</span></h2>
+  const head = `大会の回数 <span class="muted">今は第${n}回大会</span>`;
+  const body = `
     <p class="hint">同じ参加者・卓・設定のまま、次の大会（第${n + 1}回大会）を始められます。今の大会の表と結果は「過去の大会」に残り、あとから見たり、CSV・PNG で出力したりできます。</p>
     <p><button type="button" class="primary" data-edition="next" ${canStart ? '' : 'disabled'}>第${n + 1}回大会を始める</button>
       ${canStart ? '' : '<span class="hint">表を作成すると始められます</span>'}</p>
@@ -55,8 +57,15 @@ export function editionsCardHtml(st) {
         <td>第${e.edition}回大会</td><td>${h(formatEventDate(e.date, e.time) || '－')}</td><td>${h(editionSummary(e))}</td>
         <td class="ops"><button type="button" class="small" data-edition-view="${e.edition}">見る</button>
           <button type="button" class="small danger" data-edition-del="${e.edition}">削除</button></td></tr>`).join('')}</tbody>
-    </table></div>` : '<p class="muted">過去の大会はまだありません。</p>'}
-  </div>`;
+    </table></div>` : '<p class="muted">過去の大会はまだありません。</p>'}`;
+  if (past.length) return `<div class="card" id="editions-card"><h2>${head}</h2>${body}</div>`;
+  return `<details class="card editions-fold" id="editions-card" ${editionsOpen ? 'open' : ''}><summary><h2>${head}</h2></summary>${body}</details>`;
+}
+
+/** 画面を作り直す直前に呼び、いま開いているかを覚える（toggle イベントは遅れて届くので、使わず今の状態を読む） */
+export function keepEditionsFold() {
+  const el = document.getElementById('editions-card');
+  if (el instanceof HTMLDetailsElement) editionsOpen = el.open;
 }
 
 /** 順位表タブの、「上位N人で次の回を始める」欄（総当たりの順位表の下に出す。運営のみ） */

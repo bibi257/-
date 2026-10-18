@@ -64,3 +64,11 @@ export function resizeTables(tables, count) {
   while (out.length < n) out.push({ id: newId('t'), name: defaultTableName(out.length) });
   return out;
 }
+
+/** 「参加者・設定」タブの3段階（1 大会情報と参加者／2 卓と形式／3 表を作成）の進み具合。2 は確認する項目がないので持たない */
+export function setupProgress(state) {
+  return {
+    players: state.players.length >= 2, // 1: 対戦表を作れる人数がいる
+    created: !!(state.tournament || state.league), // 3: トーナメントか総当たりを作成済み
+  };
+}

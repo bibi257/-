@@ -117,6 +117,7 @@ test('総当たりが終わったときも次の回を始められる。途中�
 
   // 途中でも始められるが、確認に残りの試合数が出る
   await page.click('.tabs [data-tab=setup]');
+  await page.click('#editions-card > summary'); // 過去の大会がないときは折りたたまれている
   await page.click('#editions-card [data-edition=next]');
   expect(dialogs.some((m) => m.includes('総当たりにあと2試合'))).toBe(true);
   await expect(page.locator('#editions-card')).toContainText('今は第2回大会');
@@ -138,6 +139,7 @@ test('画面の見出し（印刷・タブ名）に回が付き、過去の回�
   await importNames(page, FOUR);
   await playTournament(page);
   await page.click('.tabs [data-tab=setup]');
+  await page.click('#editions-card > summary'); // 過去の大会がないときは折りたたまれている
   await page.click('#editions-card [data-edition=next]');
   await page.click('[data-edition-view="1"]');
   await expect(page.locator('#print-title')).toHaveText('部内大会 第1回');
