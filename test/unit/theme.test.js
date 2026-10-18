@@ -82,3 +82,10 @@ test('呼び出し画面（#call-screen・.cs-*）は、色を直書きせず :r
     assert.ok(!/#[0-9a-fA-F]{3,8}\b/.test(body), `${selector.trim()} に色の直書きがある: ${body.trim().slice(0, 80)}`);
   }
 });
+
+test('呼び出し画面は白ベース（背景は --canvas、札は --paper）。濃い --ink の背景は使わない', () => {
+  const rule = (sel) => css.match(new RegExp(`^${sel.replace(/[.#[\]]/g, '\\$&')}\\s*\\{([^}]*)\\}`, 'm'))[1];
+  assert.match(rule('#call-screen'), /background:\s*var\(--canvas\)/);
+  assert.match(rule('.cs-card'), /background:\s*var\(--paper\)/);
+  assert.doesNotMatch(css.match(/#call-screen\s*\{[^}]*\}/)[0], /background:\s*var\(--ink/);
+});

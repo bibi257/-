@@ -89,6 +89,24 @@ test.describe('保存して次へ', () => {
 });
 
 test.describe('呼び出し画面', () => {
+  test('メイン画面と同じ白ベース（薄い灰の背景・白い札・紺の文字）。濃い背景は使わない', async ({ page }) => {
+    await open(page);
+    await importNames(page, NAMES.slice(0, 4));
+    await page.click('[data-act=gen-tournament]');
+    await page.click('[data-call=tournament]');
+    const dlg = page.locator('#call-screen');
+    await expect(dlg).toBeVisible();
+    const css = (loc, prop) => loc.evaluate((el, p) => getComputedStyle(el)[p], prop);
+    expect(await css(dlg, 'backgroundColor')).toBe('rgb(238, 241, 245)'); // --canvas
+    expect(await css(dlg.locator('.cs-head'), 'backgroundColor')).toBe('rgb(255, 255, 255)'); // --paper
+    expect(await css(dlg.locator('.cs-card').first(), 'backgroundColor')).toBe('rgb(255, 255, 255)');
+    expect(await css(dlg.locator('h2'), 'color')).toBe('rgb(19, 35, 58)'); // --ink
+    expect(await css(dlg.locator('.cs-players').first(), 'color')).toBe('rgb(19, 35, 58)');
+    expect(await css(dlg.locator('.cs-table').first(), 'color')).toBe('rgb(29, 95, 191)'); // --primary
+    // 閉じるボタンも、ほかの画面と同じ通常のボタン
+    expect(await css(dlg.locator('#cs-close'), 'backgroundColor')).toBe('rgb(255, 255, 255)');
+  });
+
   test('次に行う試合を大きく表示し、結果入力に合わせて更新される。Esc で閉じる', async ({ page }) => {
     acceptDialogs(page);
     await open(page);
