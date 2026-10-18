@@ -46,6 +46,7 @@ export function renderTournament() {
       <span><b>${prog.done}</b> / ${prog.total} 試合終了</span>
       ${champ ? `<span class="champion">優勝 ${h(champ)}</span>` : ''}
       ${res.finished ? nextEditionButton() : ''}
+      <button type="button" class="small" data-call="tournament" title="会場の大型ディスプレイ向けに、次に行う試合を大きく表示します">呼び出し画面</button>
     </div>
     ${prog.ready.length ? `<p class="hint">次に行う試合<span class="owner-only">（クリックで結果入力）</span></p>
     <div class="next-list">${prog.ready.map((m) => nextItemHtml(st, m)).join('')}</div>` : ''}

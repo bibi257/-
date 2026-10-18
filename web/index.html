@@ -70,6 +70,21 @@
     </form>
   </dialog>
 
+  <dialog id="call-screen" aria-labelledby="cs-title">
+    <header class="cs-head">
+      <div class="cs-heading">
+        <h2 id="cs-title"></h2>
+        <p class="cs-sub" id="cs-sub"></p>
+      </div>
+      <p class="cs-progress" id="cs-progress"></p>
+      <div class="cs-actions">
+        <button type="button" id="cs-full">全画面</button>
+        <button type="button" id="cs-close">閉じる</button>
+      </div>
+    </header>
+    <div class="cs-body" id="cs-body" aria-live="polite"></div>
+  </dialog>
+
   <dialog id="import-dialog" aria-labelledby="im-title">
     <form method="dialog" id="import-form">
       <h2 id="im-title">参加者の一括入力・CSV取込</h2>

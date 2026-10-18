@@ -87,3 +87,60 @@ test.describe('保存して次へ', () => {
     await expect(page.locator('#rd-next')).toBeHidden();
   });
 });
+
+test.describe('呼び出し画面', () => {
+  test('次に行う試合を大きく表示し、結果入力に合わせて更新される。Esc で閉じる', async ({ page }) => {
+    acceptDialogs(page);
+    await open(page);
+    await importNames(page, NAMES.slice(0, 4));
+    await setNumber(page, '#table-count', 2);
+    await page.locator('input.table-name').first().fill('Aコート');
+    await page.click('[data-act=gen-tournament]');
+
+    await page.click('[data-call=tournament]');
+    const dlg = page.locator('#call-screen');
+    await expect(dlg).toBeVisible();
+    await expect(page.locator('#cs-progress')).toHaveText('0 / 3 試合終了');
+    await expect(dlg.locator('.cs-card')).toHaveCount(2);
+    await expect(dlg.locator('.cs-card').first()).toContainText('Aコート');
+    await expect(dlg.locator('.cs-card').first()).toContainText('山田 太郎');
+    await expect(dlg.locator('.cs-card').first()).toContainText('準決勝');
+
+    // 閉じて結果を入れ、もう一度開くと進行が進んでいる
+    await page.keyboard.press('Escape');
+    await expect(dlg).toBeHidden();
+    await page.locator('.next-item', { hasText: 'No.1' }).click();
+    await enterScore(page, 3, 0);
+    await page.click('[data-call=tournament]');
+    await expect(page.locator('#cs-progress')).toHaveText('1 / 3 試合終了');
+    await expect(dlg.locator('.cs-card')).toHaveCount(1);
+    await page.click('#cs-close');
+    await expect(dlg).toBeHidden();
+  });
+
+  test('名前に HTML が入っていても、そのまま文字として表示される', async ({ page }) => {
+    acceptDialogs(page);
+    await open(page);
+    await importNames(page, ['<b>甲</b>', '乙']);
+    await page.click('[data-act=gen-tournament]');
+    await page.click('[data-call=tournament]');
+    await expect(page.locator('.cs-card')).toContainText('<b>甲</b>');
+    await expect(page.locator('.cs-card b')).toHaveCount(0);
+  });
+
+  test('総当たりでは休みの選手を出す。全試合が終わると終了表示になる', async ({ page }) => {
+    acceptDialogs(page);
+    await open(page);
+    await importNames(page, NAMES.slice(0, 3));
+    await page.click('[data-act=gen-league]');
+    await page.click('[data-call=league]');
+    await expect(page.locator('.cs-rest')).toContainText('休み');
+    await page.click('#cs-close');
+    for (let i = 0; i < 3; i++) {
+      await page.locator('.next-item').first().click();
+      await enterScore(page, 1, 0);
+    }
+    await page.click('[data-call=league]');
+    await expect(page.locator('.cs-message')).toHaveText('全試合終了');
+  });
+});

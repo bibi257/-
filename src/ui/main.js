@@ -8,6 +8,7 @@ import { renderTournament, setupTournamentView } from './tournamentView.js';
 import { renderLeague, setupLeagueView } from './leagueView.js';
 import { renderStandings, setupStandingsView } from './standingsView.js';
 import { setupResultDialog } from './resultDialog.js';
+import { setupCallScreen, refreshCallScreen } from './callScreen.js';
 import { renderComments, setupCommentsView } from './commentsView.js';
 import { setupEditions } from './editions.js';
 import { eventTitle } from '../core/edition.js';
@@ -21,6 +22,7 @@ function render() {
   document.getElementById('print-title').textContent = eventTitle(getState());
   document.title = `${eventTitle(getState())} - 部内大会トーナメント`;
   TABS[activeTab]();
+  refreshCallScreen();
 }
 
 function showTab(name) {
@@ -118,6 +120,7 @@ function init() {
   setupLeagueView();
   setupStandingsView();
   setupResultDialog();
+  setupCallScreen();
   setupCommentsView();
   setupEditions();
   setupShareDialog();

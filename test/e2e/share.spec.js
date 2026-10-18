@@ -327,3 +327,34 @@ test('閲覧者も過去の回の結果を見られる。見ている間に運�
   await admin.close();
   await viewer.close();
 });
+
+test('閲覧者の呼び出し画面は、開いたまま運営の結果入力に合わせて更新される', async ({ browser }) => {
+  const admin = await browser.newContext();
+  const viewer = await browser.newContext();
+  await withIp(admin, '10.0.4.1');
+  await withIp(viewer, '10.0.4.2');
+  const a = await admin.newPage();
+  const v = await viewer.newPage();
+  acceptDialogs(a);
+  acceptDialogs(v);
+  await open(a);
+  await makeTournament(a);
+  await startShare(a);
+  const link = await a.inputValue('#sh-link');
+  await a.click('#sh-close');
+
+  await v.goto(link);
+  await expect(v.locator('#bracket-wrap svg')).toBeVisible();
+  await v.click('[data-call=tournament]');
+  await expect(v.locator('#cs-progress')).toContainText('0 /');
+
+  // 運営が1試合入力すると、閲覧者の呼び出し画面（開いたまま）の進行が進む
+  await a.locator('.next-item').first().click();
+  await enterScore(a, 2, 1);
+  await untilSynced(v, () => expect(v.locator('#cs-progress')).toContainText('1 /', { timeout: 1000 }));
+  await expect(v.locator('#call-screen')).toBeVisible();
+  await a.close();
+  await v.close();
+  await admin.close();
+  await viewer.close();
+});
