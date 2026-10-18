@@ -2,7 +2,7 @@
 // PC 幅では表、スマホ幅（700px 以下）ではカードを、CSS のメディアクエリで切り替える。CSV・PNG は表データのまま。
 
 import { h } from './io.js';
-import { statusBadge } from './badge.js';
+import { statusBadge, matchStatusKey } from './badge.js';
 
 /** 選手の ID（「自分の試合」の強調に使う） */
 const pidAttr = (id) => (typeof id === 'string' ? ` data-pid="${h(id)}"` : '');
@@ -29,7 +29,7 @@ export function resultCardHtml({ match: m, cells }, { clickable }) {
   const tag = clickable ? 'button type="button"' : 'div';
   const end = clickable ? 'button' : 'div';
   const attrs = `class="rc st-${h(m.status)}${clickable ? ' clickable' : ''}"${clickable ? ` data-match="${h(m.id)}"` : ''}`;
-  const badge = `<span class="rc-badge">${statusBadge(m.status)}</span>`;
+  const badge = `<span class="rc-badge">${statusBadge(matchStatusKey(m))}</span>`;
   // 不戦は1行に縮める
   if (m.status === 'bye') {
     return `<li><${tag} ${attrs}><span class="rc-bye"><span class="rc-win"${pidAttr(m.winner)}>${h(winnerName)}</span><span class="rc-bye-note">不戦で勝ち上がり</span></span>${badge}</${end}></li>`;

@@ -7,7 +7,9 @@ import { nextEditionButton } from './editions.js';
 import { nextItemHtml } from './callCard.js';
 import { exportMenuHtml } from './exportMenu.js';
 import { podiumHtml } from './podium.js';
-import { statusBadge } from './badge.js';
+import { tableBoardHtml } from './tableBoardView.js';
+import { setupStartButtons } from './startMatch.js';
+import { statusBadge, matchStatusKey } from './badge.js';
 import { resultCardsHtml } from './resultCards.js';
 import { controlsHtml, setupWrap, setupBracketControls, revealMatch, viewSwitchHtml, viewMode, getRoundSel } from './bracketView.js';
 import { roundViewHtml, THIRD_KEY } from './roundView.js';
@@ -59,6 +61,7 @@ export function renderTournament() {
       ${res.finished ? nextEditionButton() : ''}
       <button type="button" class="small" data-call="tournament" title="会場の大型ディスプレイ向けに、次に行う試合を大きく表示します">呼び出し画面</button>
     </div>
+    ${tableBoardHtml(st, 'tournament')}
     ${prog.ready.length ? `<p class="hint">次に行う試合<span class="owner-only">（クリックで結果入力）</span></p>
     <div class="next-list">${prog.ready.map((m) => nextItemHtml(st, m)).join('')}</div>` : ''}
   </div>
@@ -80,7 +83,7 @@ export function renderTournament() {
         <thead><tr>${['試合番号', '回戦', '卓', '時間帯', '選手1', 'スコア', '選手2', '勝者', '状態'].map((x) => `<th>${x}</th>`).join('')}</tr></thead>
         <tbody>${rows.map(({ match: m, cells }) => `<tr class="st-${m.status}${m.playable ? ' clickable' : ''}" ${m.playable ? `data-match="${h(m.id)}"` : ''}>
           ${cells.map((c, i) => {
-            if (i === 8) return `<td>${statusBadge(m.status)}</td>`;
+            if (i === 8) return `<td>${statusBadge(matchStatusKey(m))}</td>`;
             const pid = { 4: m.p1, 6: m.p2, 7: m.winner }[i]; // 選手の列には ID を付ける（「自分の試合」の強調）
             return `<td${[0, 3, 5].includes(i) ? ' class="num"' : ''}${typeof pid === 'string' ? ` data-pid="${h(pid)}"` : ''}>${h(c)}</td>`;
           }).join('')}</tr>`).join('')}</tbody>
@@ -179,6 +182,7 @@ async function onExport(kind) {
 export function setupTournamentView() {
   const p = panel();
   setupBracketControls(p, { refreshRounds: fillRoundView });
+  setupStartButtons(p, 'tournament');
   p.addEventListener('click', (e) => {
     const g = e.target.closest('[data-match], g.match');
     if (g) { openMatch(g.dataset.match || g.dataset.id, { reveal: !!g.closest('.next-item') }); return; }

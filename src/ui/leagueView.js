@@ -6,8 +6,10 @@ import { openResultDialog } from './resultDialog.js';
 import { nextEditionButton } from './editions.js';
 import { nextItemHtml } from './callCard.js';
 import { exportMenuHtml } from './exportMenu.js';
+import { tableBoardHtml } from './tableBoardView.js';
+import { setupStartButtons } from './startMatch.js';
 import { scrollBehavior, flash } from './reveal.js';
-import { statusBadge } from './badge.js';
+import { statusBadge, matchStatusKey } from './badge.js';
 import { resultCardsHtml } from './resultCards.js';
 import { resolveLeague, setLeagueResult, setLeagueTable, leagueProgress, outcomeFor } from '../core/league.js';
 import { leagueMatrixTable, leagueResultRows, leagueResultsTable } from '../core/exportData.js';
@@ -96,6 +98,7 @@ export function renderLeague() {
       ${prog.nextRound ? `<span class="muted">次は ${prog.nextRound}回戦${res.rest[prog.nextRound - 1].length ? `（休み: ${h(res.rest[prog.nextRound - 1].map((id) => playerName(st, id)).join('、'))}）` : ''}</span>` : `<span class="champion">全試合終了</span> ${nextEditionButton()}`}
       <button type="button" class="small" data-call="league" title="会場の大型ディスプレイ向けに、次に行う試合を大きく表示します">呼び出し画面</button>
     </div>
+    ${tableBoardHtml(st, 'league')}
     ${prog.ready.length ? `<div class="next-list">${prog.ready.map((m) => nextItemHtml(st, m)).join('')}</div>` : ''}
   </div>
   <div class="card">
@@ -127,7 +130,7 @@ export function renderLeague() {
         <thead><tr>${['試合番号', '回戦', '卓', '時間帯', '選手1', 'スコア', '選手2', '結果', '状態'].map((x) => `<th>${x}</th>`).join('')}</tr></thead>
         <tbody>${rows.map(({ match: m, cells }) => `<tr class="st-${m.status} clickable" data-match="${h(m.id)}">
           ${cells.map((c, i) => {
-            if (i === 8) return `<td>${statusBadge(m.status)}</td>`;
+            if (i === 8) return `<td>${statusBadge(matchStatusKey(m))}</td>`;
             const pid = { 4: m.p1, 6: m.p2 }[i]; // 選手の列には ID を付ける（「自分の試合」の強調）
             return `<td${[0, 3, 5].includes(i) ? ' class="num"' : ''}${typeof pid === 'string' ? ` data-pid="${h(pid)}"` : ''}>${h(c)}</td>`;
           }).join('')}</tr>`).join('')}</tbody>
@@ -225,6 +228,7 @@ function resetFilter() {
 
 export function setupLeagueView() {
   const p = panel();
+  setupStartButtons(p, 'league');
   p.addEventListener('input', (e) => { if (e.target.closest('.match-filter')) onFilterChange(); });
   p.addEventListener('change', (e) => { if (e.target.closest('.match-filter')) onFilterChange(); });
   p.addEventListener('click', (e) => {
