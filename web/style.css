@@ -11,15 +11,19 @@
   --rule-strong: #b4bfcc;
   --text: #1c2530;
   --muted: #5a6677;
+  --faint: #8791a0;
   --primary: #1d5fbf;
   --primary-press: #164c99;
   --primary-weak: #e8f0fb;
   --danger: #b8322a;
   --danger-weak: #fdf1f0;
+  --win: #c62828; /* トーナメント表の勝ち上がり線・勝者の枠（赤は、これと削除・エラーだけ） */
+  --win-weak: #fff3f3;
   --ok: #2c7a3f;
   --gold: #8a5a00;
   --gold-weak: #fff6dc;
   --gold-line: #e9c46a;
+  --table-head: #f3f6fa;
   --warn-bg: #fff8e1;
   --warn-line: #ecc766;
   --r-card: 12px;
@@ -131,14 +135,14 @@ table.data.results { min-width: max-content; }
 table.data.results th, table.data.results td { white-space: nowrap; }
 table.data th, table.data td { padding: 8px 12px; text-align: left; border-bottom: 1px solid var(--rule); }
 table.data tbody tr:last-child td { border-bottom: none; }
-table.data th { background: #f3f6fa; color: var(--muted); font-size: 13px; font-weight: bold; white-space: nowrap; border-bottom: 1px solid var(--rule-strong); }
+table.data th { background: var(--table-head); color: var(--muted); font-size: 13px; font-weight: bold; white-space: nowrap; border-bottom: 1px solid var(--rule-strong); }
 table.data td.num, table.data th.num { text-align: center; }
 table.data tr.clickable { cursor: pointer; }
-table.data tr.clickable:hover td { background: #f3f8ff; }
-table.data tr.st-done td { color: #3a4452; }
-table.data tr.st-ready td { background: #f3f8ff; }
+table.data tr.clickable:hover td { background: var(--primary-weak); }
+table.data tr.st-done td { color: var(--muted); }
+table.data tr.st-ready td { background: var(--primary-weak); }
 table.data tr.st-ready td:last-child { color: var(--primary); font-weight: bold; }
-table.data tr.st-waiting td, table.data tr.st-bye td { color: #8791a0; }
+table.data tr.st-waiting td, table.data tr.st-bye td { color: var(--faint); }
 
 .players td.idx { width: 3em; text-align: center; color: var(--muted); }
 .players td.ops { white-space: nowrap; width: 1%; }
@@ -175,7 +179,7 @@ table.data tr.st-waiting td, table.data tr.st-bye td { color: #8791a0; }
 .ni-players i { font-style: normal; font-weight: normal; color: var(--muted); margin: 0 .35em; font-size: 13px; }
 
 /* ===== トーナメント表・総当たり表 ===== */
-.bracket-wrap { overflow: auto; border: 1px solid var(--rule); border-radius: var(--r-ctl); background: #fff; max-height: 75vh; }
+.bracket-wrap { overflow: auto; border: 1px solid var(--rule); border-radius: var(--r-ctl); background: var(--paper); max-height: 75vh; }
 .bracket-wrap svg { display: block; }
 .bracket-wrap g.match { cursor: pointer; }
 .bracket-wrap g.match .hit { fill: transparent; }
@@ -184,14 +188,14 @@ table.data tr.st-waiting td, table.data tr.st-bye td { color: #8791a0; }
 .bracket-wrap g.match.st-waiting { cursor: default; }
 
 .matrix td, .matrix th { text-align: center !important; white-space: nowrap; border: 1px solid var(--rule) !important; }
-.matrix th.rowhead { text-align: left !important; background: #f3f6fa; color: var(--ink); font-size: 14px; }
-.matrix td.self { background: #eceff3; color: #9aa4b2; }
+.matrix th.rowhead { text-align: left !important; background: var(--table-head); color: var(--ink); font-size: 14px; }
+.matrix td.self { background: var(--canvas); color: var(--faint); }
 .matrix td.cell { cursor: pointer; min-width: 4.5em; }
-.matrix td.cell:hover { background: #f3f8ff; }
-.matrix td.win { color: var(--danger); font-weight: bold; }
-.matrix td.loss { color: #333; }
-.matrix td.draw { color: #6a6a00; }
-.matrix td.pending { color: #aab; }
+.matrix td.cell:hover { background: var(--primary-weak); }
+/* 勝ち負けは記号（○×△）と太さで示す。PNG・CSV と同じく色は使わない（赤は勝ち上がり線と削除・エラーだけ） */
+.matrix td.win { color: var(--text); font-weight: bold; }
+.matrix td.loss, .matrix td.draw { color: var(--text); }
+.matrix td.pending { color: var(--faint); }
 
 .empty-state { text-align: center; padding: 44px 16px; color: var(--muted); border-style: dashed; background: transparent; }
 .empty-state p { margin: 0 0 4px; }
@@ -207,8 +211,8 @@ dialog h2 { margin: 0 0 4px; font-size: 18px; color: var(--ink); }
 .rd-row { display: contents; }
 .rd-badge { display: none; }
 .rd-player { display: flex; align-items: center; gap: 8px; font-weight: bold; padding: 10px; min-height: 48px; border: 1px solid var(--rule-strong); border-radius: 10px; cursor: pointer; overflow-wrap: anywhere; }
-.rd-player:hover { background: #f6f8fb; }
-.rd-player:has(input:checked) { border-color: var(--danger); background: var(--danger-weak); }
+.rd-player:hover { background: var(--canvas); }
+.rd-player:has(input:checked) { border-color: var(--primary); background: var(--primary-weak); }
 .rd-right { justify-content: flex-end; text-align: right; }
 .rd-score { width: 64px; text-align: center; font-size: 20px; min-height: 44px; }
 .rd-dash { color: var(--muted); }
@@ -339,13 +343,13 @@ table.editions td.ops { white-space: nowrap; }
   .rd-grid { display: flex; flex-direction: column; gap: 6px; align-items: stretch; }
   .rd-dash { align-self: center; line-height: 1; }
   .rd-row { display: flex; align-items: center; gap: 10px; position: relative; padding: 6px 10px 6px 12px; min-height: 60px; border: 1px solid var(--rule-strong); border-left: 4px solid var(--rule-strong); border-radius: 10px; }
-  .rd-row:has(input[name="outcome"]:checked) { border-color: var(--danger); background: var(--danger-weak); }
+  .rd-row:has(input[name="outcome"]:checked) { border-color: var(--primary); background: var(--primary-weak); }
   .rd-row:has(input[name="outcome"]:disabled) { opacity: .6; }
   .rd-player, .rd-player:hover, .rd-player:has(input:checked) { flex: 1 1 auto; min-width: 0; min-height: 48px; padding: 0; border: none; background: none; justify-content: flex-start; text-align: left; }
   .rd-player::after { content: ''; position: absolute; inset: 0; border-radius: 9px; } /* 行全体をタップできるようにする */
   .rd-player input { order: -1; width: 24px; height: 24px; margin: 0; flex: none; }
   .rd-name { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .rd-badge { flex: none; margin-left: auto; padding: 0 8px; border-radius: 999px; background: var(--danger); color: #fff; font-size: 13px; line-height: 22px; white-space: nowrap; }
+  .rd-badge { flex: none; margin-left: auto; padding: 0 8px; border-radius: 999px; background: var(--primary); color: #fff; font-size: 13px; line-height: 22px; white-space: nowrap; }
   .rd-row:has(input[name="outcome"]:checked) .rd-badge { display: inline-block; }
   #result-dialog .rd-score { position: relative; z-index: 1; flex: none; width: 72px; min-height: 48px; font-size: 20px; }
   .rd-row .rd-score { order: 2; } /* どちらの行も ラジオ → 名前 → スコア の並びにそろえる */

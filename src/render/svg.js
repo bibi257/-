@@ -5,6 +5,7 @@ import { resolveBracket, roundName } from '../core/bracket.js';
 import { playerName, tableName } from '../core/state.js';
 import { eventTitle } from '../core/edition.js';
 import { formatEventDate } from '../core/schedule.js';
+import { THEME as T } from './theme.js';
 
 export const FONT_FAMILY = "'BIZ UDPGothic','Yu Gothic UI','Yu Gothic','Meiryo','Hiragino Sans','Noto Sans JP','Noto Sans CJK JP',sans-serif";
 
@@ -18,7 +19,7 @@ export function esc(s) {
   return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-function text(x, y, s, { size = 14, bold = false, color = '#222', anchor = 'start', cls = '' } = {}) {
+function text(x, y, s, { size = 14, bold = false, color = T.text, anchor = 'start', cls = '' } = {}) {
   return `<text x="${x}" y="${y}" font-size="${size}"${bold ? ' font-weight="bold"' : ''} fill="${color}" text-anchor="${anchor}" dominant-baseline="central"${cls ? ` class="${cls}"` : ''}>${esc(s)}</text>`;
 }
 
@@ -26,20 +27,21 @@ function line(x1, y1, x2, y2, color, width) {
   return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${color}" stroke-width="${width}" stroke-linecap="square"/>`;
 }
 
+// 色は theme.js（web/style.css の :root と同じ値）から取る。赤は勝ち上がりの線と勝者の枠だけ
 const C = {
-  line: '#9aa0a6', win: '#d32f2f', box: '#5f6368', boxFill: '#ffffff', winFill: '#fff3f3',
-  champFill: '#fff8e1', champ: '#f9a825', ready: '#1565c0', done: '#6b6b6b', waiting: '#9e9e9e', sub: '#555',
+  line: T.faint, win: T.win, box: T.muted, boxFill: T.paper, winFill: T.winWeak,
+  champFill: T.goldWeak, champ: T.goldLine, ready: T.primary, done: T.muted, waiting: T.faint, sub: T.muted,
 };
 
 function svgDoc(width, height, body, extraAttrs = '') {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" font-family="${esc(FONT_FAMILY)}"${extraAttrs}>` +
-    `<rect width="100%" height="100%" fill="#ffffff"/>${body}</svg>`;
+    `<rect width="100%" height="100%" fill="${T.paper}"/>${body}</svg>`;
 }
 
 function footer(state, width, height) {
   const when = formatEventDate(state.meta.date, state.meta.time);
   const d = when ? `開催日時 ${when}　` : '';
-  return text(width - 12, height - 14, `${d}出力 ${formatNow()}`, { size: 11, color: '#888', anchor: 'end' });
+  return text(width - 12, height - 14, `${d}出力 ${formatNow()}`, { size: 11, color: T.faint, anchor: 'end' });
 }
 
 export function formatNow(d = new Date()) {
@@ -90,7 +92,7 @@ export function bracketSvg(state, { measure = approxMeasure, interactive = false
   const box = (x, y, id, { score = '', state: st = 'normal' } = {}) => {
     const fill = st === 'win' ? C.winFill : st === 'champ' ? C.champFill : C.boxFill;
     const stroke = st === 'win' ? C.win : st === 'champ' ? C.champ : C.box;
-    const color = st === 'lose' ? '#888' : '#222';
+    const color = st === 'lose' ? T.faint : T.text;
     const name = id === undefined ? '' : playerName(state, id);
     let s = `<rect x="${x}" y="${y - boxH / 2}" width="${boxW}" height="${boxH}" rx="4" fill="${fill}" stroke="${stroke}" stroke-width="${st === 'win' || st === 'champ' ? 1.6 : 1}"/>`;
     if (name) s += text(x + 8, y, name, { size: 14, bold: st === 'win' || st === 'champ', color });
@@ -188,10 +190,7 @@ export function tableSvg(state, table, { measure = approxMeasure } = {}) {
   const height = top + bodyH + (table.note ? 26 : 0) + 40;
   const out = [];
   out.push(text(left, 26, table.title, { size: 20, bold: true }));
-  out.push(`<rect x="${left}" y="${top}" width="${tableW}" height="${rowH}" fill="#e8eef7"/>`);
-  table.rows.forEach((_, i) => {
-    if (i % 2 === 1) out.push(`<rect x="${left}" y="${top + (i + 1) * rowH}" width="${tableW}" height="${rowH}" fill="#f7f9fc"/>`);
-  });
+  out.push(`<rect x="${left}" y="${top}" width="${tableW}" height="${rowH}" fill="${T.tableHead}"/>`);
   const isNum = (v) => typeof v === 'number' || /^[-\d.]+$/.test(String(v));
   let x = left;
   for (let c = 0; c < cols; c++) {
@@ -206,13 +205,13 @@ export function tableSvg(state, table, { measure = approxMeasure } = {}) {
     x += w;
   }
   // 罫線
-  for (let i = 0; i <= table.rows.length + 1; i++) out.push(line(left, top + i * rowH, left + tableW, top + i * rowH, '#c4c9d0', 1));
+  for (let i = 0; i <= table.rows.length + 1; i++) out.push(line(left, top + i * rowH, left + tableW, top + i * rowH, T.rule, 1));
   x = left;
   for (let c = 0; c <= cols; c++) {
-    out.push(line(x, top, x, top + bodyH, '#c4c9d0', 1));
+    out.push(line(x, top, x, top + bodyH, T.rule, 1));
     x += widths[c] ?? 0;
   }
-  if (table.note) out.push(text(left, top + bodyH + 16, table.note, { size: 11, color: '#666' }));
+  if (table.note) out.push(text(left, top + bodyH + 16, table.note, { size: 11, color: T.muted }));
   out.push(footer(state, width, height));
   return { svg: svgDoc(width, height, out.join('')), width, height };
 }
