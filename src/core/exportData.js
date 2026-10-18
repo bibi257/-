@@ -92,11 +92,22 @@ export function tournamentResultsTable(state) {
   };
 }
 
+/** 順位表の行（画面用）。ranking は tournamentRanking の1行（phase・medal を持つ）、cells は表の1行 */
+export function tournamentStandingsRows(state) {
+  return tournamentRanking(state.tournament).map((r) => ({
+    ranking: r,
+    cells: [r.rank ?? '', playerName(state, r.playerId), r.label, r.wins, r.losses],
+  }));
+}
+
 export function tournamentStandingsTable(state) {
-  const rows = tournamentRanking(state.tournament).map((r) => [
-    r.rank ?? '', playerName(state, r.playerId), r.label, r.wins, r.losses,
-  ]);
-  return { title: titleOf(state, 'トーナメント 順位表'), headers: ['順位', '名前', '成績', '勝', '敗'], rows };
+  const rows = tournamentStandingsRows(state);
+  return {
+    title: titleOf(state, 'トーナメント 順位表'),
+    headers: ['順位', '名前', '成績', '勝', '敗'],
+    rows: rows.map((r) => r.cells),
+    rowMedals: rows.map((r) => r.ranking.medal), // 大会が終わったときの1〜3位の印（PNG の帯に使う。CSV には出さない）
+  };
 }
 
 function matrixCell(m, result, id) {

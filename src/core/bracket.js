@@ -245,8 +245,9 @@ export function missingPlayers(t, players) {
 }
 
 /**
- * トーナメントの順位。
- * @returns {{playerId, rank:number|null, label:string, wins:number, losses:number}[]}
+ * トーナメントの順位。並びは、勝ち残っている選手（phase 'alive'）→3位決定戦へ進む選手（'third'）→敗退・確定した選手（'out'。順位の高い順）。
+ * 大会が終わると、1〜3位に medal（'gold'・'silver'・'bronze'）が付く。
+ * @returns {{playerId, rank:number|null, label:string, wins:number, losses:number, phase:'alive'|'third'|'out', medal:'gold'|'silver'|'bronze'|null}[]}
  */
 export function tournamentRanking(t, res = resolveBracket(t)) {
   const R = res.roundCount;
@@ -277,8 +278,15 @@ export function tournamentRanking(t, res = resolveBracket(t)) {
     if (info.has(tp.winner)) Object.assign(info.get(tp.winner), { rank: 3, label: '3位' });
     if (tp.loser && info.has(tp.loser)) Object.assign(info.get(tp.loser), { rank: 4, label: '4位' });
   }
+  const medals = { 1: 'gold', 2: 'silver', 3: 'bronze' };
+  for (const r of info.values()) {
+    r.phase = r.rank !== null ? 'out' : r.label === '勝ち残り' ? 'alive' : 'third';
+    r.medal = res.finished ? medals[r.rank] ?? null : null;
+  }
   const order = new Map(t.playerIds.map((id, i) => [id, i]));
+  const group = { alive: 0, third: 1, out: 2 };
   return [...info.values()].sort((a, b) => {
+    if (a.phase !== b.phase) return group[a.phase] - group[b.phase];
     const ra = a.rank ?? Infinity;
     const rb = b.rank ?? Infinity;
     if (ra !== rb) return ra - rb;

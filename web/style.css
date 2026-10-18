@@ -22,6 +22,9 @@
   --gold-weak: #fff6dc;
   --gold-line: #e9c46a;
   --table-head: #f3f6fa;
+  --medal-gold: #e0a800; /* 順位表の1〜3位の帯 */
+  --medal-silver: #9aa5b1;
+  --medal-bronze: #b87333;
   --warn-bg: #fff8e1;
   --warn-line: #ecc766;
   --r-card: 12px;
@@ -136,6 +139,11 @@ table.data th, table.data td { padding: 8px 12px; text-align: left; border-botto
 table.data tbody tr:last-child td { border-bottom: none; }
 table.data th { background: var(--table-head); color: var(--muted); font-size: 13px; font-weight: bold; white-space: nowrap; border-bottom: 1px solid var(--rule-strong); }
 table.data td.num, table.data th.num { text-align: center; }
+/* 順位表: 大会が終わったら 1〜3位の行の左に、金・銀・銅の帯（4px）。印刷でも出す */
+table.standings tr.medal-gold td:first-child { box-shadow: inset 4px 0 0 var(--medal-gold); }
+table.standings tr.medal-silver td:first-child { box-shadow: inset 4px 0 0 var(--medal-silver); }
+table.standings tr.medal-bronze td:first-child { box-shadow: inset 4px 0 0 var(--medal-bronze); }
+table.standings { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 table.data tr.clickable { cursor: pointer; }
 table.data tr.clickable:hover td { background: var(--primary-weak); }
 table.data tr.st-done td { color: var(--muted); }
@@ -145,6 +153,7 @@ table.data tr.st-ready td { background: var(--primary-weak); }
 .badge-ready { background: var(--primary); border-color: var(--primary); color: #fff; }
 .badge-done { border-color: var(--rule-strong); color: var(--muted); font-weight: normal; }
 .badge-waiting { border: 1px dashed var(--rule-strong); color: var(--muted); font-weight: normal; }
+.badge-alive { background: var(--primary-weak); border-color: var(--primary); color: var(--primary); }
 .badge-bye { border: 0; color: var(--muted); font-weight: normal; padding: 0; }
 table.data tr.st-waiting td, table.data tr.st-bye td { color: var(--faint); }
 

@@ -24,6 +24,9 @@ export const THEME = {
   goldWeak: '#fff6dc',
   goldLine: '#e9c46a',
   tableHead: '#f3f6fa',
+  medalGold: '#e0a800',
+  medalSilver: '#9aa5b1',
+  medalBronze: '#b87333',
 };
 
 /** THEME のキー → web/style.css の :root の変数名 */
