@@ -27,8 +27,10 @@ export function openResultDialog(o) {
   current = o;
   $('rd-title').textContent = o.title;
   $('rd-sub').textContent = o.sub;
-  $('rd-p1').textContent = o.p1Name;
-  $('rd-p2').textContent = o.p2Name;
+  for (const [id, name] of [['rd-p1', o.p1Name], ['rd-p2', o.p2Name]]) {
+    $(id).textContent = name;
+    $(id).title = name; // スマホ幅で名前が「…」に省略されたとき、マウスを載せると全体が出る
+  }
   const r = o.result;
   $('rd-s1').value = r && r.score1 !== null && r.score1 !== undefined ? r.score1 : '';
   $('rd-s2').value = r && r.score2 !== null && r.score2 !== undefined ? r.score2 : '';
