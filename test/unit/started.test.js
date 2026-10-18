@@ -185,6 +185,16 @@ test('卓の状況（総当たり）: 今の回戦の試合だけが対象', () 
   assert.equal(busy.running.minutes, 3);
 });
 
+test('卓が割り当てられていない試合どうしは、同じ卓とは見なさない', () => {
+  const st = sample(4);
+  st.tables = [];
+  const ready = resolveBracket(st.tournament, st.tables).playable.filter((m) => m.status === 'ready');
+  assert.equal(ready.length, 2);
+  assert.ok(ready.every((m) => !m.tableId));
+  st.tournament = setTournamentStarted(st.tournament, ready[0].id, T0).tournament;
+  assert.equal(busyOnSameTable(st, 'tournament', ready[1].id, mins(5)), null);
+});
+
 test('同じ卓で別の試合が進行中のとき、開始の前に分かる', () => {
   const st = sample(8);
   const res = resolveBracket(st.tournament, st.tables);

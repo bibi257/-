@@ -50,6 +50,6 @@ export function busyOnSameTable(st, kind, matchId, now = Date.now()) {
   else return null;
   const m = ready.find((x) => x.id === matchId);
   if (!m) return null;
-  const other = ready.find((x) => x.id !== matchId && x.tableId === m.tableId && x.startedAt);
+  const other = ready.find((x) => x.id !== matchId && m.tableId && x.tableId === m.tableId && x.startedAt);
   return other ? { table: tableName(st, other.tableId), no: other.no, p1: playerName(st, other.p1), p2: playerName(st, other.p2), minutes: elapsedMinutes(other.startedAt, now) } : null;
 }
