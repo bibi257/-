@@ -21,7 +21,8 @@ test('状態バッジのCSS: 試合待ち＝青の塗り、終了＝灰の枠、
   const css = readFileSync(new URL('../../web/style.css', import.meta.url), 'utf8');
   const rule = (name) => css.match(new RegExp(`\\.${name}\\s*\\{([^}]*)\\}`))[1];
   assert.match(rule('badge'), /font-size:\s*12px/);
-  assert.match(rule('badge-ready'), /background:\s*var\(--primary\)[^;]*;[^}]*color:\s*#fff/);
+  // 文字は primary の面の上の文字（ライトでは白、ダークでは濃い色）
+  assert.match(rule('badge-ready'), /background:\s*var\(--primary\)[^;]*;[^}]*color:\s*var\(--on-primary\)/);
   assert.match(rule('badge-done'), /border-color:\s*var\(--rule-strong\)/);
   assert.match(rule('badge-waiting'), /dashed/);
   assert.doesNotMatch(rule('badge-bye'), /border-color|dashed|background/);
