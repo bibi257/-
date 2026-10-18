@@ -13,3 +13,8 @@ export function statusBadge(status) {
   if (!BADGE_STATUSES.includes(status)) return '';
   return `<span class="badge badge-${status}">${h(STATUS[status])}</span>`;
 }
+
+/** 順位表で、まだ勝ち残っている選手に出すバッジ（順位の欄） */
+export function aliveBadge() {
+  return '<span class="badge badge-alive">勝ち残り</span>';
+}

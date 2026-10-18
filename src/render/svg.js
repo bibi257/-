@@ -204,6 +204,11 @@ export function tableSvg(state, table, { measure = approxMeasure } = {}) {
     });
     x += w;
   }
+  // 1〜3位の帯（大会が終わった順位表。画面と同じ金・銀・銅）
+  const medalColor = { gold: T.medalGold, silver: T.medalSilver, bronze: T.medalBronze };
+  (table.rowMedals || []).forEach((m, i) => {
+    if (medalColor[m]) out.push(`<rect x="${left}" y="${top + (i + 1) * rowH}" width="4" height="${rowH}" fill="${medalColor[m]}"/>`);
+  });
   // 罫線
   for (let i = 0; i <= table.rows.length + 1; i++) out.push(line(left, top + i * rowH, left + tableW, top + i * rowH, T.rule, 1));
   x = left;
