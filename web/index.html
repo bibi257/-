@@ -9,17 +9,18 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header class="app-header">
-    <div class="brand"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M4 6h8v6h6v8h-6v6H4v-4h4v-4h6v-4H8V10H4z" fill="#fff"/><path d="M18 14h10v4H18z" fill="#6fa5ea"/></svg>部内大会トーナメント</div>
+  <header class="app-header" id="app-header">
+    <div class="brand"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M4 6h8v6h6v8h-6v6H4v-4h4v-4h6v-4H8V10H4z" fill="#fff"/><path d="M18 14h10v4H18z" fill="#6fa5ea"/></svg><span class="brand-name">部内大会トーナメント</span></div>
     <div class="print-title" id="print-title"></div>
-    <div class="header-actions no-print">
+    <span class="save-status owner-only no-print" id="save-status" aria-live="polite"></span>
+    <button type="button" class="menu-btn no-print" id="menu-btn" aria-label="メニュー" aria-expanded="false" aria-controls="header-actions"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+    <div class="header-actions no-print" id="header-actions">
       <button type="button" data-action="new" class="owner-only">新規</button>
       <button type="button" data-action="save" class="owner-only" title="大会データをファイルに保存">保存</button>
       <button type="button" data-action="load" class="owner-only" title="保存した大会データを開く">読込</button>
       <button type="button" data-action="print">印刷</button>
       <button type="button" data-action="share" title="大会データを公開して、スマホなどから見られるようにする">共有</button>
       <input type="file" id="load-file" accept=".json,application/json" hidden>
-      <span class="save-status owner-only" id="save-status" aria-live="polite"></span>
       <button type="button" class="share-chip" id="share-chip" data-action="share" hidden></button>
     </div>
   </header>
