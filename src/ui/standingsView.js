@@ -4,6 +4,7 @@ import { getState } from './store.js';
 import { h, toast, measureText, downloadCSV, downloadPNG } from './io.js';
 import { tournamentStandingsTable, leagueStandingsTable } from '../core/exportData.js';
 import { tableSvg } from '../render/svg.js';
+import { qualifyHtml } from './editions.js';
 
 const panel = () => document.getElementById('panel-standings');
 
@@ -37,7 +38,7 @@ export function renderStandings() {
   if (st.league) {
     const lt = leagueStandingsTable(st);
     html += `<div class="card"><h2>総当たり 順位表</h2>${toolbar('l')}
-      ${tableHtml(lt, [0, 2, 3, 4, 5, 6, 7, 8, 9])}<p class="hint">${h(lt.note)}</p></div>`;
+      ${tableHtml(lt, [0, 2, 3, 4, 5, 6, 7, 8, 9])}<p class="hint">${h(lt.note)}</p>${qualifyHtml(st)}</div>`;
   }
   panel().innerHTML = html;
 }

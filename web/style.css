@@ -207,6 +207,11 @@ dialog h2 { margin: 0 0 4px; font-size: 18px; color: var(--ink); }
 .rd-options { display: flex; gap: 8px 18px; flex-wrap: wrap; margin: 12px 0; align-items: center; }
 .dialog-buttons { display: flex; gap: 8px; align-items: center; margin-top: 12px; }
 
+.qualify { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--rule); }
+.qualify label { color: var(--muted); font-size: 14px; margin-right: 8px; }
+.qualify input { color: var(--ink); }
+.qualify .hint { margin: 8px 0 0; }
+
 /* ===== 呼び出し画面（大型表示） ===== */
 #call-screen { width: 100vw; max-width: none; height: 100vh; height: 100dvh; max-height: none; margin: 0; padding: 0; border: none; border-radius: 0; background: #0d1b2e; color: #fff; }
 #call-screen[open] { display: flex; flex-direction: column; }
@@ -338,5 +343,5 @@ table.editions td.ops { white-space: nowrap; }
   .table-wrap { overflow: visible; border: none; }
   table.data.results { min-width: 0; }
   table.data.results th, table.data.results td { white-space: normal; }
-  #panel-comments, .share-chip, .edition-banner, #call-screen { display: none !important; }
+  #panel-comments, .share-chip, .edition-banner, #call-screen, .qualify { display: none !important; }
 }
