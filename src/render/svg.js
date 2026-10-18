@@ -164,7 +164,8 @@ export function bracketSvg(state, { measure = approxMeasure, interactive = false
     out.push(text(colX(k + 1) + boxW / 2, y0 - 6, '3位', { size: 13, bold: true, color: C.sub, anchor: 'middle' }));
   }
   out.push(footer(state, width, height));
-  return { svg: svgDoc(width, height, out.join('')), width, height };
+  // columns: 各列（回戦・優勝）の左端の x。画面の「回戦へ移動」が使う
+  return { svg: svgDoc(width, height, out.join('')), width, height, columns: Array.from({ length: R + 1 }, (_, k) => colX(k)) };
 }
 
 /**
