@@ -1,6 +1,6 @@
 // 呼び出し画面（会場の大型表示）に出す内容。次に行う試合を、卓・時間帯・対戦者つきでまとめる。
 
-import { resolveBracket, tournamentProgress, roundName } from './bracket.js';
+import { resolveBracket, tournamentProgress, tournamentPodium, roundName } from './bracket.js';
 import { resolveLeague, leagueProgress } from './league.js';
 import { eventTitle } from './edition.js';
 import { playerName, tableName } from './state.js';
@@ -9,10 +9,10 @@ import { playerName, tableName } from './state.js';
  * @param {object} st 大会データ
  * @param {'tournament'|'league'} kind
  * @returns {{kind:'none'|'tournament'|'league', title:string, done:number, total:number, finished:boolean,
- *   champion:string, rest:string[], items:{id:string,no:number,label:string,table:string,timeSlot:number,p1:string,p2:string}[]}}
+ *   champion:string, runnerUp:string, thirds:string[], rest:string[], items:{id:string,no:number,label:string,table:string,timeSlot:number,p1:string,p2:string}[]}}
  */
 export function callBoard(st, kind) {
-  const base = { title: eventTitle(st), done: 0, total: 0, finished: false, champion: '', rest: [], items: [] };
+  const base = { title: eventTitle(st), done: 0, total: 0, finished: false, champion: '', runnerUp: '', thirds: [], rest: [], items: [] };
   const item = (m, label) => ({
     id: m.id,
     no: m.no,
@@ -28,6 +28,7 @@ export function callBoard(st, kind) {
     const prog = tournamentProgress(res);
     const items = [...prog.ready].sort((a, b) => a.no - b.no)
       .map((m) => item(m, m.isThirdPlace ? '3位決定戦' : roundName(m.round, res.roundCount)));
+    const podium = tournamentPodium(st.tournament, res);
     return {
       ...base,
       kind,
@@ -35,6 +36,8 @@ export function callBoard(st, kind) {
       total: prog.total,
       finished: !!res.finished,
       champion: res.champion ? playerName(st, res.champion) : '',
+      runnerUp: podium?.second ? playerName(st, podium.second) : '',
+      thirds: podium ? podium.thirds.map((id) => playerName(st, id)) : [],
       items,
     };
   }

@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   bracketSize, seedOrder, generateTournament, resolveBracket, setTournamentResult,
-  tournamentRanking, tournamentProgress, roundName, setTournamentTable, THIRD_PLACE_ID,
+  tournamentRanking, tournamentPodium, tournamentProgress, roundName, setTournamentTable, THIRD_PLACE_ID,
 } from '../../src/core/bracket.js';
 
 const ids = (n) => Array.from({ length: n }, (_, i) => `p${i + 1}`);
@@ -304,4 +304,51 @@ test('順位: 準決勝まで終わっても、決勝・3位決定戦が終わ�
   t = setTournamentResult(t, 'R2-M1', { outcome: 'p1' }).tournament; // 決勝は終わったが、3位決定戦がまだ
   const r = tournamentRanking(t);
   assert.ok(r.every((x) => x.medal === null));
+});
+
+test('表彰: 決勝が終わるまでは出ない。3位決定戦があるときは、その勝者が3位（1人）', () => {
+  let t = generateTournament(ids(4), { thirdPlace: true });
+  assert.equal(tournamentPodium(t), null);
+  // 準決勝2試合と決勝まで進めても、3位決定戦が終わるまでは出ない
+  for (const id of ['R1-M1', 'R1-M2', 'R2-M1']) t = setTournamentResult(t, id, { outcome: 'p1' }).tournament;
+  assert.equal(tournamentPodium(t), null);
+  t = setTournamentResult(t, THIRD_PLACE_ID, { outcome: 'p2' }).tournament;
+  const p = tournamentPodium(t);
+  const res = resolveBracket(t);
+  assert.equal(p.first, res.champion);
+  assert.ok(p.second && p.second !== p.first);
+  assert.deepEqual(p.thirds, [res.thirdPlace.winner]);
+});
+
+test('表彰: 3位決定戦がないときは、準決勝で敗れた2人がどちらも3位', () => {
+  const t = playAll(generateTournament(ids(4)));
+  const p = tournamentPodium(t);
+  const res = resolveBracket(t);
+  assert.equal(p.first, res.champion);
+  assert.equal(p.thirds.length, 2);
+  const semiLosers = res.rounds[0].map((m) => m.loser).sort();
+  assert.deepEqual([...p.thirds].sort(), semiLosers);
+  assert.ok(!p.thirds.includes(p.first) && !p.thirds.includes(p.second));
+});
+
+test('表彰: 2人は優勝と準優勝だけ。3人（不戦あり）・5〜8人でも優勝・準優勝は1人ずつで、3位は準決勝の敗者', () => {
+  const two = tournamentPodium(playAll(generateTournament(ids(2))));
+  assert.ok(two.first && two.second);
+  assert.deepEqual(two.thirds, []);
+  const three = tournamentPodium(playAll(generateTournament(ids(3))));
+  assert.equal(three.thirds.length, 1); // 準決勝の実戦は1試合だけ（もう1つは不戦）
+  for (const n of [5, 6, 7, 8]) {
+    const t = playAll(generateTournament(ids(n)));
+    const p = tournamentPodium(t);
+    assert.ok(p.first && p.second, `${n}人`);
+    assert.ok(p.thirds.length >= 1 && p.thirds.length <= 2, `${n}人`);
+    assert.equal(new Set([p.first, p.second, ...p.thirds]).size, 2 + p.thirds.length, `${n}人: 重複なし`);
+  }
+});
+
+test('表彰: 途中で結果を取り消すと、表彰は消える', () => {
+  let t = playAll(generateTournament(ids(4)));
+  assert.ok(tournamentPodium(t));
+  t = setTournamentResult(t, 'R2-M1', null).tournament;
+  assert.equal(tournamentPodium(t), null);
 });
