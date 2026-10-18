@@ -103,7 +103,7 @@ function matrixCell(m, result, id) {
   if (!m) return '';
   const o = outcomeFor(m, result, id);
   if (!o) return '';
-  const mark = { win: '○', loss: '●', draw: '△' }[o];
+  const mark = { win: '○', loss: '×', draw: '△' }[o];
   if (result.walkover) return o === 'win' ? `${mark} 不戦勝` : `${mark} 不戦敗`;
   if (result.score1 === null) return mark;
   const mine = id === m.p1 ? result.score1 : result.score2;
