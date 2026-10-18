@@ -33,7 +33,7 @@ test.describe('試合の状態バッジ・総当たり表の記号', () => {
     expect(await style(done, 'backgroundColor')).toBe('rgba(0, 0, 0, 0)');
   });
 
-  test('総当たり: 勝ち「○ 3-1」・負け「● 1-3」・引き分け「△ 2-2」、未入力は空欄。結果一覧にも同じバッジ', async ({ page }) => {
+  test('総当たり: 勝ち「○ 3-1」・負け「× 1-3」・引き分け「△ 2-2」、未入力は空欄。結果一覧にも同じバッジ', async ({ page }) => {
     await open(page);
     await importNames(page, NAMES.slice(0, 3));
     await page.click('[data-act=gen-league]');
@@ -46,7 +46,7 @@ test.describe('試合の状態バッジ・総当たり表の記号', () => {
     const left = await page.locator('#rd-p1').textContent();
     if (left === NAMES[0]) await enterScore(page, 3, 1); else await enterScore(page, 1, 3);
     await expect(cell(0, 1)).toHaveText('○ 3-1');
-    await expect(cell(1, 0)).toHaveText('● 1-3');
+    await expect(cell(1, 0)).toHaveText('× 1-3');
     await cell(0, 2).click();
     await enterScore(page, 2, 2);
     await expect(cell(0, 2)).toHaveText('△ 2-2');
@@ -68,6 +68,6 @@ test.describe('試合の状態バッジ・総当たり表の記号', () => {
     await expect(page.locator('table.results .badge-done')).toHaveText(['終了']);
     await expect(page.locator('table.results .badge-ready')).toHaveText(['試合待ち', '試合待ち']);
     await expect(cell(0, 1)).toContainText('○');
-    await expect(cell(1, 0)).toContainText('●');
+    await expect(cell(1, 0)).toContainText('×');
   });
 });

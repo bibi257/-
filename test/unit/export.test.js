@@ -60,7 +60,7 @@ test('試合結果・順位表CSV', () => {
   assert.equal(s.rows.find((r) => r[1] === '選手1')[0], 3);
 });
 
-test('総当たり表: ○●△と不戦勝、未入力は空欄、自分自身は－', () => {
+test('総当たり表: ○×△と不戦勝、未入力は空欄、自分自身は－', () => {
   const st = sample(3);
   const [m1, m2] = st.league.matches;
   st.league = setLeagueResult(st.league, m1.id, { score1: 3, score2: 1 }).league;
@@ -70,9 +70,9 @@ test('総当たり表: ○●△と不戦勝、未入力は空欄、自分自身
   const idx = (id) => st.league.playerIds.indexOf(id);
   const cell = (a, b) => mt.rows[idx(a)][idx(b) + 1];
   assert.equal(cell(m1.p1, m1.p2), '○ 3-1');
-  assert.equal(cell(m1.p2, m1.p1), '● 1-3');
+  assert.equal(cell(m1.p2, m1.p1), '× 1-3');
   assert.equal(cell(m2.p2, m2.p1), '○ 不戦勝');
-  assert.equal(cell(m2.p1, m2.p2), '● 不戦敗');
+  assert.equal(cell(m2.p1, m2.p2), '× 不戦敗');
   const m3 = st.league.matches[2]; // 結果を入れていない試合
   assert.equal(cell(m3.p1, m3.p2), '');
   assert.equal(cell(m3.p2, m3.p1), '');

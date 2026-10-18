@@ -224,7 +224,7 @@ test.describe('総当たり', () => {
     const p1 = await page.locator('#rd-p1').textContent();
     if (p1 === '山田 太郎') await enterScore(page, 3, 1); else await enterScore(page, 1, 3);
     await expect(cell(0, 1)).toHaveText('○ 3-1');
-    await expect(cell(1, 0)).toHaveText('● 1-3');
+    await expect(cell(1, 0)).toHaveText('× 1-3');
     // 山田 vs 鈴木 引き分け
     await cell(0, 2).click();
     await enterScore(page, 2, 2);

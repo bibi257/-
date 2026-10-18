@@ -46,14 +46,14 @@ test('PNG・画面の SVG（トーナメント表・表）は theme.js の色だ
   }
 });
 
-test('赤は、勝ち上がり線・勝者の枠だけに使う（トーナメント表）', () => {
+test('トーナメント表の勝ち上がり線・勝者の枠は青（primary）。赤（danger）は表に出ない', () => {
   const st = sample();
   const svg = bracketSvg(st).svg;
-  assert.equal(THEME.win, '#c62828');
-  assert.ok(svg.includes(`stroke="${THEME.win}"`)); // 勝ち上がり線
-  assert.ok(!svg.includes(`fill="${THEME.win}"`)); // 文字・塗りには使わない
-  assert.ok(!svg.includes(THEME.danger)); // 削除・エラーの赤は表に出ない
-  assert.ok(!tableSvg(st, leagueMatrixTable(st)).svg.includes(THEME.win)); // 総当たり表には赤を使わない
+  assert.ok(svg.includes(`stroke="${THEME.primary}"`)); // 勝ち上がり線・勝者の枠
+  assert.ok(svg.includes(`fill="${THEME.primaryWeak}"`)); // 勝者の枠の塗り
+  assert.ok(!svg.includes(THEME.danger) && !svg.includes(THEME.dangerWeak));
+  assert.ok(!tableSvg(st, leagueMatrixTable(st)).svg.includes(THEME.danger)); // 総当たり表にも赤は出ない
+  assert.ok(!('win' in THEME)); // 勝者用の赤は持たない
 });
 
 test('結果入力で選んだ行は赤ではなく青（primary）で示す', () => {
@@ -72,5 +72,13 @@ test('画面の CSS で赤（danger）は削除・エラーにだけ使う', () 
   assert.ok(outside.length > 0);
   for (const [, selector] of outside) {
     assert.ok(allowedSelectors.test(selector), `削除・エラー以外で danger を使っている: ${selector.trim()}`);
+  }
+});
+
+test('呼び出し画面（#call-screen・.cs-*）は、色を直書きせず :root の変数を使う', () => {
+  const rules = [...css.matchAll(/^((?:#call-screen|\.cs-)[^{]*)\{([^}]*)\}/gm)];
+  assert.ok(rules.length > 10);
+  for (const [, selector, body] of rules) {
+    assert.ok(!/#[0-9a-fA-F]{3,8}\b/.test(body), `${selector.trim()} に色の直書きがある: ${body.trim().slice(0, 80)}`);
   }
 });
