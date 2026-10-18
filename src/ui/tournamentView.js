@@ -7,6 +7,7 @@ import { nextEditionButton } from './editions.js';
 import { nextItemHtml } from './callCard.js';
 import { statusBadge } from './badge.js';
 import { resultCardsHtml } from './resultCards.js';
+import { controlsHtml, setupWrap, setupBracketControls, revealMatch } from './bracketView.js';
 import {
   resolveBracket, setTournamentResult, setTournamentTable, roundName, tournamentProgress, missingPlayers,
 } from '../core/bracket.js';
@@ -35,7 +36,11 @@ export function renderTournament() {
   const changed = !samePlayers(t.playerIds, st.players.map((p) => p.id));
   const missing = missingPlayers(t, st.players).length;
   const pct = prog.total ? Math.round((prog.done / prog.total) * 100) : 0;
-  const { svg } = bracketSvg(st, { measure: measureText, interactive: true });
+  const { svg, columns } = bracketSvg(st, { measure: measureText, interactive: true });
+  const R = res.roundCount;
+  const columnNames = [...Array.from({ length: R }, (_, k) => roundName(k + 1, R)), '優勝'];
+  const oldWrap = document.getElementById('bracket-wrap');
+  const keep = oldWrap ? { left: oldWrap.scrollLeft } : null;
   const rows = tournamentResultRows(st);
   const champ = res.champion ? playerName(st, res.champion) : '';
 
@@ -64,7 +69,8 @@ export function renderTournament() {
         <button type="button" class="small" data-export="results-png">PNG</button></span>
       <span class="group"><button type="button" class="small" data-export="print">印刷</button></span>
     </div>
-    <div class="bracket-wrap" id="bracket-wrap">${svg}</div>
+    ${controlsHtml(columnNames)}
+    <div class="bracket-wrap" id="bracket-wrap" data-cols="${columns.join(',')}">${svg}</div>
   </div>
   <div class="card">
     <h2>試合結果一覧</h2>
@@ -77,22 +83,26 @@ export function renderTournament() {
     </div>
     ${resultCardsHtml(rows, (m) => m.playable)}
   </div>`;
+  const wrap = document.getElementById('bracket-wrap');
+  setupWrap(wrap);
+  if (keep) wrap.scrollLeft = keep.left; // 描画し直しても、横の位置は変えない
 }
 
 function openNext(afterNo) {
   const st = getState();
   if (!st.tournament) return;
   const next = pickNextMatch(tournamentProgress(resolveBracket(st.tournament, st.tables)).ready, afterNo);
-  if (next) openMatch(next.id);
+  if (next) openMatch(next.id, { reveal: true });
   else toast('次に行う試合はありません');
 }
 
-function openMatch(id) {
+function openMatch(id, { reveal = false } = {}) {
   const st = getState();
   const t = st.tournament;
   const res = resolveBracket(t, st.tables);
   const m = res.matches.find((x) => x.id === id);
   if (!m || !m.playable) return;
+  if (reveal) revealMatch(id); // 「次に行う試合」から開いたときは、表のその位置までスクロールして強調する
   const R = res.roundCount;
   const editable = m.status === 'ready' || m.status === 'done';
   const r = m.result;
@@ -129,6 +139,7 @@ function openMatch(id) {
       }
       setState({ ...getState(), tournament: next });
       toast(tableOnly ? '卓を変更しました' : input ? '結果を保存しました' : '結果を取り消しました');
+      revealMatch(id); // 保存したあとも、その試合の位置を見せる
       return null;
     },
   });
@@ -151,9 +162,10 @@ async function onExport(kind) {
 
 export function setupTournamentView() {
   const p = panel();
+  setupBracketControls(p);
   p.addEventListener('click', (e) => {
     const g = e.target.closest('[data-match], g.match');
-    if (g) { openMatch(g.dataset.match || g.dataset.id); return; }
+    if (g) { openMatch(g.dataset.match || g.dataset.id, { reveal: !!g.closest('.next-item') }); return; }
     const ex = e.target.closest('[data-export]');
     if (ex) onExport(ex.dataset.export);
   });

@@ -211,7 +211,17 @@ button.rc:hover:not(:disabled) { background: var(--primary-weak); border-color: 
 .ni-players i { font-style: normal; font-weight: normal; color: var(--muted); margin: 0 .35em; font-size: 13px; }
 
 /* ===== トーナメント表・総当たり表 ===== */
-.bracket-wrap { overflow: auto; border: 1px solid var(--rule); border-radius: var(--r-ctl); background: var(--paper); max-height: 75vh; }
+/* 横は枠の中でスクロール、縦はページのスクロールに任せる（枠の高さを制限しない） */
+.bracket-wrap { overflow-x: auto; overflow-y: hidden; border: 1px solid var(--rule); border-radius: var(--r-ctl); background: var(--paper); }
+.bracket-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin: 8px 0 10px; }
+.bracket-controls .group-label { margin-left: 8px; font-size: 13px; color: var(--muted); }
+/* 画面の拡大縮小（src/ui/bracketView.js）。印刷には効かせない */
+@media screen {
+  .bracket-wrap svg[style*="--bz"] { width: calc(var(--bw) * var(--bz) * 1px); height: calc(var(--bh) * var(--bz) * 1px); }
+}
+.zoom-level { min-width: 5em; text-align: center; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.bracket-controls button[aria-pressed="true"] { background: var(--primary-weak); border-color: var(--primary); color: var(--primary); font-weight: bold; }
+.bracket-wrap g.match.flash .hit { fill: var(--primary-weak); stroke: var(--primary); stroke-width: 2; }
 .bracket-wrap svg { display: block; }
 .bracket-wrap g.match { cursor: pointer; }
 .bracket-wrap g.match .hit { fill: transparent; }
@@ -431,7 +441,7 @@ table.editions td.ops { white-space: nowrap; }
   .print-title { display: block; font-size: 18px; font-weight: bold; }
   main { padding: 0; max-width: none; }
   .card { border: none; border-radius: 0; padding: 0; margin-bottom: 10px; break-inside: avoid; }
-  .bracket-wrap { overflow: visible; max-height: none; border: none; }
+  .bracket-wrap { overflow: visible; border: none; }
   .bracket-wrap svg { max-width: 100%; height: auto; }
   .bracket-wrap g.match .hit { fill: transparent !important; }
   .tab-panel[hidden] { display: none !important; }
