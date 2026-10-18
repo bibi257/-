@@ -209,6 +209,15 @@ button.rc:hover:not(:disabled) { background: var(--primary-weak); border-color: 
 .editions-fold[open] > summary h2 { margin-bottom: 12px; }
 .editions-fold[open] > summary h2::after { content: '▴'; }
 .editions-fold > summary:focus-visible { outline: 2px solid var(--primary); outline-offset: 4px; border-radius: 4px; }
+/* 総当たりの試合結果一覧の絞り込み。隠すのは画面だけで、印刷は全試合を出す */
+.match-filter { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; margin: 0 0 12px; }
+.match-filter label { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; color: var(--muted); }
+.match-filter select, .match-filter input { color: var(--text); }
+.match-filter .mf-name input { width: 12em; }
+.mf-count { margin-left: auto; font-size: 13px; }
+.mf-empty { padding: 20px 0; text-align: center; }
+.mf-empty p { margin: 0 0 10px; color: var(--muted); }
+@media screen { [data-filtered] { display: none !important; } }
 .tables-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
 .tables-list input { width: 100%; }
 
@@ -441,6 +450,12 @@ table.editions td.ops { white-space: nowrap; }
   .h2-actions { flex: 1 0 100%; display: flex; gap: 8px; margin-top: 4px; }
   .h2-actions button { flex: 1 1 0; }
   .card h2 .spacer { display: none; }
+  .match-filter { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .match-filter label { display: flex; flex-direction: column; align-items: stretch; gap: 2px; font-size: 12px; }
+  .match-filter select, .match-filter input { width: 100%; min-width: 0; }
+  .match-filter .mf-name { grid-column: 1 / -1; order: 4; }
+  .match-filter .mf-name input { width: 100%; }
+  .mf-count { order: 3; margin-left: 0; align-self: end; padding-bottom: 10px; } /* 卓の右隣に置いて、行を詰める */
 }
 
 /* ===== 結果入力：スマホでは画面下から出るシート（PC の見た目は変えない） ===== */

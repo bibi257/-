@@ -12,8 +12,57 @@ import { leagueMatrixTable, leagueResultRows, leagueResultsTable } from '../core
 import { tableSvg } from '../render/svg.js';
 import { playerName, tableName } from '../core/state.js';
 import { assignTable, pickNextMatch } from '../core/result.js';
+import { sanitizeFilter, filterRows, countText, STATUS_FILTERS, MAX_NAME_FILTER } from '../core/matchFilter.js';
 
 const panel = () => document.getElementById('panel-league');
+
+// 試合結果一覧の絞り込み。選んだ条件はこの端末の localStorage に残す（使えない環境でも動く）
+const FILTER_KEY = 'bukatsu-taikai:league-filter';
+let filter = null; // 保存されていた（または選んだ）条件。今選べない値は、使うときに「すべて」へ直す
+let filterLoaded = false;
+
+function loadFilter() {
+  if (!filterLoaded) {
+    filterLoaded = true;
+    try { filter = JSON.parse(localStorage.getItem(FILTER_KEY) || 'null'); } catch { filter = null; }
+  }
+  return filter;
+}
+
+function saveFilter() {
+  try { localStorage.setItem(FILTER_KEY, JSON.stringify(filter)); } catch { /* 保存できなくても絞り込みは使える */ }
+}
+
+/** 今の大会で選べる回戦・卓 */
+function filterChoices(st, rows) {
+  return { rounds: [...new Set(rows.map((r) => r.match.round))], tableIds: st.tables.map((t) => t.id) };
+}
+
+/** 一覧（表とカード）の行を、条件に合わないものだけ画面から隠す。全行は DOM に残すので、印刷は全試合になる */
+function applyFilter(rows, f) {
+  const shown = new Set(filterRows(rows, f).map((r) => r.match.id));
+  panel().querySelectorAll('.results-table tr[data-match], .result-cards [data-match]').forEach((el) => {
+    el.closest('tr, li').toggleAttribute('data-filtered', !shown.has(el.dataset.match));
+  });
+  const count = document.getElementById('mf-count');
+  if (count) count.textContent = countText(shown.size, rows.length);
+  const empty = document.getElementById('mf-empty');
+  if (empty) empty.hidden = shown.size > 0;
+}
+
+function filterBarHtml(st, rows, f) {
+  const { rounds } = filterChoices(st, rows);
+  const opt = (value, label, cur) => `<option value="${h(value)}" ${cur === value ? 'selected' : ''}>${h(label)}</option>`;
+  return `<div class="match-filter no-print" role="search" aria-label="試合の絞り込み">
+      <label>状態 <select id="mf-status">${STATUS_FILTERS.map((x) => opt(x.value, x.label, f.status)).join('')}</select></label>
+      <label>回戦 <select id="mf-round">${opt('all', 'すべて', f.round)}${rounds.map((r) => opt(String(r), `${r}回戦`, f.round)).join('')}</select></label>
+      <label>卓 <select id="mf-table">${opt('all', 'すべて', f.table)}${st.tables.map((t) => opt(t.id, t.name, f.table)).join('')}</select></label>
+      <label class="mf-name">選手名 <input type="text" id="mf-name" value="${h(f.name)}" maxlength="${MAX_NAME_FILTER}" placeholder="名前の一部" autocomplete="off"></label>
+      <span class="muted mf-count" id="mf-count" role="status" aria-live="polite"></span>
+    </div>
+    <div class="mf-empty no-print" id="mf-empty" hidden><p>条件に合う試合はありません</p>
+      <button type="button" data-filter-reset>条件を解除</button></div>`;
+}
 
 export function renderLeague() {
   const st = getState();
@@ -33,6 +82,7 @@ export function renderLeague() {
   for (const m of l.matches) { pairs.set(`${m.p1}|${m.p2}`, m); pairs.set(`${m.p2}|${m.p1}`, m); }
   const n = l.playerIds.length;
   const rows = leagueResultRows(st);
+  const f = sanitizeFilter(loadFilter(), filterChoices(st, rows));
 
   panel().innerHTML = `
   ${changed ? '<div class="notice">参加者が追加・削除されています。反映するには「参加者・設定」で総当たり表を作り直してください。</div>' : ''}
@@ -74,6 +124,7 @@ export function renderLeague() {
   </div>
   <div class="card">
     <h2>試合結果一覧</h2>
+    ${filterBarHtml(st, rows, f)}
     <div class="table-wrap results-table">
       <table class="data results">
         <thead><tr>${['試合番号', '回戦', '卓', '時間帯', '選手1', 'スコア', '選手2', '結果', '状態'].map((x) => `<th>${x}</th>`).join('')}</tr></thead>
@@ -83,6 +134,7 @@ export function renderLeague() {
     </div>
     ${resultCardsHtml(rows)}
   </div>`;
+  applyFilter(rows, f);
 }
 
 function openNext(afterNo) {
@@ -141,9 +193,29 @@ async function onExport(kind) {
   }
 }
 
+/** 絞り込みの欄を操作したとき。画面は作り直さず（入力中の文字を保つため）、行の表示だけ切り替える */
+function onFilterChange() {
+  const st = getState();
+  if (!st.league) return;
+  const val = (id) => document.getElementById(id).value;
+  filter = { status: val('mf-status'), round: val('mf-round'), table: val('mf-table'), name: val('mf-name') };
+  saveFilter();
+  const rows = leagueResultRows(st);
+  applyFilter(rows, sanitizeFilter(filter, filterChoices(st, rows)));
+}
+
+function resetFilter() {
+  filter = null;
+  saveFilter();
+  renderLeague();
+}
+
 export function setupLeagueView() {
   const p = panel();
+  p.addEventListener('input', (e) => { if (e.target.closest('.match-filter')) onFilterChange(); });
+  p.addEventListener('change', (e) => { if (e.target.closest('.match-filter')) onFilterChange(); });
   p.addEventListener('click', (e) => {
+    if (e.target.closest('[data-filter-reset]')) { resetFilter(); return; }
     const c = e.target.closest('[data-match]');
     if (c) { openMatch(c.dataset.match); return; }
     const ex = e.target.closest('[data-export]');
