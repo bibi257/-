@@ -423,3 +423,34 @@ test('閲覧者は、最初から「自分の試合」を使える（運営は�
   await admin.close();
   await viewer.close();
 });
+
+test('運営が試合を開始すると、閲覧者にも「進行中」と卓の状況が見える。閲覧者には「開始」ボタンがない', async ({ browser }) => {
+  const admin = await browser.newContext();
+  const viewer = await browser.newContext();
+  await withIp(admin, '10.0.10.1');
+  await withIp(viewer, '10.0.10.2');
+  const a = await admin.newPage();
+  const v = await viewer.newPage();
+  acceptDialogs(a);
+  acceptDialogs(v);
+  await open(a);
+  await makeTournament(a);
+  await startShare(a);
+  const link = await a.inputValue('#sh-link');
+  await a.click('#sh-close');
+  await v.goto(link);
+  await expect(v.locator('#bracket-wrap svg')).toBeVisible();
+  await expect(v.locator('#panel-tournament .table-board .tb').first()).toContainText('空き');
+  // 開始のボタンは、運営だけが押せる（閲覧者の画面では、どれも見えない）
+  expect(await v.locator('#panel-tournament [data-start]').evaluateAll((els) => els.filter((e) => e.getClientRects().length > 0).length)).toBe(0);
+
+  await a.locator('#panel-tournament .ni-card', { hasText: 'No.1' }).first().locator('[data-start]').click();
+  await untilSynced(v, async () => {
+    await expect(v.locator('#panel-tournament .table-board .tb.busy')).toHaveCount(1, { timeout: 1000 });
+  });
+  await expect(v.locator('#panel-tournament .ni-card.running .badge-running')).toHaveText('進行中');
+  await expect(v.locator('#panel-tournament .table-board .tb.busy')).toContainText('No.1');
+  expect(await v.locator('#panel-tournament [data-unstart]').evaluateAll((els) => els.filter((e) => e.getClientRects().length > 0).length)).toBe(0);
+  await admin.close();
+  await viewer.close();
+});
