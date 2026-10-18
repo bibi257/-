@@ -13,6 +13,8 @@
 //
 // 認証は Authorization: Bearer <トークン>。トークンは HMAC 署名で、サーバーにセッションは持たない。
 // 表示側（アプリ）が HTML エスケープするが、サーバーでも文字数・制御文字・形式を検証する。
+// 共有の期限は「最後の利用」（大会データの送信、またはコメント）から90日。
+import { ID_PATTERN } from '../../src/core/state.js';
 
 const PBKDF2_ITERATIONS = 5000; // 無料プランの CPU 時間（10ms）に収めるための値。保存値に回数を含めるので後から上げられる
 const TOKEN_TTL = 12 * 60 * 60;
@@ -28,7 +30,6 @@ const PASSWORD_MIN = 6;
 const PASSWORD_MAX = 64;
 const CODE_ALPHABET = 'abcdefghjkmnpqrstuvwxyz23456789';
 const CODE_PATTERN = /^[a-hj-km-np-z2-9]{8}$/;
-const MATCH_ID_PATTERN = /^[A-Za-z0-9-]{1,16}$/;
 const FILE_KIND = 'bukatsu-taikai';
 
 const SCHEMA = [
@@ -117,9 +118,20 @@ async function hmacKey(secret) {
 
 // ---- DB ----
 
-/** 期限内の共有を1件読む。最後の更新から ROOM_TTL を過ぎた共有は、掃除される前でも「存在しない」として扱う */
+/** 共有が残る期限（秒）。最後の利用（大会データの送信、またはコメント）から ROOM_TTL */
+async function keepUntil(env, code) {
+  const row = await env.DB.prepare('SELECT MAX(updated_at) AS last FROM rooms WHERE code = ?').bind(code).first();
+  const last = await env.DB.prepare('SELECT MAX(at) AS last FROM comments WHERE code = ?').bind(code).first('last');
+  return Math.max(row?.last ?? 0, last ?? 0) + ROOM_TTL;
+}
+
+/** 共有が使われている条件（期限内）: 大会データを送った（updated_at）か、期限内にコメントがある */
+const ACTIVE_SQL = '(updated_at >= ? OR EXISTS (SELECT 1 FROM comments c WHERE c.code = rooms.code AND c.at >= ?))';
+
+/** 期限内の共有を1件読む。期限切れの共有は、掃除される前でも「存在しない」として扱う */
 function findRoom(env, cols, code) {
-  return env.DB.prepare(`SELECT ${cols} FROM rooms WHERE code = ? AND updated_at >= ?`).bind(code, now(env) - ROOM_TTL).first();
+  const cutoff = now(env) - ROOM_TTL;
+  return env.DB.prepare(`SELECT ${cols} FROM rooms WHERE code = ? AND ${ACTIVE_SQL}`).bind(code, cutoff, cutoff).first();
 }
 
 const ready = new WeakSet();
@@ -244,10 +256,11 @@ async function createRoom(env, request) {
   await countHit(env, ipKey, 3600);
 
   const t = now(env);
-  // 古い共有と期限切れの制限記録を掃除する
+  // 使われなくなった共有と期限切れの制限記録を掃除する
+  const cutoff = t - ROOM_TTL;
   await env.DB.batch([
-    env.DB.prepare('DELETE FROM comments WHERE code IN (SELECT code FROM rooms WHERE updated_at < ?)').bind(t - ROOM_TTL),
-    env.DB.prepare('DELETE FROM rooms WHERE updated_at < ?').bind(t - ROOM_TTL),
+    env.DB.prepare(`DELETE FROM comments WHERE code IN (SELECT code FROM rooms WHERE NOT ${ACTIVE_SQL})`).bind(cutoff, cutoff),
+    env.DB.prepare(`DELETE FROM rooms WHERE NOT ${ACTIVE_SQL}`).bind(cutoff, cutoff),
     env.DB.prepare('DELETE FROM limits WHERE until < ?').bind(t),
   ]);
 
@@ -306,7 +319,7 @@ async function sync(env, request, url, code) {
   const { room } = auth;
   const rev = Number(url.searchParams.get('rev'));
   const crev = Number(url.searchParams.get('crev'));
-  const out = { ok: true, role: auth.role, title: room.title, rev: room.rev, crev: room.crev, updatedAt: room.updated_at, keepUntil: room.updated_at + ROOM_TTL, serverTime: now(env) };
+  const out = { ok: true, role: auth.role, title: room.title, rev: room.rev, crev: room.crev, updatedAt: room.updated_at, keepUntil: await keepUntil(env, code), serverTime: now(env) };
   if (rev !== room.rev) {
     const row = await env.DB.prepare('SELECT state FROM rooms WHERE code = ?').bind(code).first();
     out.state = row?.state ? JSON.parse(row.state) : null;
@@ -340,7 +353,7 @@ async function postComment(env, request, code) {
   const name = cleanName(body.name);
   const text = cleanBody(body.text);
   const matchId = body.matchId == null || body.matchId === '' ? null : String(body.matchId);
-  if (matchId !== null && !MATCH_ID_PATTERN.test(matchId)) throw new HttpError(400, 'コメントの対象が正しくありません');
+  if (matchId !== null && !ID_PATTERN.test(matchId)) throw new HttpError(400, 'コメントの対象が正しくありません');
   const who = (await sha256Hex(`${clientIp(request)}:${code}`)).slice(0, 12);
   const key = `cm:${code}:${who}`;
   if (await isLimited(env, key, 6)) throw new HttpError(429, '投稿が続いています。少し待ってから送ってください');
