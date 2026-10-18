@@ -38,6 +38,7 @@
   --danger-strong: #b8322a;
   --focus-ring: rgba(29, 95, 191, .22);
   --track: #e3e8ee;
+  --mine-bg: #dff3e6; /* 「自分の試合」で、選んだ選手の名前を強調する背景（緑） */
   color-scheme: light;
   --r-card: 12px;
   --r-ctl: 8px;
@@ -245,6 +246,26 @@ button.rc:hover:not(:disabled) { background: var(--primary-weak); border-color: 
 .podium-label { min-width: 4.5em; color: var(--muted); font-size: 15px; font-weight: bold; }
 .podium-name { color: var(--ink); font-size: 20px; font-weight: bold; overflow-wrap: anywhere; }
 .podium-row.gold .podium-name { font-size: 28px; }
+/* 「自分の試合」（src/ui/myMatch.js）。名前を選ぶ欄と「あなたの次の試合」、表の中の強調 */
+.my-panel { margin: 0 0 14px; }
+.my-bar { display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap; }
+.my-bar label { font-weight: bold; color: var(--ink); }
+.my-bar input { width: min(18em, 100%); }
+.my-card { margin: 10px 0 0; padding: 12px 16px; border-left: 6px solid var(--ok); }
+.my-card h3 { margin: 0 0 6px; font-size: 14px; color: var(--muted); }
+.my-main { display: flex; align-items: center; gap: 8px 18px; flex-wrap: wrap; }
+.my-table { display: inline-flex; flex-direction: column; align-items: center; min-width: 5em; color: var(--primary); font-size: 28px; font-weight: bold; line-height: 1.15; }
+.my-table small { font-size: 12px; font-weight: normal; color: var(--muted); }
+.my-body { display: flex; flex-direction: column; gap: 2px; }
+.my-no { color: var(--muted); font-size: 14px; }
+.my-opp { font-size: 18px; }
+.my-opp b { font-size: 22px; }
+.my-note { margin: 0; font-size: 16px; }
+.my-hint { margin: 8px 0 0; }
+table.data td[data-pid].mine, table.data th[data-pid].mine, table.data tr[data-pid].mine td { background: var(--mine-bg) !important; font-weight: bold; }
+.rc-p.mine, .rc-win.mine, .ni-players [data-pid].mine { background: var(--mine-bg); font-weight: bold; border-radius: 4px; box-shadow: 0 0 0 3px var(--mine-bg); }
+.bracket-wrap svg rect[data-pid].mine { fill: var(--mine-bg); stroke: var(--ok); }
+.bracket-wrap svg text[data-pid].mine { font-weight: bold; }
 .tables-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
 .tables-list input { width: 100%; }
 
@@ -473,6 +494,7 @@ table.editions td.ops { white-space: nowrap; }
     --danger-line-weak: #5c2d33;
     --focus-ring: rgba(106, 166, 245, .35);
     --track: #2b3a50;
+    --mine-bg: #17402c;
   }
   /* トーナメント表の SVG（画面表示）。色は属性（fill・stroke）に THEME の値で入っているので、同じ値を持つ要素を、ダークの変数に置き換える。
      PNG 出力は SVG を別に作るので、この規則の影響を受けない。 */

@@ -389,3 +389,37 @@ test('共有ページが残る期限（最後の更新から90日）が、運営
   await admin.close();
   await viewer.close();
 });
+
+test('閲覧者は、最初から「自分の試合」を使える（運営はオフ）。名前を選ぶと次の試合が出て、表で強調される', async ({ browser }) => {
+  const admin = await browser.newContext();
+  const viewer = await browser.newContext();
+  await withIp(admin, '10.0.9.1');
+  await withIp(viewer, '10.0.9.2');
+  const a = await admin.newPage();
+  const v = await viewer.newPage();
+  acceptDialogs(a);
+  acceptDialogs(v);
+  await open(a);
+  await makeTournament(a);
+  const code = await startShare(a);
+  const link = await a.inputValue('#sh-link');
+  await a.click('#sh-close');
+  // 運営は、共有中でもオフのまま
+  await expect(a.locator('#my-panel [data-my-toggle=on]')).toBeVisible();
+  await expect(a.locator('#my-name')).toHaveCount(0);
+
+  await v.goto(link);
+  await expect(v.locator('#bracket-wrap svg')).toBeVisible();
+  await expect(v.locator('#my-name')).toBeVisible(); // 閲覧者は最初から使える
+  await expect(v.locator('#my-panel [data-my-toggle]')).toHaveCount(0); // 閲覧者には、オン・オフのボタンがない
+  await v.fill('#my-name', NAMES[0]);
+  await expect(v.locator('#my-cards .my-card')).toHaveCount(1);
+  await expect(v.locator('#my-cards .my-card')).toContainText('あなたの次の試合');
+  expect(await v.locator('.mine').count()).toBeGreaterThan(0);
+  // 閲覧者は結果を変更できないまま（結果入力のダイアログは開かない）
+  await v.locator('#panel-tournament .next-item').first().click();
+  await expect(v.locator('#result-dialog')).not.toBeVisible();
+  expect(code).toBeTruthy();
+  await admin.close();
+  await viewer.close();
+});

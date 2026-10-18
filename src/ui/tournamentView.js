@@ -79,7 +79,11 @@ export function renderTournament() {
       <table class="data results">
         <thead><tr>${['試合番号', '回戦', '卓', '時間帯', '選手1', 'スコア', '選手2', '勝者', '状態'].map((x) => `<th>${x}</th>`).join('')}</tr></thead>
         <tbody>${rows.map(({ match: m, cells }) => `<tr class="st-${m.status}${m.playable ? ' clickable' : ''}" ${m.playable ? `data-match="${h(m.id)}"` : ''}>
-          ${cells.map((c, i) => i === 8 ? `<td>${statusBadge(m.status)}</td>` : `<td${[0, 3, 5].includes(i) ? ' class="num"' : ''}>${h(c)}</td>`).join('')}</tr>`).join('')}</tbody>
+          ${cells.map((c, i) => {
+            if (i === 8) return `<td>${statusBadge(m.status)}</td>`;
+            const pid = { 4: m.p1, 6: m.p2, 7: m.winner }[i]; // 選手の列には ID を付ける（「自分の試合」の強調）
+            return `<td${[0, 3, 5].includes(i) ? ' class="num"' : ''}${typeof pid === 'string' ? ` data-pid="${h(pid)}"` : ''}>${h(c)}</td>`;
+          }).join('')}</tr>`).join('')}</tbody>
       </table>
     </div>
     ${resultCardsHtml(rows, (m) => m.playable)}

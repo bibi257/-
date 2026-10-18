@@ -13,6 +13,7 @@ import { renderComments, setupCommentsView } from './commentsView.js';
 import { setupEditions } from './editions.js';
 import { setupMenu } from './menu.js';
 import { setupExportMenus } from './exportMenu.js';
+import { renderMyPanel, setupMyMatch } from './myMatch.js';
 import { eventTitle } from '../core/edition.js';
 import { S, initShare, isSharing, isViewer, isAdmin, onShareChange, openShareDialog, setupShareDialog } from './share.js';
 
@@ -25,6 +26,7 @@ function render() {
   document.title = `${eventTitle(getState())} - 部内大会トーナメント`;
   TABS[activeTab]();
   refreshCallScreen();
+  renderMyPanel();
 }
 
 function showTab(name) {
@@ -53,6 +55,7 @@ function updateShareUi() {
     chip.title = S.status === 'error' || S.status === 'auth' ? S.message : '共有の設定を開く';
     document.getElementById('tab-comments').textContent = `コメント${S.comments.length ? ` (${S.comments.length})` : ''}`;
   }
+  renderMyPanel(); // 閲覧者かどうかで、最初から使えるか（運営はオフ）が変わる
   if (!sharing && activeTab === 'comments') showTab('setup');
   else if (isViewer() && activeTab === 'setup') showTab('tournament');
   else if (activeTab === 'comments') renderComments();
@@ -128,6 +131,7 @@ function init() {
   setupCallScreen();
   setupCommentsView();
   setupEditions();
+  setupMyMatch();
   setupShareDialog();
   onChange(render);
   onShareChange(updateShareUi);

@@ -106,10 +106,10 @@ export function renderLeague() {
     ])}</div>
     <div class="table-wrap">
       <table class="data matrix">
-        <thead><tr>${matrix.headers.map((x) => `<th>${h(x)}</th>`).join('')}</tr></thead>
+        <thead><tr>${matrix.headers.map((x, i) => `<th${l.playerIds[i - 1] ? ` data-pid="${h(l.playerIds[i - 1])}"` : ''}>${h(x)}</th>`).join('')}</tr></thead>
         <tbody>${matrix.rows.map((row, i) => {
           const id = l.playerIds[i];
-          return `<tr><th class="rowhead">${h(row[0])}</th>${l.playerIds.map((op, j) => {
+          return `<tr><th class="rowhead" data-pid="${h(id)}">${h(row[0])}</th>${l.playerIds.map((op, j) => {
             if (op === id) return '<td class="self">－</td>';
             const m = pairs.get(`${id}|${op}`);
             const o = outcomeFor(m, l.results[m.id], id) || 'pending';
@@ -126,7 +126,11 @@ export function renderLeague() {
       <table class="data results">
         <thead><tr>${['試合番号', '回戦', '卓', '時間帯', '選手1', 'スコア', '選手2', '結果', '状態'].map((x) => `<th>${x}</th>`).join('')}</tr></thead>
         <tbody>${rows.map(({ match: m, cells }) => `<tr class="st-${m.status} clickable" data-match="${h(m.id)}">
-          ${cells.map((c, i) => i === 8 ? `<td>${statusBadge(m.status)}</td>` : `<td${[0, 3, 5].includes(i) ? ' class="num"' : ''}>${h(c)}</td>`).join('')}</tr>`).join('')}</tbody>
+          ${cells.map((c, i) => {
+            if (i === 8) return `<td>${statusBadge(m.status)}</td>`;
+            const pid = { 4: m.p1, 6: m.p2 }[i]; // 選手の列には ID を付ける（「自分の試合」の強調）
+            return `<td${[0, 3, 5].includes(i) ? ' class="num"' : ''}${typeof pid === 'string' ? ` data-pid="${h(pid)}"` : ''}>${h(c)}</td>`;
+          }).join('')}</tr>`).join('')}</tbody>
       </table>
     </div>
     ${resultCardsHtml(rows)}

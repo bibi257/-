@@ -41,6 +41,7 @@ src/core/      純粋ロジック（DOM非依存・Nodeでテスト可能）
   edition.js   回（第2回大会など）・過去の回・大会名への「第N回」・共有に送る大きさの調整
   share.js     共有のコード・URL・コメント対象（純粋ロジック）
   matchFilter.js 総当たりの試合結果一覧の絞り込み（状態・回戦・卓・選手名）
+  myMatch.js   「自分の試合」（選んだ選手の次の試合・成績・名前の選び方）
 src/render/    SVG 生成（表示とPNG出力で共用）
 src/ui/        画面（DOM 操作）
 web/           配信ファイル（index.html, style.css, 生成物 app.js）
