@@ -30,8 +30,8 @@ export function resolveSaved(players, saved) {
  */
 export function playerSummaries(st, playerId) {
   const out = [];
-  if (st.tournament?.playerIds.includes(playerId)) out.push(tournamentSummary(st, playerId));
-  if (st.league?.playerIds.includes(playerId)) out.push(leagueSummary(st, playerId));
+  if (st.tournament?.playerIds?.includes(playerId)) out.push(tournamentSummary(st, playerId));
+  if (st.league?.playerIds?.includes(playerId)) out.push(leagueSummary(st, playerId));
   return out;
 }
 

@@ -37,7 +37,7 @@ export function applyMine(id) {
 }
 
 function slotText(s) {
-  return `${s.table || '卓は未定'}${s.timeSlot > 1 ? `<small>時間帯${s.timeSlot}</small>` : ''}`;
+  return `${h(s.table) || '卓は未定'}${s.timeSlot > 1 ? `<small>時間帯${s.timeSlot}</small>` : ''}`;
 }
 
 function cardHtml(s, many) {
@@ -82,7 +82,7 @@ export function renderMyPanel() {
       el.innerHTML = '<button type="button" class="small" data-my-toggle="on">自分の試合を探す</button>';
     } else {
       el.innerHTML = `<div class="my-bar"><label for="my-name">あなたの名前</label>
-        <input type="text" id="my-name" list="my-names" placeholder="名前を入力して選ぶ" autocomplete="off" maxlength="40" value="${h(id ? st.players.find((p) => p.id === id).name : '')}">
+        <input type="text" id="my-name" list="my-names" placeholder="名前を入力して選ぶ" autocomplete="off" maxlength="40" value="${h(st.players.find((p) => p.id === id)?.name ?? '')}">
         <datalist id="my-names">${st.players.map((p) => `<option value="${h(p.name)}"></option>`).join('')}</datalist>
         <button type="button" class="small" data-my-clear>解除</button>
         ${isViewer() ? '' : '<button type="button" class="small" data-my-toggle="off">この機能を使わない</button>'}</div>
@@ -96,6 +96,7 @@ export function renderMyPanel() {
 
 function select(id) {
   const st = getState();
+  if (id === resolveSaved(st.players, saved)) return; // 変わっていなければ、書き込みも描き直しもしない（1文字ごとの入力で重くならないように）
   saved = id ? { id, name: st.players.find((p) => p.id === id)?.name ?? '' } : null;
   persist();
   const cards = document.getElementById('my-cards');
@@ -107,9 +108,7 @@ export function setupMyMatch() {
   const el = panel();
   el.addEventListener('input', (e) => {
     if (e.target.id !== 'my-name') return;
-    const id = pickPlayerByName(getState().players, e.target.value);
-    if (id) select(id);
-    else if (!e.target.value.trim()) select(null);
+    select(pickPlayerByName(getState().players, e.target.value)); // ちょうど一致する人がいなければ外す（入力欄と強調がずれないように）
   });
   el.addEventListener('click', (e) => {
     const t = e.target instanceof Element ? e.target : null;

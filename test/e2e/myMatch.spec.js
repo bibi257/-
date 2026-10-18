@@ -157,3 +157,46 @@ test('名簿から消えた選手の選択は、名前が同じ人に引き継�
   await expect(page.locator('#my-name')).toHaveValue('');
   await expect(page.locator('#my-cards .my-card')).toHaveCount(0);
 });
+
+test('卓名に HTML があっても、「あなたの次の試合」では文字として出る（要素として解釈しない）', async ({ page }) => {
+  await open(page);
+  await importNames(page, EIGHT);
+  await page.locator('input.table-name').first().fill('<i id=pwn>a</i>');
+  await page.click('[data-act=gen-tournament]');
+  await turnOn(page);
+  await choose(page, '山田 太郎'); // 1番の組は第1卓
+  await expect(page.locator('#my-cards .my-table')).toContainText('<i id=pwn>a</i>');
+  await expect(page.locator('#pwn')).toHaveCount(0);
+});
+
+test('完全に一致しない入力をすると、前に選んだ選手の強調は外れる。入力中の文字は、画面が描き直されても戻らない', async ({ page }) => {
+  await startTournament(page);
+  await turnOn(page);
+  await choose(page, '山田 太郎');
+  expect(await mineCount(page)).toBeGreaterThan(0);
+  await choose(page, '佐藤'); // 入力し直している途中
+  await expect(page.locator('#my-cards .my-card')).toHaveCount(0);
+  expect(await mineCount(page)).toBe(0);
+  // 結果を入れて画面が描き直されても、入力欄は「山田 太郎」に戻らない
+  await page.locator('#panel-tournament .next-item').first().click();
+  await enterScore(page, 2, 1);
+  await expect(page.locator('#my-name')).toHaveValue('佐藤');
+  await choose(page, '佐藤 花子');
+  await expect(page.locator('#my-cards .my-card')).toHaveCount(1);
+});
+
+test('選択が変わらない入力では、この端末への書き込みも描き直しもしない', async ({ page }) => {
+  await startTournament(page);
+  await turnOn(page);
+  await page.evaluate(() => {
+    window.__writes = 0;
+    const set = Storage.prototype.setItem;
+    Storage.prototype.setItem = function (k, v) { if (k === 'bukatsu-taikai:my-player') window.__writes++; return set.call(this, k, v); };
+  });
+  await page.click('#my-name');
+  await page.keyboard.type('山田 太', { delay: 20 }); // 完全一致する人がいない間
+  expect(await page.evaluate(() => window.__writes)).toBe(0);
+  await page.keyboard.type('郎');
+  await expect(page.locator('#my-cards .my-card')).toHaveCount(1);
+  expect(await page.evaluate(() => window.__writes)).toBe(1);
+});
