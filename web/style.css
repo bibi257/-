@@ -25,8 +25,20 @@
   --medal-gold: #e0a800; /* 順位表の1〜3位の帯 */
   --medal-silver: #9aa5b1;
   --medal-bronze: #b87333;
+  --chrome: #13233a; /* ヘッダー・通知・卓の札など、濃い面（文字は白） */
+  --on-primary: #ffffff; /* primary の面の上の文字 */
   --warn-bg: #fff8e1;
   --warn-line: #ecc766;
+  /* 以下は画面だけで使う色（SVG・PNG には出ない）。ダークモードでは下の @media で上書きする */
+  --chip: #13233a;
+  --hover-bg: #f2f5f9;
+  --hover-line: #8e9bad;
+  --danger-line: #e0b4b0;
+  --danger-line-weak: #efc3bf;
+  --danger-strong: #b8322a;
+  --focus-ring: rgba(29, 95, 191, .22);
+  --track: #e3e8ee;
+  color-scheme: light;
   --r-card: 12px;
   --r-ctl: 8px;
   /* 以前の名前（互換） */
@@ -49,7 +61,7 @@ h1, h2, h3, p { overflow-wrap: anywhere; }
 /* ===== ヘッダーとタブ ===== */
 .app-header {
   display: flex; align-items: center; gap: 12px 16px; flex-wrap: wrap;
-  padding: 10px 20px; background: var(--ink); color: #fff;
+  padding: 10px 20px; background: var(--chrome); color: #fff;
 }
 .brand { display: inline-flex; align-items: center; gap: 10px; font-weight: bold; font-size: 17px; letter-spacing: .04em; }
 .brand svg { width: 22px; height: 22px; flex: none; }
@@ -96,11 +108,11 @@ button {
   border: 1px solid var(--rule-strong); background: var(--paper); border-radius: var(--r-ctl); padding: 0 14px; min-height: 36px;
   cursor: pointer; transition: background-color .12s, border-color .12s;
 }
-button:hover:not(:disabled) { background: #f2f5f9; border-color: #8e9bad; }
+button:hover:not(:disabled) { background: var(--hover-bg); border-color: var(--hover-line); }
 button:disabled { opacity: .45; cursor: not-allowed; }
-button.primary { background: var(--primary); color: #fff; border-color: var(--primary); font-weight: bold; }
+button.primary { background: var(--primary); color: var(--on-primary); border-color: var(--primary); font-weight: bold; }
 button.primary:hover:not(:disabled) { background: var(--primary-press); border-color: var(--primary-press); }
-button.danger { color: var(--danger); border-color: #e0b4b0; background: var(--paper); }
+button.danger { color: var(--danger); border-color: var(--danger-line); background: var(--paper); }
 button.danger:hover:not(:disabled) { background: var(--danger-weak); border-color: var(--danger); }
 button.small { min-height: 28px; padding: 0 10px; font-size: 13px; }
 button.icon { min-height: 30px; min-width: 32px; padding: 0 8px; }
@@ -109,8 +121,8 @@ input[type="text"], input[type="number"], input[type="date"], input:not([type]),
   border: 1px solid var(--rule-strong); border-radius: var(--r-ctl); padding: 0 10px; min-height: 36px; background: var(--paper);
 }
 textarea { padding: 8px 10px; width: 100%; resize: vertical; line-height: 1.6; }
-input:hover:not(:disabled), select:hover:not(:disabled), textarea:hover:not(:disabled) { border-color: #8e9bad; }
-input:focus, select:focus, textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(29, 95, 191, .22); }
+input:hover:not(:disabled), select:hover:not(:disabled), textarea:hover:not(:disabled) { border-color: var(--hover-line); }
+input:focus, select:focus, textarea:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--focus-ring); }
 button:focus-visible, summary:focus-visible { outline: 3px solid var(--primary); outline-offset: 2px; }
 .header-actions button:focus-visible, .brand:focus-visible { outline-color: rgba(255, 255, 255, .8); }
 input.invalid { border-color: var(--danger); background: var(--danger-weak); }
@@ -120,7 +132,7 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--primary); widt
 .form-row > label:first-child { min-width: 7.5em; color: var(--muted); font-size: 14px; }
 .error { color: var(--danger); font-size: 14px; margin: 6px 0; min-height: 1em; }
 #schedule-error:empty { margin: 0; min-height: 0; }
-.errors { color: var(--danger); background: var(--danger-weak); border: 1px solid #efc3bf; border-radius: var(--r-ctl); padding: 8px 12px 8px 28px; margin: 10px 0; font-size: 14px; }
+.errors { color: var(--danger); background: var(--danger-weak); border: 1px solid var(--danger-line-weak); border-radius: var(--r-ctl); padding: 8px 12px 8px 28px; margin: 10px 0; font-size: 14px; }
 .notice {
   background: var(--warn-bg); border: 1px solid var(--warn-line); border-left: 4px solid var(--warn-line);
   border-radius: var(--r-ctl); padding: 10px 14px; margin-bottom: 16px; font-size: 14px;
@@ -156,7 +168,7 @@ table.data tr.st-done td { color: var(--muted); }
 table.data tr.st-ready td { background: var(--primary-weak); }
 /* 試合の状態バッジ（src/ui/badge.js）。色だけに頼らず、文字と枠の形でも区別する */
 .badge { display: inline-block; padding: 0 8px; border-radius: 999px; font-size: 12px; line-height: 20px; font-weight: bold; white-space: nowrap; border: 1px solid transparent; }
-.badge-ready { background: var(--primary); border-color: var(--primary); color: #fff; }
+.badge-ready { background: var(--primary); border-color: var(--primary); color: var(--on-primary); }
 .badge-done { border-color: var(--rule-strong); color: var(--muted); font-weight: normal; }
 .badge-waiting { border: 1px dashed var(--rule-strong); color: var(--muted); font-weight: normal; }
 .badge-alive { background: var(--primary-weak); border-color: var(--primary); color: var(--primary); }
@@ -198,7 +210,7 @@ button.rc:hover:not(:disabled) { background: var(--primary-weak); border-color: 
 .steps li { flex: 1 1 0; min-width: 0; }
 .steps .step { width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 8px 10px; background: var(--paper); border: 1px solid var(--rule-strong); border-radius: var(--r-card); color: var(--ink); font-weight: bold; font-size: 14px; }
 .steps .step-no { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 50%; background: var(--canvas); border: 1px solid var(--rule-strong); font-size: 13px; line-height: 1; }
-.steps .step.done .step-no { background: var(--primary); border-color: var(--primary); color: #fff; }
+.steps .step.done .step-no { background: var(--primary); border-color: var(--primary); color: var(--on-primary); }
 .steps .step-label { min-width: 0; text-align: left; }
 #setup-info, #setup-tables { scroll-margin-top: 64px; }
 .create-btn { width: 100%; margin-top: 4px; }
@@ -238,7 +250,7 @@ button.rc:hover:not(:disabled) { background: var(--primary-weak); border-color: 
 
 /* ===== 進行状況と呼び出し札（次に行う試合） ===== */
 .progress { display: flex; align-items: center; gap: 10px 16px; flex-wrap: wrap; }
-.progress-bar { flex: 0 0 240px; max-width: 100%; height: 8px; border-radius: 999px; background: #e3e8ee; overflow: hidden; }
+.progress-bar { flex: 0 0 240px; max-width: 100%; height: 8px; border-radius: 999px; background: var(--track); overflow: hidden; }
 .progress-bar > div { height: 100%; background: var(--ok); border-radius: 999px; }
 .champion { font-size: 15px; font-weight: bold; color: var(--gold); background: var(--gold-weak); border: 1px solid var(--gold-line); border-radius: 999px; padding: 2px 14px; }
 .next-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 10px; margin-top: 12px; }
@@ -249,7 +261,7 @@ button.rc:hover:not(:disabled) { background: var(--primary-weak); border-color: 
 .next-item:hover:not(:disabled) { border-color: var(--primary); background: var(--primary-weak); }
 .ni-table {
   display: flex; flex-direction: column; justify-content: center; align-items: center; min-width: 5.2em; padding: 6px 10px;
-  background: var(--ink); color: #fff; font-weight: bold; font-size: 15px; line-height: 1.3; text-align: center;
+  background: var(--chip); color: #fff; font-weight: bold; font-size: 15px; line-height: 1.3; text-align: center;
 }
 .ni-table small { font-size: 11px; font-weight: normal; color: rgba(255, 255, 255, .75); }
 .ni-body { display: flex; flex-direction: column; justify-content: center; gap: 0; padding: 6px 12px; min-width: 0; }
@@ -267,7 +279,7 @@ button.rc:hover:not(:disabled) { background: var(--primary-weak); border-color: 
 .round-tabs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin: 0 -2px 10px; padding: 2px; }
 .round-tabs::-webkit-scrollbar { display: none; }
 .round-tabs button { flex: none; min-height: 44px; padding: 0 14px; border-radius: 999px; white-space: nowrap; }
-.round-tabs button[aria-selected="true"] { background: var(--primary); border-color: var(--primary); color: #fff; font-weight: bold; }
+.round-tabs button[aria-selected="true"] { background: var(--primary); border-color: var(--primary); color: var(--on-primary); font-weight: bold; }
 .round-view .result-cards { margin-top: 2px; }
 .view-switch button[aria-pressed="true"] { background: var(--primary-weak); border-color: var(--primary); color: var(--primary); font-weight: bold; }
 table.data td.cell.flash { background: var(--primary-weak); box-shadow: inset 0 0 0 2px var(--primary); }
@@ -367,16 +379,16 @@ dialog h2 { margin: 0 0 4px; font-size: 18px; color: var(--ink); }
 .cs-body.cs-s .cs-players { font-size: clamp(16px, 1.8vw, 24px); }
 
 .toast {
-  position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--ink); color: #fff;
+  position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--chip); color: #fff;
   padding: 10px 20px; border-radius: 999px; opacity: 0; pointer-events: none; transition: opacity .2s; z-index: 1000; width: max-content; max-width: 90vw; font-size: 14px; line-height: 1.5; text-align: center;
 }
 .toast.show { opacity: .97; }
-.toast.error { background: var(--danger); }
+.toast.error { background: var(--danger-strong); }
 
 /* ===== 共有・コメント ===== */
 body.viewer .owner-only { display: none !important; }
 .header-actions .share-chip { font-size: 12px; border-radius: 999px; padding: 0 12px; min-height: 28px; background: rgba(255, 255, 255, .16); border-color: rgba(255, 255, 255, .5); }
-.header-actions .share-chip.bad { background: var(--danger); border-color: #ef9a9a; }
+.header-actions .share-chip.bad { background: var(--danger-strong); border-color: #ef9a9a; }
 .share-box { padding: 20px 22px; }
 .share-box h2 { margin: 0 0 10px; font-size: 18px; }
 .share-box h3 { margin: 14px 0 4px; font-size: 15px; }
@@ -422,6 +434,62 @@ body.viewer .next-item, body.viewer g.match, body.viewer tr.clickable, body.view
 body.archive-view [data-action=share], body.archive-view #share-chip, body.archive-view #tab-comments { display: none !important; }
 table.editions td.ops { white-space: nowrap; }
 
+/* ===== ダークモード（画面表示だけ。印刷と PNG 出力は白背景のまま） =====
+   端末の設定がダークモードのとき、:root の変数を上書きする。値は src/render/theme.js の DARK_THEME と同じ（test/unit/dark.test.js が確かめる）。
+   `screen` だけに掛けるので、印刷には効かない。 */
+@media screen and (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+    --ink: #f0f4f9;
+    --ink-soft: #c6d0de;
+    --canvas: #0f1724;
+    --paper: #172234;
+    --rule: #2b3a50;
+    --rule-strong: #40536f;
+    --text: #e6ebf2;
+    --muted: #a9b5c6;
+    --faint: #8d9ab0;
+    --primary: #6aa6f5;
+    --primary-press: #8dbaf7;
+    --primary-weak: #1c3558;
+    --danger: #ff9a92;
+    --danger-weak: #3b2024;
+    --ok: #63c77e;
+    --gold: #f0c75e;
+    --gold-weak: #3a2f12;
+    --gold-line: #9c7a2a;
+    --table-head: #1c2a40;
+    --medal-gold: #e0a800;
+    --medal-silver: #9aa5b1;
+    --medal-bronze: #b87333;
+    --chrome: #0a101b;
+    --on-primary: #0b1424;
+    --warn-bg: #3a3010;
+    --warn-line: #8a6d1e;
+    --chip: #2b3a50;
+    --hover-bg: #1f2e46;
+    --hover-line: #5a6f8c;
+    --danger-line: #7a3a40;
+    --danger-line-weak: #5c2d33;
+    --focus-ring: rgba(106, 166, 245, .35);
+    --track: #2b3a50;
+  }
+  /* トーナメント表の SVG（画面表示）。色は属性（fill・stroke）に THEME の値で入っているので、同じ値を持つ要素を、ダークの変数に置き換える。
+     PNG 出力は SVG を別に作るので、この規則の影響を受けない。 */
+  .bracket-wrap svg [fill="#1c2530"] { fill: var(--text); }
+  .bracket-wrap svg [fill="#1d5fbf"] { fill: var(--primary); }
+  .bracket-wrap svg [fill="#5a6677"] { fill: var(--muted); }
+  .bracket-wrap svg [fill="#8791a0"] { fill: var(--faint); }
+  .bracket-wrap svg [fill="#8a5a00"] { fill: var(--gold); }
+  .bracket-wrap svg [fill="#e8f0fb"] { fill: var(--primary-weak); }
+  .bracket-wrap svg [fill="#fff6dc"] { fill: var(--gold-weak); }
+  .bracket-wrap svg [fill="#ffffff"] { fill: var(--paper); }
+  .bracket-wrap svg [stroke="#1d5fbf"] { stroke: var(--primary); }
+  .bracket-wrap svg [stroke="#5a6677"] { stroke: var(--muted); }
+  .bracket-wrap svg [stroke="#8791a0"] { stroke: var(--faint); }
+  .bracket-wrap svg [stroke="#e9c46a"] { stroke: var(--gold-line); }
+}
+
 /* ===== 小さな画面 ===== */
 @media (max-width: 700px) {
   /* ヘッダーは1段（52px）。「新規・保存・読込・印刷・共有」はメニューに入れる */
@@ -440,7 +508,7 @@ table.editions td.ops { white-space: nowrap; }
   .header-actions button:last-of-type { border-bottom: none; }
   .header-actions button:hover:not(:disabled) { background: var(--canvas); }
   .header-actions button:focus-visible { outline-color: rgba(29, 95, 191, .6); outline-offset: -3px; }
-  .header-actions .share-chip.bad { background: var(--danger); color: #fff; }
+  .header-actions .share-chip.bad { background: var(--danger-strong); color: #fff; }
   main { padding: 14px 12px; }
   .card { padding: 14px 14px; border-radius: 10px; }
   /* タブは画面の上に固定する（スクロールしても見える）。全タブが1画面に収まるよう、字と余白を詰める */
@@ -504,7 +572,7 @@ table.editions td.ops { white-space: nowrap; }
   .rd-player::after { content: ''; position: absolute; inset: 0; border-radius: 9px; } /* 行全体をタップできるようにする */
   .rd-player input { order: -1; width: 24px; height: 24px; margin: 0; flex: none; }
   .rd-name { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .rd-badge { flex: none; margin-left: auto; padding: 0 8px; border-radius: 999px; background: var(--primary); color: #fff; font-size: 13px; line-height: 22px; white-space: nowrap; }
+  .rd-badge { flex: none; margin-left: auto; padding: 0 8px; border-radius: 999px; background: var(--primary); color: var(--on-primary); font-size: 13px; line-height: 22px; white-space: nowrap; }
   .rd-row:has(input[name="outcome"]:checked) .rd-badge { display: inline-block; }
   #result-dialog .rd-score { position: relative; z-index: 1; flex: none; width: 72px; min-height: 48px; font-size: 20px; }
   .rd-row .rd-score { order: 2; } /* どちらの行も ラジオ → 名前 → スコア の並びにそろえる */
