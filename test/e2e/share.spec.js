@@ -239,6 +239,7 @@ test('共有中に次の回を始めると、閲覧者の画面も新しい回�
 
   // 運営が次の回を始める（確認に「閲覧者の画面も変わる」と出る）
   await a.click('.tabs [data-tab=setup]');
+  await a.click('#editions-card > summary'); // 過去の大会がないときは折りたたまれている
   await a.click('#editions-card [data-edition=next]');
   expect(dialogs.some((m) => m.includes('閲覧者の画面も新しい大会（第2回大会）の内容に変わります'))).toBe(true);
   await untilSynced(v, () => expect(v.locator('#print-title')).toHaveText('部内大会 第2回', { timeout: 1000 }));
