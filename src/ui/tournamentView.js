@@ -6,6 +6,7 @@ import { openResultDialog } from './resultDialog.js';
 import { nextEditionButton } from './editions.js';
 import { nextItemHtml } from './callCard.js';
 import { statusBadge } from './badge.js';
+import { resultCardsHtml } from './resultCards.js';
 import {
   resolveBracket, setTournamentResult, setTournamentTable, roundName, tournamentProgress, missingPlayers,
 } from '../core/bracket.js';
@@ -67,13 +68,14 @@ export function renderTournament() {
   </div>
   <div class="card">
     <h2>試合結果一覧</h2>
-    <div class="table-wrap">
+    <div class="table-wrap results-table">
       <table class="data results">
         <thead><tr>${['試合番号', '回戦', '卓', '時間帯', '選手1', 'スコア', '選手2', '勝者', '状態'].map((x) => `<th>${x}</th>`).join('')}</tr></thead>
         <tbody>${rows.map(({ match: m, cells }) => `<tr class="st-${m.status}${m.playable ? ' clickable' : ''}" ${m.playable ? `data-match="${h(m.id)}"` : ''}>
           ${cells.map((c, i) => i === 8 ? `<td>${statusBadge(m.status)}</td>` : `<td${[0, 3, 5].includes(i) ? ' class="num"' : ''}>${h(c)}</td>`).join('')}</tr>`).join('')}</tbody>
       </table>
     </div>
+    ${resultCardsHtml(rows, (m) => m.playable)}
   </div>`;
 }
 
