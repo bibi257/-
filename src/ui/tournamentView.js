@@ -4,6 +4,7 @@ import { getState, setState } from './store.js';
 import { h, toast, measureText, downloadCSV, downloadPNG } from './io.js';
 import { openResultDialog } from './resultDialog.js';
 import { nextEditionButton } from './editions.js';
+import { nextItemHtml } from './callCard.js';
 import {
   resolveBracket, setTournamentResult, setTournamentTable, roundName, tournamentProgress, missingPlayers,
 } from '../core/bracket.js';
@@ -47,8 +48,7 @@ export function renderTournament() {
       ${res.finished ? nextEditionButton() : ''}
     </div>
     ${prog.ready.length ? `<p class="hint">次に行う試合<span class="owner-only">（クリックで結果入力）</span></p>
-    <div class="next-list">${prog.ready.map((m) => `<button type="button" class="next-item" data-match="${h(m.id)}">
-      <b>No.${m.no}</b> ${h(m.tableId ? tableName(st, m.tableId) : '')} ${h(playerName(st, m.p1))} vs ${h(playerName(st, m.p2))}</button>`).join('')}</div>` : ''}
+    <div class="next-list">${prog.ready.map((m) => nextItemHtml(st, m)).join('')}</div>` : ''}
   </div>
   <div class="card">
     <h2>トーナメント表 <span class="hint owner-only">試合をクリックすると結果を入力できます</span></h2>
