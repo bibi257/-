@@ -7,7 +7,8 @@ import { nextEditionButton } from './editions.js';
 import { nextItemHtml } from './callCard.js';
 import { statusBadge } from './badge.js';
 import { resultCardsHtml } from './resultCards.js';
-import { controlsHtml, setupWrap, setupBracketControls, revealMatch } from './bracketView.js';
+import { controlsHtml, setupWrap, setupBracketControls, revealMatch, viewSwitchHtml, viewMode, getRoundSel } from './bracketView.js';
+import { roundViewHtml, THIRD_KEY } from './roundView.js';
 import {
   resolveBracket, setTournamentResult, setTournamentTable, roundName, tournamentProgress, missingPlayers,
 } from '../core/bracket.js';
@@ -58,7 +59,7 @@ export function renderTournament() {
     ${prog.ready.length ? `<p class="hint">次に行う試合<span class="owner-only">（クリックで結果入力）</span></p>
     <div class="next-list">${prog.ready.map((m) => nextItemHtml(st, m)).join('')}</div>` : ''}
   </div>
-  <div class="card">
+  <div class="card bracket-card" data-view="${viewMode()}">
     <h2>トーナメント表 <span class="hint owner-only">試合をクリックすると結果を入力できます</span></h2>
     <div class="toolbar">
       <span class="group"><span class="group-label">トーナメント表</span>
@@ -69,8 +70,10 @@ export function renderTournament() {
         <button type="button" class="small" data-export="results-png">PNG</button></span>
       <span class="group"><button type="button" class="small" data-export="print">印刷</button></span>
     </div>
+    ${viewSwitchHtml()}
     ${controlsHtml(columnNames)}
     <div class="bracket-wrap" id="bracket-wrap" data-cols="${columns.join(',')}">${svg}</div>
+    <div class="round-view" id="round-view"></div>
   </div>
   <div class="card">
     <h2>試合結果一覧</h2>
@@ -83,9 +86,20 @@ export function renderTournament() {
     </div>
     ${resultCardsHtml(rows, (m) => m.playable)}
   </div>`;
+  fillRoundView();
   const wrap = document.getElementById('bracket-wrap');
   setupWrap(wrap);
   if (keep) wrap.scrollLeft = keep.left; // 描画し直しても、横の位置は変えない
+}
+
+/** スマホ幅の「回戦ごと」表示（回戦のタブ＋試合のカード）を、今の状態で描く */
+function fillRoundView() {
+  const host = document.getElementById('round-view');
+  const st = getState();
+  if (!host || !st.tournament) return;
+  const res = resolveBracket(st.tournament, st.tables);
+  host.innerHTML = roundViewHtml(res, tournamentResultRows(st), getRoundSel());
+  host.querySelector('[aria-selected="true"]')?.scrollIntoView?.({ inline: 'nearest', block: 'nearest' }); // 選んだタブが見える位置に
 }
 
 function openNext(afterNo) {
@@ -102,7 +116,7 @@ function openMatch(id, { reveal = false } = {}) {
   const res = resolveBracket(t, st.tables);
   const m = res.matches.find((x) => x.id === id);
   if (!m || !m.playable) return;
-  if (reveal) revealMatch(id); // 「次に行う試合」から開いたときは、表のその位置までスクロールして強調する
+  if (reveal) revealMatch(id, m.isThirdPlace ? THIRD_KEY : m.round); // 「次に行う試合」から開いたときは、その位置までスクロールして強調する
   const R = res.roundCount;
   const editable = m.status === 'ready' || m.status === 'done';
   const r = m.result;
@@ -139,7 +153,7 @@ function openMatch(id, { reveal = false } = {}) {
       }
       setState({ ...getState(), tournament: next });
       toast(tableOnly ? '卓を変更しました' : input ? '結果を保存しました' : '結果を取り消しました');
-      revealMatch(id); // 保存したあとも、その試合の位置を見せる
+      revealMatch(id, m.isThirdPlace ? THIRD_KEY : m.round); // 保存したあとも、その試合の位置を見せる
       return null;
     },
   });
@@ -162,7 +176,7 @@ async function onExport(kind) {
 
 export function setupTournamentView() {
   const p = panel();
-  setupBracketControls(p);
+  setupBracketControls(p, { refreshRounds: fillRoundView });
   p.addEventListener('click', (e) => {
     const g = e.target.closest('[data-match], g.match');
     if (g) { openMatch(g.dataset.match || g.dataset.id, { reveal: !!g.closest('.next-item') }); return; }
