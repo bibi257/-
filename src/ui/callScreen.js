@@ -31,7 +31,8 @@ export function renderCallScreen() {
     body.innerHTML = '<p class="cs-message">表がまだ作成されていません</p>';
   } else if (b.finished) {
     body.innerHTML = `<p class="cs-message">${b.kind === 'league' ? '全試合終了' : '決勝まで終了'}</p>` +
-      (b.champion ? `<p class="cs-champion"><small>優勝</small>${h(b.champion)}</p>` : '');
+      (b.champion ? `<p class="cs-champion"><small>優勝</small>${h(b.champion)}</p>` : '') +
+      (b.runnerUp || b.thirds.length ? `<p class="cs-podium">${b.runnerUp ? `<span><small>準優勝</small>${h(b.runnerUp)}</span>` : ''}${b.thirds.length ? `<span><small>3位</small>${b.thirds.map(h).join('、')}</span>` : ''}</p>` : '');
   } else if (!b.items.length) {
     body.innerHTML = '<p class="cs-message">次に行う試合はありません</p>';
   } else {

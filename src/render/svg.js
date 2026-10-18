@@ -85,6 +85,12 @@ export function bracketSvg(state, { measure = approxMeasure, interactive = false
 
   const out = [];
   out.push(text(left, 24, `${eventTitle(state)}　トーナメント表`, { size: 20, bold: true }));
+  if (res.champion) {
+    // 右上に優勝者名を小さく入れる。タイトルと重なるときは、1行下げる
+    const champ = `優勝　${playerName(state, res.champion)}`;
+    const fits = measure(`${eventTitle(state)}　トーナメント表`, 20, true) + measure(champ, 13, true) + 32 <= width;
+    out.push(text(width - 16, fits ? 24 : 44, champ, { size: 13, bold: true, color: T.gold, anchor: 'end' }));
+  }
   for (let k = 0; k <= R; k++) {
     out.push(text(colX(k) + boxW / 2, top - 18, k < R ? roundName(k + 1, R) : '優勝', { size: 13, bold: true, color: C.sub, anchor: 'middle' }));
   }

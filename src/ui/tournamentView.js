@@ -6,6 +6,7 @@ import { openResultDialog } from './resultDialog.js';
 import { nextEditionButton } from './editions.js';
 import { nextItemHtml } from './callCard.js';
 import { exportMenuHtml } from './exportMenu.js';
+import { podiumHtml } from './podium.js';
 import { statusBadge } from './badge.js';
 import { resultCardsHtml } from './resultCards.js';
 import { controlsHtml, setupWrap, setupBracketControls, revealMatch, viewSwitchHtml, viewMode, getRoundSel } from './bracketView.js';
@@ -48,6 +49,7 @@ export function renderTournament() {
 
   panel().innerHTML = `
   ${changed ? `<div class="notice">参加者が追加・削除されています${missing ? `（表に含まれる${missing}人が名簿から削除済み）` : ''}。反映するには「参加者・設定」でトーナメント表を作り直してください。</div>` : ''}
+  ${podiumHtml(st, res)}
   <div class="card no-print">
     <h2>進行状況</h2>
     <div class="progress">
