@@ -20,6 +20,7 @@ let current = null;
  * @param {string|null} o.tableOverride
  * @param {string} o.autoTableName
  * @param {(input:object|null, tableId:string|null, opts:{tableOnly:boolean}) => string|null} o.onSave 失敗時はエラー文を返す
+ * @param {(() => void)|undefined} o.openNext 「保存して次へ」で、保存したあとに次の試合の入力を開く
  */
 export function openResultDialog(o) {
   if (isReadOnly()) return; // 共有を閲覧している間は結果を入力できない
@@ -39,6 +40,7 @@ export function openResultDialog(o) {
   $('rd-draw-wrap').hidden = !o.allowDraw;
   for (const id of ['rd-s1', 'rd-s2', 'rd-walkover']) $(id).disabled = !o.editable;
   $('rd-clear').hidden = !r;
+  $('rd-next').hidden = !o.editable || !o.openNext;
   $('rd-table').innerHTML = `<option value="">自動（${h(o.autoTableName || '－')}）</option>` +
     o.tables.map((t) => `<option value="${h(t.id)}" ${o.tableOverride === t.id ? 'selected' : ''}>${h(t.name)}</option>`).join('');
   $('rd-error').textContent = o.editable ? '' : o.notice || '';
@@ -71,11 +73,15 @@ function autoPick() {
   document.querySelectorAll('#result-form input[name="outcome"]').forEach((el) => { el.checked = el.value === v; });
 }
 
-function save() {
+function save(goNext = false) {
   const o = current;
   const tableId = $('rd-table').value || null;
   const input = { score1: $('rd-s1').value, score2: $('rd-s2').value, outcome: selectedOutcome(), walkover: $('rd-walkover').checked };
   const blank = !input.walkover && !input.outcome && input.score1.trim() === '' && input.score2.trim() === '';
+  if (goNext && blank) {
+    $('rd-error').textContent = '結果を入力すると、次の試合へ進めます';
+    return;
+  }
   if (!o.editable || blank) {
     if (o.editable && o.result) {
       $('rd-error').textContent = '結果を消す場合は「結果を取り消す」を押してください';
@@ -89,11 +95,16 @@ function save() {
   const err = o.onSave(input, tableId, { tableOnly: false });
   if (err) { $('rd-error').textContent = err; return; }
   $('result-dialog').close();
+  if (goNext) o.openNext();
 }
 
 export function setupResultDialog() {
   $('result-form').addEventListener('submit', (e) => { e.preventDefault(); save(); });
   $('rd-cancel').addEventListener('click', () => $('result-dialog').close());
+  $('rd-next').addEventListener('click', () => save(true));
+  $('result-form').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && !$('rd-next').hidden) { e.preventDefault(); save(true); }
+  });
   $('rd-clear').addEventListener('click', () => {
     if (!confirm('この試合の結果を取り消しますか？')) return;
     const err = current.onSave(null, $('rd-table').value || null, { tableOnly: false });

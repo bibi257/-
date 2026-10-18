@@ -69,3 +69,14 @@ export function formatScore(r) {
   if (r.score1 === null || r.score1 === undefined) return '';
   return `${r.score1}-${r.score2}`;
 }
+
+/**
+ * 結果を保存したあとに開く「次の試合」を選ぶ。今の試合より後ろの番号のうち最も早いもの。
+ * 後ろに無ければ先頭の試合へ戻る（前のほうに入力漏れの試合があるため）。
+ * @param {{no:number}[]} candidates 次に行える試合（結果未入力のもの）
+ * @param {number} currentNo 今の試合の番号
+ */
+export function pickNextMatch(candidates, currentNo) {
+  const others = candidates.filter((m) => m.no !== currentNo).sort((a, b) => a.no - b.no);
+  return others.find((m) => m.no > currentNo) || others[0] || null;
+}

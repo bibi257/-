@@ -9,7 +9,7 @@ import { resolveLeague, setLeagueResult, setLeagueTable, leagueProgress, outcome
 import { leagueMatrixTable, leagueResultRows, leagueResultsTable } from '../core/exportData.js';
 import { tableSvg } from '../render/svg.js';
 import { playerName, tableName } from '../core/state.js';
-import { assignTable } from '../core/result.js';
+import { assignTable, pickNextMatch } from '../core/result.js';
 
 const panel = () => document.getElementById('panel-league');
 
@@ -81,6 +81,14 @@ export function renderLeague() {
   </div>`;
 }
 
+function openNext(afterNo) {
+  const st = getState();
+  if (!st.league) return;
+  const next = pickNextMatch(leagueProgress(resolveLeague(st.league, st.tables)).ready, afterNo);
+  if (next) openMatch(next.id);
+  else toast('次に行う試合はありません');
+}
+
 function openMatch(id) {
   const st = getState();
   const l = st.league;
@@ -100,6 +108,7 @@ function openMatch(id) {
     tables: st.tables,
     tableOverride: l.tableOverrides?.[id] ?? null,
     autoTableName: tableName(st, auto.tableId),
+    openNext: () => openNext(m.no),
     onSave(input, tableId, { tableOnly }) {
       let next = setLeagueTable(l, id, tableId);
       if (!tableOnly) {

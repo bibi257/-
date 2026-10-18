@@ -12,7 +12,7 @@ import { bracketTable, tournamentResultRows, tournamentResultsTable } from '../c
 import { bracketSvg, tableSvg } from '../render/svg.js';
 import { playerName, tableName } from '../core/state.js';
 import { eventTitle } from '../core/edition.js';
-import { assignTable } from '../core/result.js';
+import { assignTable, pickNextMatch } from '../core/result.js';
 
 const panel = () => document.getElementById('panel-tournament');
 
@@ -75,6 +75,14 @@ export function renderTournament() {
   </div>`;
 }
 
+function openNext(afterNo) {
+  const st = getState();
+  if (!st.tournament) return;
+  const next = pickNextMatch(tournamentProgress(resolveBracket(st.tournament, st.tables)).ready, afterNo);
+  if (next) openMatch(next.id);
+  else toast('次に行う試合はありません');
+}
+
 function openMatch(id) {
   const st = getState();
   const t = st.tournament;
@@ -98,6 +106,7 @@ function openMatch(id) {
     tables: st.tables,
     tableOverride: t.tableOverrides?.[id] ?? null,
     autoTableName: tableName(st, auto.tableId),
+    openNext: () => openNext(m.no),
     onSave(input, tableId, { tableOnly }) {
       let next = setTournamentTable(t, id, tableId);
       if (!tableOnly) {
