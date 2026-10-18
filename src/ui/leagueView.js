@@ -5,6 +5,8 @@ import { h, toast, measureText, downloadCSV, downloadPNG } from './io.js';
 import { openResultDialog } from './resultDialog.js';
 import { nextEditionButton } from './editions.js';
 import { nextItemHtml } from './callCard.js';
+import { exportMenuHtml } from './exportMenu.js';
+import { scrollBehavior, flash } from './reveal.js';
 import { statusBadge } from './badge.js';
 import { resultCardsHtml } from './resultCards.js';
 import { resolveLeague, setLeagueResult, setLeagueTable, leagueProgress, outcomeFor } from '../core/league.js';
@@ -98,15 +100,10 @@ export function renderLeague() {
   </div>
   <div class="card">
     <h2>総当たり表 <span class="hint"><span class="owner-only">マスをクリックすると結果を入力できます</span>（行の選手から見た結果）</span></h2>
-    <div class="toolbar">
-      <span class="group"><span class="group-label">総当たり表</span>
-        <button type="button" class="small" data-export="matrix-csv">CSV</button>
-        <button type="button" class="small" data-export="matrix-png">PNG</button></span>
-      <span class="group"><span class="group-label">試合結果</span>
-        <button type="button" class="small" data-export="results-csv">CSV</button>
-        <button type="button" class="small" data-export="results-png">PNG</button></span>
-      <span class="group"><button type="button" class="small" data-export="print">印刷</button></span>
-    </div>
+    <div class="toolbar no-print">${exportMenuHtml([
+      { label: '総当たり表', csv: 'matrix-csv', png: 'matrix-png' },
+      { label: '試合結果', csv: 'results-csv', png: 'results-png' },
+    ])}</div>
     <div class="table-wrap">
       <table class="data matrix">
         <thead><tr>${matrix.headers.map((x) => `<th>${h(x)}</th>`).join('')}</tr></thead>
@@ -145,7 +142,18 @@ function openNext(afterNo) {
   else toast('次に行う試合はありません');
 }
 
-function openMatch(id) {
+/** 保存した試合を、画面の中で強調する（総当たり表のマス・一覧の行・カード）。
+ *  開いた場所（region）から離れないよう、その場所では見えていれば動かさない。「次に行う試合」から開いたときは、総当たり表のマスまで移る */
+function revealSaved(id, region) {
+  const mine = (sel) => [...panel().querySelectorAll(sel)].filter((x) => x.dataset.match === id);
+  const cells = mine('.matrix td[data-match]');
+  const list = [...mine('.results-table tr[data-match]'), ...mine('.result-cards [data-match]')].filter((x) => x.getClientRects().length > 0);
+  const target = region === 'list' ? list[0] ?? cells[0] : cells[0];
+  target?.scrollIntoView({ block: region === 'next' ? 'center' : 'nearest', inline: 'nearest', behavior: scrollBehavior() });
+  for (const el of [...cells, ...list]) flash(el);
+}
+
+function openMatch(id, region = 'next') {
   const st = getState();
   const l = st.league;
   const res = resolveLeague(l, st.tables);
@@ -174,6 +182,7 @@ function openMatch(id) {
       }
       setState({ ...getState(), league: next });
       toast(tableOnly ? '卓を変更しました' : input ? '結果を保存しました' : '結果を取り消しました');
+      revealSaved(id, region); // 保存したあとも、その試合の位置を見せる
       return null;
     },
   });
@@ -217,7 +226,7 @@ export function setupLeagueView() {
   p.addEventListener('click', (e) => {
     if (e.target.closest('[data-filter-reset]')) { resetFilter(); return; }
     const c = e.target.closest('[data-match]');
-    if (c) { openMatch(c.dataset.match); return; }
+    if (c) { openMatch(c.dataset.match, c.closest('.matrix') ? 'matrix' : c.closest('.results-table, .result-cards') ? 'list' : 'next'); return; }
     const ex = e.target.closest('[data-export]');
     if (ex) onExport(ex.dataset.export);
   });

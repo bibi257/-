@@ -37,8 +37,15 @@ export async function enterScore(page, s1, s2) {
   await page.click('#rd-ok');
 }
 
+/** 「出力」メニューの項目（data-export）を押す。メニューが閉じていれば、先に開く */
+export async function clickExport(page, selector) {
+  const item = page.locator(selector).first();
+  if (!(await item.isVisible())) await item.locator('xpath=ancestor::*[contains(@class,"export-menu")]').locator('[data-export-toggle]').click();
+  await item.click();
+}
+
 export async function download(page, clickSelector) {
-  const [dl] = await Promise.all([page.waitForEvent('download'), page.click(clickSelector)]);
+  const [dl] = await Promise.all([page.waitForEvent('download'), clickSelector.includes('data-export') ? clickExport(page, clickSelector) : page.click(clickSelector)]);
   const path = await dl.path();
   return { name: dl.suggestedFilename(), bytes: await readFile(path) };
 }

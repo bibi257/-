@@ -12,6 +12,7 @@ import { setupCallScreen, refreshCallScreen } from './callScreen.js';
 import { renderComments, setupCommentsView } from './commentsView.js';
 import { setupEditions } from './editions.js';
 import { setupMenu } from './menu.js';
+import { setupExportMenus } from './exportMenu.js';
 import { eventTitle } from '../core/edition.js';
 import { S, initShare, isSharing, isViewer, isAdmin, onShareChange, openShareDialog, setupShareDialog } from './share.js';
 
@@ -79,6 +80,7 @@ async function loadFile(file) {
 
 function setupHeader() {
   setupMenu();
+  setupExportMenus();
   const fileInput = document.getElementById('load-file');
   document.querySelector('.header-actions').addEventListener('click', (e) => {
     const act = e.target.closest('button[data-action]')?.dataset.action;

@@ -5,6 +5,7 @@ import { h, toast, measureText, downloadCSV, downloadPNG } from './io.js';
 import { openResultDialog } from './resultDialog.js';
 import { nextEditionButton } from './editions.js';
 import { nextItemHtml } from './callCard.js';
+import { exportMenuHtml } from './exportMenu.js';
 import { statusBadge } from './badge.js';
 import { resultCardsHtml } from './resultCards.js';
 import { controlsHtml, setupWrap, setupBracketControls, revealMatch, viewSwitchHtml, viewMode, getRoundSel } from './bracketView.js';
@@ -61,15 +62,10 @@ export function renderTournament() {
   </div>
   <div class="card bracket-card" data-view="${viewMode()}">
     <h2>トーナメント表 <span class="hint owner-only">試合をクリックすると結果を入力できます</span></h2>
-    <div class="toolbar">
-      <span class="group"><span class="group-label">トーナメント表</span>
-        <button type="button" class="small" data-export="bracket-csv">CSV</button>
-        <button type="button" class="small" data-export="bracket-png">PNG</button></span>
-      <span class="group"><span class="group-label">試合結果</span>
-        <button type="button" class="small" data-export="results-csv">CSV</button>
-        <button type="button" class="small" data-export="results-png">PNG</button></span>
-      <span class="group"><button type="button" class="small" data-export="print">印刷</button></span>
-    </div>
+    <div class="toolbar no-print">${exportMenuHtml([
+      { label: 'トーナメント表', csv: 'bracket-csv', png: 'bracket-png' },
+      { label: '試合結果', csv: 'results-csv', png: 'results-png' },
+    ])}</div>
     ${viewSwitchHtml()}
     ${controlsHtml(columnNames)}
     <div class="bracket-wrap" id="bracket-wrap" data-cols="${columns.join(',')}">${svg}</div>
