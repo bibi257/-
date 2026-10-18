@@ -7,13 +7,14 @@ import { exportMenuHtml } from './exportMenu.js';
 import { aliveBadge } from './badge.js';
 import { tableSvg } from '../render/svg.js';
 import { qualifyHtml } from './editions.js';
+import { leagueStandings } from '../core/league.js';
 
 const panel = () => document.getElementById('panel-standings');
 
-function tableHtml(table, numCols) {
+function tableHtml(table, numCols, ids = []) {
   return `<div class="table-wrap"><table class="data">
     <thead><tr>${table.headers.map((x, i) => `<th${numCols.includes(i) ? ' class="num"' : ''}>${h(x)}</th>`).join('')}</tr></thead>
-    <tbody>${table.rows.map((r) => `<tr>${r.map((c, i) => `<td${numCols.includes(i) ? ' class="num"' : ''}>${h(c)}</td>`).join('')}</tr>`).join('')}</tbody>
+    <tbody>${table.rows.map((r, ri) => `<tr${ids[ri] ? ` data-pid="${h(ids[ri])}"` : ''}>${r.map((c, i) => `<td${numCols.includes(i) ? ' class="num"' : ''}>${h(c)}</td>`).join('')}</tr>`).join('')}</tbody>
   </table></div>`;
 }
 
@@ -24,7 +25,7 @@ function tournamentTableHtml(st) {
   const numCols = [0, 3, 4];
   return `<div class="table-wrap"><table class="data standings">
     <thead><tr>${table.headers.map((x, i) => `<th${numCols.includes(i) ? ' class="num"' : ''}>${h(x)}</th>`).join('')}</tr></thead>
-    <tbody>${rows.map(({ ranking, cells }) => `<tr class="${ranking.phase === 'alive' ? 'st-alive' : ''}${ranking.medal ? ` medal-${ranking.medal}` : ''}">${cells.map((c, i) => {
+    <tbody>${rows.map(({ ranking, cells }) => `<tr data-pid="${h(ranking.playerId)}" class="${ranking.phase === 'alive' ? 'st-alive' : ''}${ranking.medal ? ` medal-${ranking.medal}` : ''}">${cells.map((c, i) => {
       const inner = i === 0 && ranking.phase === 'alive' ? aliveBadge() : h(c);
       return `<td${numCols.includes(i) ? ' class="num"' : ''}>${inner}</td>`;
     }).join('')}</tr>`).join('')}</tbody>
@@ -51,7 +52,7 @@ export function renderStandings() {
   if (st.league) {
     const lt = leagueStandingsTable(st);
     html += `<div class="card"><h2>総当たり 順位表</h2>${toolbar('l')}
-      ${tableHtml(lt, [0, 2, 3, 4, 5, 6, 7, 8, 9])}<p class="hint">${h(lt.note)}</p>${qualifyHtml(st)}</div>`;
+      ${tableHtml(lt, [0, 2, 3, 4, 5, 6, 7, 8, 9], leagueStandings(st.league, st.settings.league).map((r) => r.playerId))}<p class="hint">${h(lt.note)}</p>${qualifyHtml(st)}</div>`;
   }
   panel().innerHTML = html;
 }

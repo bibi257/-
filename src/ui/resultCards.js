@@ -4,6 +4,9 @@
 import { h } from './io.js';
 import { statusBadge } from './badge.js';
 
+/** 選手の ID（「自分の試合」の強調に使う） */
+const pidAttr = (id) => (typeof id === 'string' ? ` data-pid="${h(id)}"` : '');
+
 /** 勝った側（'p1' / 'p2' / null）。トーナメントは勝者の ID、総当たりは結果の勝敗から求める */
 function winnerSide(m) {
   if (m.status !== 'done' && m.status !== 'bye') return null;
@@ -29,12 +32,12 @@ export function resultCardHtml({ match: m, cells }, { clickable }) {
   const badge = `<span class="rc-badge">${statusBadge(m.status)}</span>`;
   // 不戦は1行に縮める
   if (m.status === 'bye') {
-    return `<li><${tag} ${attrs}><span class="rc-bye"><span class="rc-win">${h(winnerName)}</span><span class="rc-bye-note">不戦で勝ち上がり</span></span>${badge}</${end}></li>`;
+    return `<li><${tag} ${attrs}><span class="rc-bye"><span class="rc-win"${pidAttr(m.winner)}>${h(winnerName)}</span><span class="rc-bye-note">不戦で勝ち上がり</span></span>${badge}</${end}></li>`;
   }
   const meta = [no !== '' && no !== undefined && no !== null ? `No.${no}` : '', round, table, slot !== '' && slot !== undefined && slot !== null ? `時間帯${slot}` : '']
     .filter((x) => x !== '').map((x) => h(x)).join(' ・ ');
   const side = winnerSide(m);
-  const player = (name, key) => `<span class="rc-p${side === key ? ' rc-win' : ''}">${h(name)}</span>`;
+  const player = (name, key) => `<span class="rc-p${side === key ? ' rc-win' : ''}"${pidAttr(m[key])}>${h(name)}</span>`;
   return `<li><${tag} ${attrs}><span class="rc-top"><span class="rc-meta">${meta}</span>${badge}</span>`
     + `<span class="rc-main">${player(p1, 'p1')}<span class="rc-score">${h(scoreText(m))}</span>${player(p2, 'p2')}</span></${end}></li>`;
 }

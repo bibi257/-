@@ -19,8 +19,8 @@ export function esc(s) {
   return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-function text(x, y, s, { size = 14, bold = false, color = T.text, anchor = 'start', cls = '' } = {}) {
-  return `<text x="${x}" y="${y}" font-size="${size}"${bold ? ' font-weight="bold"' : ''} fill="${color}" text-anchor="${anchor}" dominant-baseline="central"${cls ? ` class="${cls}"` : ''}>${esc(s)}</text>`;
+function text(x, y, s, { size = 14, bold = false, color = T.text, anchor = 'start', cls = '', pid = '' } = {}) {
+  return `<text x="${x}" y="${y}" font-size="${size}"${bold ? ' font-weight="bold"' : ''} fill="${color}" text-anchor="${anchor}" dominant-baseline="central"${cls ? ` class="${cls}"` : ''}${pid ? ` data-pid="${esc(pid)}"` : ''}>${esc(s)}</text>`;
 }
 
 function line(x1, y1, x2, y2, color, width) {
@@ -100,8 +100,10 @@ export function bracketSvg(state, { measure = approxMeasure, interactive = false
     const stroke = st === 'win' ? C.win : st === 'champ' ? C.champ : C.box;
     const color = st === 'lose' ? T.faint : T.text;
     const name = id === undefined ? '' : playerName(state, id);
-    let s = `<rect x="${x}" y="${y - boxH / 2}" width="${boxW}" height="${boxH}" rx="4" fill="${fill}" stroke="${stroke}" stroke-width="${st === 'win' || st === 'champ' ? 1.6 : 1}"/>`;
-    if (name) s += text(x + 8, y, name, { size: 14, bold: st === 'win' || st === 'champ', color });
+    // 画面の表（interactive）だけ、選手の ID を付ける（「自分の試合」の強調に使う。PNG には付けない）
+    const pid = interactive && typeof id === 'string' ? id : '';
+    let s = `<rect x="${x}" y="${y - boxH / 2}" width="${boxW}" height="${boxH}" rx="4" fill="${fill}" stroke="${stroke}" stroke-width="${st === 'win' || st === 'champ' ? 1.6 : 1}"${pid ? ` data-pid="${esc(pid)}"` : ''}/>`;
+    if (name) s += text(x + 8, y, name, { size: 14, bold: st === 'win' || st === 'champ', color, pid });
     if (score !== '') s += text(x + boxW - 8, y, score, { size: 13, bold: st === 'win', color, anchor: 'end' });
     return s;
   };
