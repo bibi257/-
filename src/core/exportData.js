@@ -6,7 +6,7 @@ import { formatScore } from './result.js';
 import { playerName, tableName } from './state.js';
 import { eventTitle } from './edition.js';
 
-const STATUS = { done: '終了', ready: '試合待ち', waiting: '対戦者未定', bye: '不戦', empty: '－' };
+export const STATUS = { done: '終了', ready: '試合待ち', waiting: '対戦者未定', bye: '不戦', empty: '－' };
 
 function titleOf(state, kind) {
   return `${eventTitle(state)} ${kind}`;
