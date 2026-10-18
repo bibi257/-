@@ -27,6 +27,40 @@ export const THEME = {
   medalGold: '#e0a800',
   medalSilver: '#9aa5b1',
   medalBronze: '#b87333',
+  chrome: '#13233a', // ヘッダー・通知など、濃い面（文字は白）
+  onPrimary: '#ffffff', // primary の面の上の文字
+};
+
+/**
+ * 画面表示だけのダークモード用の値（端末がダークモードのとき、web/style.css の
+ * `@media screen and (prefers-color-scheme: dark)` の :root が同じ値で上書きする）。
+ * PNG 出力と印刷は白背景のまま変えないので、THEME（上）だけを使い、ここは使わない。
+ */
+export const DARK_THEME = {
+  ink: '#f0f4f9',
+  inkSoft: '#c6d0de',
+  canvas: '#0f1724',
+  paper: '#172234',
+  rule: '#2b3a50',
+  ruleStrong: '#40536f',
+  text: '#e6ebf2',
+  muted: '#a9b5c6',
+  faint: '#8d9ab0',
+  primary: '#6aa6f5',
+  primaryPress: '#8dbaf7',
+  primaryWeak: '#1c3558',
+  danger: '#ff9a92',
+  dangerWeak: '#3b2024',
+  ok: '#63c77e',
+  gold: '#f0c75e',
+  goldWeak: '#3a2f12',
+  goldLine: '#9c7a2a',
+  tableHead: '#1c2a40',
+  medalGold: '#e0a800',
+  medalSilver: '#9aa5b1',
+  medalBronze: '#b87333',
+  chrome: '#0a101b',
+  onPrimary: '#0b1424',
 };
 
 /** THEME のキー → web/style.css の :root の変数名 */
