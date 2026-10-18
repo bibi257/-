@@ -1,6 +1,8 @@
 // トーナメント表（SVG）の表示操作: 全体表示・拡大縮小・回戦への移動・試合の位置までのスクロールと強調。
 // 拡大率は SVG の表示上の width/height を変えて実現する（CSS 変数 --bw・--bh・--bz → web/style.css）。属性（元の大きさ）は変えないので、印刷は今までどおり。
 
+import { scrollBehavior, flash } from './reveal.js';
+
 export const ZOOM_STEPS = [50, 75, 100, 125, 150];
 
 /**
@@ -48,8 +50,7 @@ export function viewMode() {
   return view.mode;
 }
 
-const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-const behavior = () => (reducedMotion() ? 'auto' : 'smooth');
+const behavior = scrollBehavior;
 
 function natural(wrap) {
   const svg = wrap.querySelector('svg');
@@ -104,16 +105,14 @@ export function revealMatch(id, roundKey) {
     const card = [...document.querySelectorAll('#round-view [data-match]')].find((x) => x.dataset.match === id);
     if (!card) return;
     card.scrollIntoView({ block: 'center', inline: 'nearest', behavior: behavior() });
-    card.classList.add('flash');
-    setTimeout(() => card.classList.remove('flash'), 1500);
+    flash(card);
     return;
   }
   const wrap = document.getElementById('bracket-wrap');
   const g = wrap && [...wrap.querySelectorAll('g.match')].find((x) => x.dataset.id === id);
   if (!g) return;
   g.scrollIntoView({ block: 'center', inline: 'center', behavior: behavior() });
-  g.classList.add('flash');
-  setTimeout(() => g.classList.remove('flash'), 1500);
+  flash(g);
 }
 
 /**

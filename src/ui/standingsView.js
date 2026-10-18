@@ -3,6 +3,7 @@
 import { getState } from './store.js';
 import { h, toast, measureText, downloadCSV, downloadPNG } from './io.js';
 import { tournamentStandingsTable, tournamentStandingsRows, leagueStandingsTable } from '../core/exportData.js';
+import { exportMenuHtml } from './exportMenu.js';
 import { aliveBadge } from './badge.js';
 import { tableSvg } from '../render/svg.js';
 import { qualifyHtml } from './editions.js';
@@ -31,10 +32,7 @@ function tournamentTableHtml(st) {
 }
 
 function toolbar(prefix) {
-  return `<div class="toolbar"><span class="group">
-    <button type="button" class="small" data-export="${prefix}-csv">CSV</button>
-    <button type="button" class="small" data-export="${prefix}-png">PNG</button>
-    <button type="button" class="small" data-export="print">印刷</button></span></div>`;
+  return `<div class="toolbar no-print">${exportMenuHtml([{ label: '順位表', csv: `${prefix}-csv`, png: `${prefix}-png` }])}</div>`;
 }
 
 export function renderStandings() {
