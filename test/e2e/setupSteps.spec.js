@@ -147,7 +147,7 @@ test.describe('幅390pxの崩れ', () => {
   test('参加者0人の「まだ参加者がいません」が1列に潰れず、表の全幅に出る', async ({ page }) => {
     await open(page);
     const td = page.locator('#setup-players tbody td.muted');
-    expect(await td.getAttribute('colspan')).toBe('3');
+    expect(await td.getAttribute('colspan')).toBe('4'); // No・出席・名前・並べ替え削除の4列（出席の列を足したため3から変更）
   });
 
   test('横スクロールが出ない', async ({ page }) => {

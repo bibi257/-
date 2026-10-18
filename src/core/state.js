@@ -133,7 +133,14 @@ function parseTournament(t) {
     results,
     tableOverrides: cleanOverrides(t.tableOverrides),
     started: cleanStarted(t.started, { withPlayers: true, validId: isId }),
+    ...walkoverIdsOf(t.walkoverIds, ids),
   };
+}
+
+/** 不戦にすると決めた選手（表にいる人だけ・重複なし）。無ければ持たない */
+function walkoverIdsOf(list, inTable) {
+  const out = Array.isArray(list) ? [...new Set(list.filter((id) => typeof id === 'string' && inTable.has(id)))] : [];
+  return out.length ? { walkoverIds: out } : {};
 }
 
 function parseLeague(l) {
@@ -198,7 +205,8 @@ function parsePlayers(list) {
   if (!Array.isArray(list) || list.some((p) => !isObj(p) || !isStr(p.name))) fail('参加者');
   if (list.length > MAX_PLAYERS) throw new Error('参加者が多すぎます');
   checkIds(list.map((p) => p.id), '参加者', MAX_PLAYERS);
-  return list.map((p) => ({ id: p.id, name: cleanText(p.name, MAX_NAME_LENGTH) }));
+  // 欠席は `absent: true` のときだけ持つ（古い形式・出席の選手は持たない＝全員出席として読む）
+  return list.map((p) => ({ id: p.id, name: cleanText(p.name, MAX_NAME_LENGTH), ...(p.absent === true ? { absent: true } : {}) }));
 }
 
 function parseTables(list) {

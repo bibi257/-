@@ -3,6 +3,7 @@
 
 import { resolveBracket, tournamentProgress } from './bracket.js';
 import { resolveLeague, leagueProgress, leagueStandings } from './league.js';
+import { allPresent } from './attendance.js';
 
 export const MAX_HISTORY = 20;
 /** 共有サーバーに送れる大会データの上限（1,000,000 文字）に収めるための目安 */
@@ -49,7 +50,8 @@ export function startNextEdition(state, { topCount } = {}) {
   if ((state.history?.length ?? 0) >= MAX_HISTORY) {
     return { ok: false, error: `過去の大会は${MAX_HISTORY}回分までです。古い大会を削除してから始めてください` };
   }
-  let players = state.players;
+  // 出欠は、その日の記録。次の大会は全員出席から始める（過去の大会には、その日の出欠が残る）
+  let players = allPresent(state.players);
   let tie = null;
   if (topCount !== undefined) {
     if (!state.league) return { ok: false, error: '上位の選手を引き継ぐには、総当たりの表が必要です' };
@@ -59,7 +61,7 @@ export function startNextEdition(state, { topCount } = {}) {
     if (!Number.isInteger(topCount) || topCount < 2 || topCount > rows.length) {
       return { ok: false, error: `人数は2〜${rows.length}で指定してください` };
     }
-    players = rows.slice(0, topCount).map((r) => byId.get(r.playerId));
+    players = allPresent(rows.slice(0, topCount).map((r) => byId.get(r.playerId)));
     const cut = rows[topCount - 1];
     if (rows[topCount]?.rank === cut.rank) tie = { rank: cut.rank, total: rows.filter((r) => r.rank === cut.rank).length };
   }

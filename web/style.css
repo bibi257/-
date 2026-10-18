@@ -368,6 +368,19 @@ dialog h2 { margin: 0 0 4px; font-size: 18px; color: var(--ink); }
 .rd-score { width: 64px; text-align: center; font-size: 20px; min-height: 44px; }
 .rd-dash { color: var(--muted); }
 .rd-options { display: flex; gap: 8px 18px; flex-wrap: wrap; margin: 12px 0; align-items: center; }
+#choice-dialog .rd-options { flex-direction: column; align-items: stretch; gap: 8px; }
+.ch-option { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border: 1px solid var(--rule-strong); border-radius: 10px; cursor: pointer; }
+.ch-option:has(input:checked) { border-color: var(--primary); background: var(--primary-weak); }
+.ch-option input { margin-top: 3px; flex: none; }
+.ch-option small { display: block; margin-top: 2px; color: var(--muted); font-size: 13px; font-weight: normal; }
+.attendance-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 0 0 10px; }
+.attendance-bar .attend-count { font-weight: bold; color: var(--ink); }
+.attendance-bar .attend-count.has-absent { color: var(--ink); }
+.players th.attend-col, .players td.attend-cell { text-align: center; white-space: nowrap; width: 1%; }
+.attend-pick { display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+.attend-pick input { width: 18px; height: 18px; margin: 0; }
+.players tr.absent input.name { color: var(--muted); text-decoration: line-through; background: var(--canvas); }
+.players tr.absent td.idx { color: var(--muted); }
 .dialog-buttons { display: flex; gap: 8px; align-items: center; margin-top: 12px; }
 
 .qualify { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--rule); }
@@ -579,6 +592,11 @@ table.editions td.ops { white-space: nowrap; }
   .h2-actions button { flex: 1 1 0; }
   .card h2 .spacer { display: none; }
   /* 押せる部品は、高さ・幅とも44px以上（指で押しやすくする）。表の中の ↑ ↓ ×、小さなボタン、チェックボックスの行、見出しの開閉も含む */
+  /* 名簿の表: 「出席」の列が増えても、並べ替え・削除のボタンが画面内に収まるよう、余白を詰める */
+  .players td.idx, .players th.num { display: none; } /* スマホ幅では、名簿のNo列を隠す（出席の列の分の幅を空ける。並びは上から順） */
+  .players th.attend-col, .players td.attend-cell { padding-left: 0; padding-right: 0; }
+  .attend-pick { min-width: 44px; } /* 押せる幅（44px）を確保する */
+  .players input.name { min-width: 6em; }
   button, button.small, button.icon { min-height: 44px; }
   button.small, button.icon { min-width: 44px; }
   input[type="text"], input[type="number"], input[type="date"], input[type="time"], input[type="password"], input:not([type]), select { min-height: 44px; }
