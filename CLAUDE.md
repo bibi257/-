@@ -42,6 +42,7 @@ src/core/      純粋ロジック（DOM非依存・Nodeでテスト可能）
   share.js     共有のコード・URL・コメント対象（純粋ロジック）
   matchFilter.js 総当たりの試合結果一覧の絞り込み（状態・回戦・卓・選手名）
   myMatch.js   「自分の試合」（選んだ選手の次の試合・成績・名前の選び方）
+  attendance.js 当日の出欠（欠席の選手・不戦への反映）
   started.js   試合の「開始」（開始時刻の検証・経過分・進行中の反映）
   tableBoard.js 卓ごとの「進行中／空き／次」の一覧
 src/render/    SVG 生成（表示とPNG出力で共用）
