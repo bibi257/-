@@ -44,10 +44,10 @@ function archiveOf(state) {
  */
 export function startNextEdition(state, { topCount } = {}) {
   if (!state.tournament && !state.league) {
-    return { ok: false, error: '今の回にはまだ表がありません。表を作って試合を行ってから、次の回を始めてください' };
+    return { ok: false, error: '今の大会にはまだ表がありません。表を作って試合を行ってから、次の大会を始めてください' };
   }
   if ((state.history?.length ?? 0) >= MAX_HISTORY) {
-    return { ok: false, error: `過去の回は${MAX_HISTORY}回分までです。古い回を削除してから始めてください` };
+    return { ok: false, error: `過去の大会は${MAX_HISTORY}回分までです。古い大会を削除してから始めてください` };
   }
   let players = state.players;
   let tie = null;

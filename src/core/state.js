@@ -178,10 +178,10 @@ function parseTables(list) {
 /** 過去の回。無い（古い形式のファイル）なら空。各回の中身も今の回と同じ検査を通す */
 function parseHistory(list, baseSettings) {
   if (list === undefined || list === null) return [];
-  if (!Array.isArray(list) || list.length > MAX_HISTORY) fail('過去の回の');
+  if (!Array.isArray(list) || list.length > MAX_HISTORY) fail('過去の大会の');
   const seen = new Set();
   return list.map((e) => {
-    if (!isObj(e) || !intIn(e.edition, 1, 9999) || seen.has(e.edition)) fail('過去の回の');
+    if (!isObj(e) || !intIn(e.edition, 1, 9999) || seen.has(e.edition)) fail('過去の大会の');
     seen.add(e.edition);
     const players = parsePlayers(e.players);
     return {

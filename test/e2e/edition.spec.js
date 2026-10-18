@@ -24,7 +24,7 @@ test('同じメンバーで次の回を始め、過去の回を見て、保存�
   await page.press('#meta-time', 'Tab');
 
   // 表が無いうちは始められない
-  await expect(page.locator('#editions-card')).toContainText('今は第1回');
+  await expect(page.locator('#editions-card')).toContainText('今は第1回大会');
   await expect(page.locator('#editions-card [data-edition=next]')).toBeDisabled();
 
   await playTournament(page);
@@ -34,11 +34,11 @@ test('同じメンバーで次の回を始め、過去の回を見て、保存�
 
   // 終わったら、その場から次の回を始められる。確認の文言に引き継ぐ内容が出る
   await page.click('.progress [data-edition=next]');
-  expect(dialogs.some((m) => m.includes('第1回の表と結果を「過去の回」に残して、第2回を始めます'))).toBe(true);
+  expect(dialogs.some((m) => m.includes('第1回大会の表と結果を「過去の大会」に残して、第2回大会を始めます'))).toBe(true);
 
   // 参加者・卓・設定はそのまま、表と結果は新しくなる。開催日は入れ直し
   await expect(page.locator('#panel-setup')).toBeVisible();
-  await expect(page.locator('#editions-card')).toContainText('今は第2回');
+  await expect(page.locator('#editions-card')).toContainText('今は第2回大会');
   await expect(page.locator('#player-count')).toHaveText('4人');
   await expect(page.locator('input.name').first()).toHaveValue('山田 太郎');
   await expect(page.locator('#meta-date')).toHaveValue('');
@@ -48,14 +48,14 @@ test('同じメンバーで次の回を始め、過去の回を見て、保存�
   // 過去の回の一覧: 優勝者が出る
   await page.click('.tabs [data-tab=setup]');
   await expect(page.locator('table.editions tbody tr')).toHaveCount(1);
-  await expect(page.locator('table.editions')).toContainText('第1回');
+  await expect(page.locator('table.editions')).toContainText('第1回大会');
   await expect(page.locator('table.editions')).toContainText('2099/04/01 13:30');
   await expect(page.locator('table.editions')).toContainText(`トーナメント 優勝 ${champ}`);
 
   // 過去の回を見る: 閲覧専用で、結果が見え、出力のファイル名に回が入る
   await page.click('[data-edition-view="1"]');
   await expect(page.locator('#edition-banner')).toBeVisible();
-  await expect(page.locator('#edition-banner')).toContainText('第1回の記録を見ています');
+  await expect(page.locator('#edition-banner')).toContainText('第1回大会の記録を見ています');
   await expect(page.locator('#bracket-wrap svg')).toBeVisible();
   await expect(page.locator('.results tbody tr.st-done')).toHaveCount(3);
   await expect(page.locator('[data-tab=setup]')).toBeHidden();
@@ -74,7 +74,7 @@ test('同じメンバーで次の回を始め、過去の回を見て、保存�
   await page.selectOption('#eb-select', 'current');
   await expect(page.locator('#edition-banner')).toBeHidden();
   await expect(page.locator('[data-tab=setup]')).toBeVisible();
-  await expect(page.locator('#editions-card')).toContainText('今は第2回');
+  await expect(page.locator('#editions-card')).toContainText('今は第2回大会');
 
   // 第2回を進めると、出力のファイル名は「第2回」になる
   await playTournament(page);
@@ -97,12 +97,12 @@ test('同じメンバーで次の回を始め、過去の回を見て、保存�
   await page.setInputFiles('#load-file', { name: 'x.json', mimeType: 'application/json', buffer: file.bytes });
   await page.click('.tabs [data-tab=setup]');
   await expect(page.locator('table.editions tbody tr')).toHaveCount(1);
-  await expect(page.locator('#editions-card')).toContainText('今は第2回');
+  await expect(page.locator('#editions-card')).toContainText('今は第2回大会');
 
   // 過去の回の削除。回が無くなれば、大会名に「第N回」は付かない
   await page.click('[data-edition-del="1"]');
   await expect(page.locator('table.editions')).toHaveCount(0);
-  await expect(page.locator('#editions-card')).toContainText('今は第1回');
+  await expect(page.locator('#editions-card')).toContainText('今は第1回大会');
   await expect(page.locator('#print-title')).toHaveText('春の大会');
 });
 
@@ -119,7 +119,7 @@ test('総当たりが終わったときも次の回を始められる。途中�
   await page.click('.tabs [data-tab=setup]');
   await page.click('#editions-card [data-edition=next]');
   expect(dialogs.some((m) => m.includes('総当たりにあと2試合'))).toBe(true);
-  await expect(page.locator('#editions-card')).toContainText('今は第2回');
+  await expect(page.locator('#editions-card')).toContainText('今は第2回大会');
   await expect(page.locator('table.editions')).toContainText('総当たり 途中（1/3試合）');
 
   // 第2回を最後まで進めると、その場に「第3回を始める」が出る
@@ -129,7 +129,7 @@ test('総当たりが終わったときも次の回を始められる。途中�
     await page.locator('.next-item').first().click();
     await enterScore(page, 1, 0);
   }
-  await expect(page.locator('.progress [data-edition=next]')).toContainText('第3回を始める');
+  await expect(page.locator('.progress [data-edition=next]')).toContainText('第3回大会を始める');
 });
 
 test('画面の見出し（印刷・タブ名）に回が付き、過去の回から戻ると現在の回に戻る', async ({ page }) => {

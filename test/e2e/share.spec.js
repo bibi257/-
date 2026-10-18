@@ -240,7 +240,7 @@ test('共有中に次の回を始めると、閲覧者の画面も新しい回�
   // 運営が次の回を始める（確認に「閲覧者の画面も変わる」と出る）
   await a.click('.tabs [data-tab=setup]');
   await a.click('#editions-card [data-edition=next]');
-  expect(dialogs.some((m) => m.includes('閲覧者の画面も新しい回の内容に変わります'))).toBe(true);
+  expect(dialogs.some((m) => m.includes('閲覧者の画面も新しい大会（第2回大会）の内容に変わります'))).toBe(true);
   await untilSynced(v, () => expect(v.locator('#print-title')).toHaveText('部内大会 第2回', { timeout: 1000 }));
   await expect(v.locator('#panel-tournament')).toContainText('まだ作成されていません');
   // 閲覧者には「次の回を始める」・過去の回の一覧（運営用のカード）は出ない
@@ -286,12 +286,12 @@ test('閲覧者も過去の回の結果を見られる。見ている間に運�
   await v.goto(link);
   await untilSynced(v, () => expect(v.locator('#print-title')).toHaveText('部内大会 第2回', { timeout: 1000 })); // 運営の送信を待つ
   await expect(v.locator('.results tbody tr.st-done')).toHaveCount(0);
-  await expect(v.locator('#edition-banner')).toContainText('過去の回の結果も見られます');
-  await expect(v.locator('#eb-select-past option')).toHaveText(['選んでください', '第1回']);
+  await expect(v.locator('#edition-banner')).toContainText('過去の大会の結果も見られます');
+  await expect(v.locator('#eb-select-past option')).toHaveText(['選んでください', '第1回大会']);
 
   // 第1回を選ぶと、結果が見える。閲覧専用で、コメントタブや共有は隠れる
   await v.selectOption('#eb-select-past', '1');
-  await expect(v.locator('#edition-banner')).toContainText('第1回の記録を見ています');
+  await expect(v.locator('#edition-banner')).toContainText('第1回大会の記録を見ています');
   await expect(v.locator('#print-title')).toHaveText('部内大会 第1回');
   await expect(v.locator('.results tbody tr.st-done')).toHaveCount(3);
   await expect(v.locator('#tab-comments')).toBeHidden();
@@ -317,7 +317,7 @@ test('閲覧者も過去の回の結果を見られる。見ている間に運�
 
   // 見ている回を運営が削除すると、閲覧者の画面は現在の回に戻り、選択肢も消える
   await v.selectOption('#eb-select-past', '1');
-  await expect(v.locator('#edition-banner')).toContainText('第1回の記録を見ています');
+  await expect(v.locator('#edition-banner')).toContainText('第1回大会の記録を見ています');
   await a.click('.tabs [data-tab=setup]');
   await a.click('[data-edition-del="1"]');
   await untilSynced(v, () => expect(v.locator('#edition-banner')).toBeHidden({ timeout: 1000 }));
