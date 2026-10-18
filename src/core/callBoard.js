@@ -9,7 +9,7 @@ import { playerName, tableName } from './state.js';
  * @param {object} st 大会データ
  * @param {'tournament'|'league'} kind
  * @returns {{kind:'none'|'tournament'|'league', title:string, done:number, total:number, finished:boolean,
- *   champion:string, runnerUp:string, thirds:string[], rest:string[], items:{id:string,no:number,label:string,table:string,timeSlot:number,p1:string,p2:string}[]}}
+ *   champion:string, runnerUp:string, thirds:string[], rest:string[], items:{id:string,no:number,label:string,table:string,timeSlot:number,p1:string,p2:string,startedAt:string|null}[]}}
  */
 export function callBoard(st, kind) {
   const base = { title: eventTitle(st), done: 0, total: 0, finished: false, champion: '', runnerUp: '', thirds: [], rest: [], items: [] };
@@ -21,6 +21,7 @@ export function callBoard(st, kind) {
     timeSlot: m.timeSlot || 1,
     p1: playerName(st, m.p1),
     p2: playerName(st, m.p2),
+    startedAt: m.startedAt ?? null, // 進行中の試合は開始時刻（呼び出し画面で「進行中」と「次」を分ける）
   });
 
   if (kind === 'tournament' && st.tournament) {

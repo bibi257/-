@@ -91,8 +91,9 @@ export function editionState(state, edition) {
     players: e.players,
     tables: e.tables,
     settings: e.settings,
-    tournament: e.tournament,
-    league: e.league,
+    // 過去の回は、終わっていない試合があっても「進行中」を出さない（経過時間が増え続けるため）
+    tournament: e.tournament ? { ...e.tournament, started: {} } : null,
+    league: e.league ? { ...e.league, started: {} } : null,
     viewEdition: edition,
   };
 }

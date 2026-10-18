@@ -14,6 +14,7 @@ import { setupEditions } from './editions.js';
 import { setupMenu } from './menu.js';
 import { setupExportMenus } from './exportMenu.js';
 import { renderMyPanel, setupMyMatch } from './myMatch.js';
+import { updateElapsed, setupElapsedTimer } from './startMatch.js';
 import { eventTitle } from '../core/edition.js';
 import { S, initShare, isSharing, isViewer, isAdmin, onShareChange, openShareDialog, setupShareDialog } from './share.js';
 
@@ -27,6 +28,7 @@ function render() {
   TABS[activeTab]();
   refreshCallScreen();
   renderMyPanel();
+  updateElapsed();
 }
 
 function showTab(name) {
@@ -132,6 +134,7 @@ function init() {
   setupCommentsView();
   setupEditions();
   setupMyMatch();
+  setupElapsedTimer();
   setupShareDialog();
   onChange(render);
   onShareChange(updateShareUi);

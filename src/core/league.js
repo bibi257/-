@@ -1,6 +1,7 @@
 // 総当たり（リーグ戦）の生成・結果・順位
 
 import { normalizeResultInput, assignTable } from './result.js';
+import { isStartTime, applyStarted } from './started.js';
 
 export const MIN_LEAGUE_PLAYERS = 2;
 export const MAX_LEAGUE_PLAYERS = 40;
@@ -27,7 +28,7 @@ export function generateLeague(playerIds) {
     }
     arr = [arr[0], arr[m - 1], ...arr.slice(1, m - 1)];
   }
-  return { playerIds: [...playerIds], matches, results: {}, tableOverrides: {} };
+  return { playerIds: [...playerIds], matches, results: {}, tableOverrides: {}, started: {} };
 }
 
 export function leagueRoundCount(league) {
@@ -43,8 +44,10 @@ export function resolveLeague(league, tables = []) {
     perRound.set(m.round, seq + 1);
     const r = league.results[m.id];
     const result = r && ['p1', 'p2', 'draw'].includes(r.outcome) ? r : null;
-    return { ...m, no: ++no, result, status: result ? 'done' : 'ready',
+    const resolved = { ...m, no: ++no, result, status: result ? 'done' : 'ready',
       ...assignTable(seq, tables, league.tableOverrides?.[m.id]) };
+    applyStarted(resolved, league.started, false);
+    return resolved;
   });
   const rounds = leagueRoundCount(league);
   const rest = [];
@@ -66,7 +69,29 @@ export function setLeagueResult(league, id, input, { allowDraw = true } = {}) {
     if (!v.ok) return v;
     results[id] = v.value;
   }
-  return { ok: true, league: { ...league, results } };
+  // 結果が入った試合の開始（進行中）は終わる
+  const started = { ...(league.started || {}) };
+  if (input !== null) delete started[id];
+  return { ok: true, league: { ...league, results, started } };
+}
+
+/**
+ * 試合を開始する（進行中にする）。at が null なら開始を取り消す。結果が入っていない試合だけ開始できる。
+ * @returns {{ok:true, league} | {ok:false, error:string}}
+ */
+export function setLeagueStarted(league, id, at) {
+  const m = league.matches.find((x) => x.id === id);
+  if (!m) return { ok: false, error: '試合が見つかりません' };
+  const started = { ...(league.started || {}) };
+  if (at === null) {
+    delete started[id];
+  } else {
+    if (!isStartTime(at)) return { ok: false, error: '開始時刻が正しくありません' };
+    if (league.results[id]) return { ok: false, error: '結果が入力済みの試合は開始できません' };
+    if (started[id]) return { ok: true, league }; // すでに開始している（開始時刻は変えない）
+    started[id] = { at };
+  }
+  return { ok: true, league: { ...league, started } };
 }
 
 export function setLeagueTable(league, id, tableId) {

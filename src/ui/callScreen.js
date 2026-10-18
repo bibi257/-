@@ -3,6 +3,7 @@
 import { getState } from './store.js';
 import { h } from './io.js';
 import { callBoard } from '../core/callBoard.js';
+import { elapsedMinutes } from '../core/started.js';
 
 const $ = (id) => document.getElementById(id);
 let kind = null;
@@ -13,8 +14,9 @@ function sizeClass(count) {
 
 function cardHtml(it) {
   const slot = it.timeSlot > 1 ? `<small>時間帯${it.timeSlot}</small>` : '';
-  return `<li class="cs-card">
-    <div class="cs-card-top"><span class="cs-label">${h(it.label)}</span><span class="cs-no">No.${it.no}</span></div>
+  const run = it.startedAt ? `<span class="cs-run"><span class="badge badge-running">進行中</span> <span class="ni-elapsed" data-started="${h(it.startedAt)}">${elapsedMinutes(it.startedAt)}分</span></span>` : '';
+  return `<li class="cs-card${it.startedAt ? ' running' : ''}">
+    <div class="cs-card-top"><span class="cs-label">${h(it.label)}</span><span class="cs-no">${run}No.${it.no}</span></div>
     ${it.table || slot ? `<div class="cs-table">${h(it.table)}${slot}</div>` : ''}
     <div class="cs-players"><span>${h(it.p1)}</span><i>vs</i><span>${h(it.p2)}</span></div>
   </li>`;
@@ -36,8 +38,11 @@ export function renderCallScreen() {
   } else if (!b.items.length) {
     body.innerHTML = '<p class="cs-message">次に行う試合はありません</p>';
   } else {
-    body.innerHTML = `<p class="cs-next">次に行う試合${b.kind === 'league' && b.items[0] ? `（${h(b.items[0].label)}）` : ''}</p>` +
-      `<ul class="cs-list">${b.items.map(cardHtml).join('')}</ul>` +
+    // 進行中の試合と、これから行う試合（次）を分けて出す
+    const running = b.items.filter((it) => it.startedAt);
+    const next = b.items.filter((it) => !it.startedAt);
+    body.innerHTML = (running.length ? `<p class="cs-next cs-running-title">進行中</p><ul class="cs-list cs-running">${running.map(cardHtml).join('')}</ul>` : '') +
+      (next.length ? `<p class="cs-next">次に行う試合${b.kind === 'league' && next[0] ? `（${h(next[0].label)}）` : ''}</p><ul class="cs-list">${next.map(cardHtml).join('')}</ul>` : '') +
       (b.rest.length ? `<p class="cs-rest">休み：${h(b.rest.join('、'))}</p>` : '');
   }
 }
