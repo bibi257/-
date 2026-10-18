@@ -95,6 +95,19 @@
     <div class="cs-body" id="cs-body" aria-live="polite"></div>
   </dialog>
 
+  <dialog id="choice-dialog" aria-labelledby="ch-title">
+    <form method="dialog" id="choice-form">
+      <h2 id="ch-title"></h2>
+      <p id="ch-body" class="hint"></p>
+      <div class="rd-options" id="ch-options"></div>
+      <div class="dialog-buttons">
+        <span class="spacer"></span>
+        <button type="button" id="ch-cancel">キャンセル</button>
+        <button type="submit" class="primary" id="ch-ok">決定</button>
+      </div>
+    </form>
+  </dialog>
+
   <dialog id="import-dialog" aria-labelledby="im-title">
     <form method="dialog" id="import-form">
       <h2 id="im-title">参加者の一括入力・CSV取込</h2>

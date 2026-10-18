@@ -16,6 +16,7 @@ import { roundViewHtml, THIRD_KEY } from './roundView.js';
 import {
   resolveBracket, setTournamentResult, setTournamentTable, roundName, tournamentProgress, missingPlayers,
 } from '../core/bracket.js';
+import { settleWalkovers } from '../core/attendance.js';
 import { bracketTable, tournamentResultRows, tournamentResultsTable } from '../core/exportData.js';
 import { bracketSvg, tableSvg } from '../render/svg.js';
 import { playerName, tableName } from '../core/state.js';
@@ -156,8 +157,11 @@ function openMatch(id, { reveal = false } = {}) {
         }
         next = out.tournament;
       }
+      // 欠席で不戦にすると決めた選手の試合が、この結果で新しく決まったときは、続けて不戦にする
+      const settled = !tableOnly && input ? settleWalkovers(next) : { tournament: next, count: 0 };
+      next = settled.tournament;
       setState({ ...getState(), tournament: next });
-      toast(tableOnly ? '卓を変更しました' : input ? '結果を保存しました' : '結果を取り消しました');
+      toast(tableOnly ? '卓を変更しました' : input ? `結果を保存しました${settled.count ? `（欠席の人の試合${settled.count}件を不戦にしました）` : ''}` : '結果を取り消しました');
       revealMatch(id, m.isThirdPlace ? THIRD_KEY : m.round); // 保存したあとも、その試合の位置を見せる
       return null;
     },

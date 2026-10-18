@@ -9,6 +9,11 @@ import { decodeText, namesFromCSV } from '../core/csv.js';
 import { editionsCardHtml, keepEditionsFold } from './editions.js';
 import { localToday, validateSchedule } from '../core/schedule.js';
 import { planSeeds, effectiveSeedCount, seedOrderNumbers } from '../core/seeds.js';
+import {
+  attendanceCount, isAbsent, presentPlayers, setAbsent, allPresent, absenceImpact,
+  applyTournamentWalkovers, applyLeagueWalkovers, applyWalkovers, stopWalkover,
+} from '../core/attendance.js';
+import { askChoice } from './choiceDialog.js';
 
 const panel = () => document.getElementById('panel-setup');
 
@@ -26,6 +31,7 @@ export function renderSetup() {
   const picked = new Set(s.seedIds);
   const seedNo = seedOrderNumbers(st.players, s);
   const seedN = effectiveSeedCount(s, st.players);
+  const att = attendanceCount(st.players);
   panel().innerHTML = `
   ${stepsHtml(setupProgress(st))}
   <div class="grid-2">
@@ -51,14 +57,20 @@ export function renderSetup() {
         <p class="hint">${pick
           ? 'シードにしたい選手に、名前の左のチェックを付けてください。シードの順位は名簿の上から順です（↑↓で並べ替え）。'
           : 'シードの決め方は、右の「トーナメント」で選べます（ランダム／名簿でチェックして指名）。'}名前は作成後も変更でき、表に反映されます。</p>
+        ${n ? `<div class="attendance-bar">
+          <span class="attend-count${att.absent ? ' has-absent' : ''}" id="attend-count">出席 ${att.present} / ${att.total}人</span>
+          <button type="button" data-act="all-present" ${att.absent ? '' : 'disabled'}>全員出席にする</button>
+          <span class="muted">当日来ない人は、名前の左の「出席」のチェックを外してください。</span>
+        </div>` : ''}
         <ul class="errors" id="player-errors" hidden></ul>
         <div class="table-wrap">
           <table class="data players">
-            <thead><tr><th class="num">No</th>${pick ? '<th class="seed-col">シード</th>' : ''}<th>名前</th><th>並べ替え・削除</th></tr></thead>
+            <thead><tr><th class="num">No</th><th class="attend-col">出席</th>${pick ? '<th class="seed-col">シード</th>' : ''}<th>名前</th><th>並べ替え・削除</th></tr></thead>
             <tbody>
               ${st.players.map((p, i) => `
-              <tr data-id="${h(p.id)}">
+              <tr data-id="${h(p.id)}"${isAbsent(p) ? ' class="absent"' : ''}>
                 <td class="idx">${i + 1}</td>
+                <td class="attend-cell"><label class="attend-pick"><input type="checkbox" class="attend-box" data-id="${h(p.id)}" ${isAbsent(p) ? '' : 'checked'} aria-label="${h(p.name || `${i + 1}番目`)}は出席"></label></td>
                 ${pick ? `<td class="seed-cell"><label class="seed-pick"><input type="checkbox" class="seed-pick-box" data-id="${h(p.id)}" ${picked.has(p.id) ? 'checked' : ''} aria-label="${h(p.name || `${i + 1}番目`)}をシードにする">${seedNo.has(p.id) ? `<span class="seed-badge">第${seedNo.get(p.id)}シード</span>` : ''}</label></td>` : ''}
                 <td><input type="text" class="name" data-id="${h(p.id)}" value="${h(p.name)}" maxlength="40" aria-label="${i + 1}番目の名前"></td>
                 <td class="ops">
@@ -66,7 +78,7 @@ export function renderSetup() {
                   <button type="button" class="icon" data-act="down" data-i="${i}" ${i === n - 1 ? 'disabled' : ''} aria-label="下へ">↓</button>
                   <button type="button" class="icon danger" data-act="del" data-i="${i}" aria-label="削除">×</button>
                 </td>
-              </tr>`).join('') || `<tr><td colspan="${pick ? 4 : 3}" class="muted">まだ参加者がいません。下の欄に名前を入力して追加してください。</td></tr>`}
+              </tr>`).join('') || `<tr><td colspan="${pick ? 5 : 4}" class="muted">まだ参加者がいません。下の欄に名前を入力して追加してください。</td></tr>`}
             </tbody>
           </table>
         </div>
@@ -178,14 +190,115 @@ function usedIn(st, id) {
   return (st.tournament?.playerIds.includes(id)) || (st.league?.playerIds.includes(id));
 }
 
-function canGenerate(min, max, label) {
-  const st = getState();
+/** 名簿の名前の確認と、人数の確認。n は表に入れる人数 */
+function canGenerate(min, max, label, n = getState().players.length) {
   const { errors } = updateValidation();
   if (errors.length) { toast('参加者の名前を確認してください（空欄・重複があります）', { error: true }); return false; }
-  const n = st.players.length;
   if (n < min) { toast(`${label}には${min}人以上必要です`, { error: true }); return false; }
   if (n > max) { toast(`${label}は${max}人までです`, { error: true }); return false; }
   return true;
+}
+
+/**
+ * 欠席者がいるときの作り方を選ぶ。欠席者がいなければ聞かない（'all'）。
+ * @returns {Promise<'all'|'exclude'|'walkover'|null>} null はキャンセル
+ */
+async function chooseAbsentHandling(st, label) {
+  const { absent, present } = attendanceCount(st.players);
+  if (!absent) return 'all';
+  return askChoice({
+    title: `${label}を作成`,
+    body: `欠席の人が${absent}人います（出席 ${present}人）。`,
+    okLabel: '作成',
+    options: [
+      { value: 'exclude', label: '欠席の人を除いて作る', hint: `出席の${present}人で表を作ります。欠席の人は表に入りません。` },
+      { value: 'walkover', label: '欠席の人を入れたまま作り、その試合を不戦にする', hint: '表には全員が入ります。欠席の人が出る試合は、相手の不戦勝になります。' },
+    ],
+  });
+}
+
+async function generateTournamentFromSetup() {
+  let st = getState();
+  if (!canGenerate(MIN_PLAYERS, MAX_PLAYERS, 'トーナメント', st.players.length)) return;
+  const how = await chooseAbsentHandling(st, 'トーナメント表');
+  if (how === null) return;
+  st = getState();
+  const list = how === 'exclude' ? presentPlayers(st.players) : st.players;
+  if (how !== 'all' && attendanceCount(st.players).present < MIN_PLAYERS) { toast(`出席の人が${MIN_PLAYERS}人以上必要です`, { error: true }); return; }
+  if (!canGenerate(MIN_PLAYERS, MAX_PLAYERS, 'トーナメント', list.length)) return;
+  if (st.tournament && !confirm(hasResults(st.tournament)
+    ? 'トーナメント表を作り直すと、入力済みの結果はすべて消えます。作り直しますか？'
+    : 'トーナメント表を作り直しますか？')) return;
+  const plan = planSeeds(list, st.settings);
+  let t = generateTournament(plan.playerIds, { ...st.settings, seedCount: plan.seedCount });
+  let skipped = 0;
+  if (how === 'walkover') {
+    const r = applyTournamentWalkovers(t, new Set(st.players.filter(isAbsent).map((p) => p.id)));
+    t = r.tournament;
+    skipped = r.count;
+  }
+  setState({ ...st, tournament: t }, { render: false });
+  toast(`トーナメント表を作成しました${how === 'exclude' ? `（欠席の${attendanceCount(st.players).absent}人を除きました）` : how === 'walkover' ? `（欠席の人の試合${skipped}件を不戦にしました）` : ''}`);
+  window.dispatchEvent(new CustomEvent('app:tab', { detail: 'tournament' }));
+}
+
+async function generateLeagueFromSetup() {
+  let st = getState();
+  if (!canGenerate(2, MAX_LEAGUE_PLAYERS, '総当たり', st.players.length)) return;
+  const how = await chooseAbsentHandling(st, '総当たり表');
+  if (how === null) return;
+  st = getState();
+  const list = how === 'exclude' ? presentPlayers(st.players) : st.players;
+  if (how !== 'all' && attendanceCount(st.players).present < 2) { toast('出席の人が2人以上必要です', { error: true }); return; }
+  if (!canGenerate(2, MAX_LEAGUE_PLAYERS, '総当たり', list.length)) return;
+  if (st.league && !confirm(hasResults(st.league)
+    ? '総当たり表を作り直すと、入力済みの結果はすべて消えます。作り直しますか？'
+    : '総当たり表を作り直しますか？')) return;
+  let l = generateLeague(list.map((p) => p.id));
+  let skipped = 0;
+  if (how === 'walkover') {
+    const r = applyLeagueWalkovers(l, new Set(st.players.filter(isAbsent).map((p) => p.id)));
+    l = r.league;
+    skipped = r.count;
+  }
+  setState({ ...st, league: l }, { render: false });
+  toast(`総当たり表を作成しました${how === 'exclude' ? `（欠席の${attendanceCount(st.players).absent}人を除きました）` : how === 'walkover' ? `（欠席の人の試合${skipped}件を不戦にしました）` : ''}`);
+  window.dispatchEvent(new CustomEvent('app:tab', { detail: 'league' }));
+}
+
+/** 「出席」のチェックを変えたとき。作成済みの表に出る試合が残っていれば、不戦にするかを聞く */
+async function changeAttendance(box) {
+  const st = getState();
+  const id = box.dataset.id;
+  const player = st.players.find((p) => p.id === id);
+  if (!player) return;
+  const absent = !box.checked;
+  const render = () => update({}, { render: true });
+  if (!absent) {
+    // 出席に戻す: すでに入った不戦の結果は変えない。以後の試合を不戦にする対象から外す
+    update({ players: setAbsent(st.players, id, false), tournament: st.tournament ? stopWalkover(st.tournament, id) : st.tournament });
+    return;
+  }
+  const next = { ...st, players: setAbsent(st.players, id, true) };
+  const { now, later } = absenceImpact(next, id);
+  if (!now && !later) { setState(next); return; }
+  const name = player.name || '（空欄）';
+  const how = await askChoice({
+    title: `「${name}」を欠席にする`,
+    body: now
+      ? `作成済みの表に、この人が出る未実施の試合が${now}件あります。`
+      : 'この人は作成済みのトーナメントで、勝ち上がった先の試合に出る予定です。',
+    okLabel: '決定',
+    options: [
+      { value: 'walkover', label: '不戦にする（相手の不戦勝）', hint: '欠席の人が出る試合を、相手の不戦勝にします。トーナメントでは、あとから対戦相手が決まった試合も不戦になります。' },
+      { value: 'record', label: '欠席の記録だけ残す', hint: '表の試合はそのままです。結果は自分で入力してください。' },
+    ],
+  });
+  if (how === null) { render(); return; } // 取りやめ（チェックを元に戻す）
+  if (how === 'record') { setState(next); return; }
+  const r = applyWalkovers(next, [id]);
+  setState(r.state);
+  toast(r.count ? `「${name}」の試合${r.count}件を不戦にしました` : `「${name}」を欠席にしました（出る試合が決まったら不戦にします）`);
 }
 
 function onClick(e) {
@@ -213,24 +326,13 @@ function onClick(e) {
     update({ meta: { ...st.meta, date: '', time: '' } });
   } else if (act === 'import') {
     openImport();
+  } else if (act === 'all-present') {
+    const tournament = st.tournament && st.players.filter(isAbsent).reduce((t, p) => stopWalkover(t, p.id), st.tournament);
+    update({ players: allPresent(st.players), tournament });
   } else if (act === 'gen-tournament') {
-    if (!canGenerate(MIN_PLAYERS, MAX_PLAYERS, 'トーナメント')) return;
-    if (st.tournament && !confirm(hasResults(st.tournament)
-      ? 'トーナメント表を作り直すと、入力済みの結果はすべて消えます。作り直しますか？'
-      : 'トーナメント表を作り直しますか？')) return;
-    const plan = planSeeds(st.players, st.settings);
-    const t = generateTournament(plan.playerIds, { ...st.settings, seedCount: plan.seedCount });
-    setState({ ...st, tournament: t }, { render: false });
-    toast('トーナメント表を作成しました');
-    window.dispatchEvent(new CustomEvent('app:tab', { detail: 'tournament' }));
+    generateTournamentFromSetup();
   } else if (act === 'gen-league') {
-    if (!canGenerate(2, MAX_LEAGUE_PLAYERS, '総当たり')) return;
-    if (st.league && !confirm(hasResults(st.league)
-      ? '総当たり表を作り直すと、入力済みの結果はすべて消えます。作り直しますか？'
-      : '総当たり表を作り直しますか？')) return;
-    setState({ ...st, league: generateLeague(st.players.map((p) => p.id)) }, { render: false });
-    toast('総当たり表を作成しました');
-    window.dispatchEvent(new CustomEvent('app:tab', { detail: 'league' }));
+    generateLeagueFromSetup();
   }
 }
 
@@ -277,6 +379,8 @@ function onChangeEvt(e) {
     updateSettings({ seedMode: ['random', 'pick'].includes(el.value) ? el.value : 'none' }, { render: true });
   } else if (el.id === 'seed-count') {
     updateSettings({ seedCount: intVal(el, 0, st.players.length, 0) }, { render: true });
+  } else if (el.matches('input.attend-box')) {
+    changeAttendance(el);
   } else if (el.matches('input.seed-pick-box')) {
     const ids = new Set(st.settings.seedIds);
     if (el.checked) ids.add(el.dataset.id); else ids.delete(el.dataset.id);
