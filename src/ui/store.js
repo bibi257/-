@@ -50,11 +50,16 @@ export function setRemoteState(next) {
   listeners.forEach((f) => f());
 }
 
-/** 閲覧をやめたとき、この端末に保存してあった自分の大会データへ戻す */
+/**
+ * 閲覧をやめたとき、自分の大会データへ戻す。
+ * 自動保存から読み直す（別のタブで保存された新しい内容を、閲覧を始めたときの古い複製で上書きしないため）。
+ * 自動保存が使えないときだけ、閲覧を始める前の複製を使う。
+ */
 export function reloadLocal() {
-  state = localBackup;
+  const backup = localBackup;
   localBackup = null;
-  if (!state) initState();
+  const restored = initState();
+  if (!restored && backup) state = backup;
   listeners.forEach((f) => f());
 }
 

@@ -380,3 +380,30 @@ test('同期の応答に、共有ページが残る期限（最後の更新か�
   const vs = await api('GET', `/api/rooms/${room.code}/sync?rev=0&crev=0`, { token: v });
   assert.equal(vs.data.keepUntil, clock.t + 90 * DAY);
 });
+
+test('コメントがあれば、大会データを送らなくても共有は続く（期限はコメントから90日）', async () => {
+  const { api, clock } = setup();
+  const r = await newRoom(api);
+  const DAY = 24 * 60 * 60;
+  const t0 = clock.t;
+  clock.t += 80 * DAY;
+  const vt = await viewerToken(api, r.code);
+  assert.equal((await api('POST', `/api/rooms/${r.code}/comments`, { token: vt, body: { text: 'がんばれ' } })).status, 201);
+  clock.t += 89 * DAY; // 作成から169日。大会データの送信からは169日だが、コメントからは89日
+  const v2 = await viewerToken(api, r.code);
+  const s = await api('GET', `/api/rooms/${r.code}/sync?rev=-1&crev=-1`, { token: v2 });
+  assert.equal(s.status, 200);
+  assert.equal(s.data.keepUntil, t0 + 80 * DAY + 90 * DAY);
+  clock.t += 2 * DAY; // コメントから91日
+  assert.equal((await api('POST', `/api/rooms/${r.code}/join`)).status, 404);
+});
+
+test('コメントの対象は、読み込める試合 ID（_ を含む・64字まで）を受け付ける', async () => {
+  const { api } = setup();
+  const r = await newRoom(api);
+  const vt = await viewerToken(api, r.code);
+  const post = (matchId) => api('POST', `/api/rooms/${r.code}/comments`, { token: vt, body: { text: 'ok', matchId } });
+  assert.equal((await post('L_1')).status, 201);
+  assert.equal((await post('a'.repeat(64))).status, 201);
+  assert.equal((await post('a'.repeat(65))).status, 400);
+});
