@@ -43,6 +43,6 @@ export function resultCardHtml({ match: m, cells }, { clickable }) {
  * @param {{match:object, cells:any[]}[]} rows tournamentResultRows / leagueResultRows の戻り値
  * @param {(m:object) => boolean} isClickable 結果入力を開ける試合か
  */
-export function resultCardsHtml(rows, isClickable = () => true) {
-  return `<ul class="result-cards" aria-label="試合結果の一覧">${rows.map((r) => resultCardHtml(r, { clickable: isClickable(r.match) })).join('')}</ul>`;
+export function resultCardsHtml(rows, isClickable = () => true, label = '試合結果の一覧') {
+  return `<ul class="result-cards" aria-label="${h(label)}">${rows.map((r) => resultCardHtml(r, { clickable: isClickable(r.match) })).join('')}</ul>`;
 }

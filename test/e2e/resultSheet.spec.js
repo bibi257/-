@@ -93,7 +93,7 @@ test.describe('結果入力（スマホ幅のシート）', () => {
     await page.fill('#rd-s1', '3');
     await page.fill('#rd-s2', '1');
     await page.click('#rd-ok');
-    await page.locator('#bracket-wrap g.match').first().click();
+    await page.locator('#round-view .rc.st-done').first().click(); // スマホ幅は「回戦ごと」のカード
     await expect(page.locator('#rd-clear')).toBeVisible();
     const ok = await page.locator('#rd-ok').boundingBox();
     const clear = await page.locator('#rd-clear').boundingBox();
