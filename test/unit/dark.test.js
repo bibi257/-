@@ -106,3 +106,8 @@ test('PNG 出力と印刷の SVG（interactive でない）は、今までどお
     assert.ok(!svg.toLowerCase().includes(hex.toLowerCase()), `PNG 用の SVG にダークの色 ${hex} がある`);
   }
 });
+
+test('「自分の試合」の強調の背景（--mine-bg）は、ライトとダークの両方で定義されている', () => {
+  assert.match(css.match(/:root\s*\{([\s\S]*?)\n\}/)[1], /--mine-bg:\s*#[0-9a-f]{6}/i);
+  assert.match(dark, /--mine-bg:\s*#[0-9a-f]{6}/i);
+});
