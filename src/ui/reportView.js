@@ -140,8 +140,11 @@ export function setupReportView() {
   el.addEventListener('input', (e) => {
     // スコアを入れたら、大きい方を勝者として選ぶ（結果の入力ダイアログと同じ）
     if (e.target.id !== 'rf-s1' && e.target.id !== 'rf-s2') return;
-    const a = $('rf-s1').value.trim();
-    const b = $('rf-s2').value.trim();
+    const s1 = $('rf-s1');
+    const s2 = $('rf-s2');
+    if (!s1 || !s2) return;
+    const a = s1.value.trim();
+    const b = s2.value.trim();
     if (!/^\d+$/.test(a) || !/^\d+$/.test(b) || Number(a) === Number(b)) return;
     const pick = document.querySelector(`#report-form input[name="rf-outcome"][value="${Number(a) > Number(b) ? 'p1' : 'p2'}"]`);
     if (pick) pick.checked = true;
@@ -150,8 +153,13 @@ export function setupReportView() {
     const approve = e.target.closest('[data-approve]')?.dataset.approve;
     const reject = e.target.closest('[data-reject]')?.dataset.reject;
     if (approve) {
-      e.target.closest('button').disabled = true;
-      await onApprove(approve);
+      const btn = e.target.closest('button');
+      btn.disabled = true;
+      try {
+        await onApprove(approve);
+      } finally {
+        btn.disabled = false; // 失敗したときに、再読み込みしなくても押し直せるようにする（成功すると一覧ごと作り直される）
+      }
     } else if (reject) {
       if (!confirm('この報告を却下（削除）しますか？表は変わりません。')) return;
       try {
