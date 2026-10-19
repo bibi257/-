@@ -351,6 +351,15 @@ table.data tr.flash td:last-child { box-shadow: inset -2px 2px 0 var(--primary),
 .empty-state { text-align: center; padding: 44px 16px; color: var(--muted); border-style: dashed; background: transparent; }
 .empty-state p { margin: 0 0 4px; }
 .empty-state button { margin-top: 12px; }
+.roster-empty { margin: 0 0 12px; padding: 24px 12px; border: 1px dashed var(--rule-strong); border-radius: 10px; }
+.roster-empty p { color: var(--ink); font-weight: bold; }
+.empty-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.empty-actions button { margin-top: 12px; }
+.empty-actions button:not(.primary) { color: var(--text); } /* 親（.empty-state）の薄い文字色を引き継がない */
+@media (max-width: 700px) {
+  .empty-actions { flex-direction: column; align-items: stretch; }
+  .empty-actions button { width: 100%; }
+}
 
 /* ===== ダイアログ・通知 ===== */
 dialog { border: none; border-radius: 14px; padding: 0; width: min(580px, calc(100vw - 24px)); box-shadow: 0 16px 48px rgba(10, 20, 40, .35); color: var(--text); }

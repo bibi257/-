@@ -16,6 +16,7 @@ import {
 import { playerName } from '../core/state.js';
 import { askChoice } from './choiceDialog.js';
 import { openPairing } from './pairingDialog.js';
+import { sampleState } from '../core/sample.js';
 
 const panel = () => document.getElementById('panel-setup');
 
@@ -65,7 +66,15 @@ export function renderSetup() {
           <span class="muted">当日来ない人は、名前の左の「出席」のチェックを外してください。</span>
         </div>` : ''}
         <ul class="errors" id="player-errors" hidden></ul>
-        <div class="table-wrap">
+        ${n ? '' : `<div class="empty-state roster-empty" id="roster-empty">
+          <p>まず参加者を入力しましょう。</p>
+          <div class="empty-actions">
+            <button type="button" class="primary" data-act="focus-add">名前を入力して追加</button>
+            <button type="button" data-act="import">一括入力・CSV取込</button>
+            <button type="button" data-act="sample" title="架空の8人と卓2つを入れて、トーナメント表を作ります">サンプルで試す</button>
+          </div>
+        </div>`}
+        ${n ? `<div class="table-wrap">
           <table class="data players">
             <thead><tr><th class="num">No</th><th class="attend-col">出席</th>${pick ? '<th class="seed-col">シード</th>' : ''}<th>名前</th><th>並べ替え・削除</th></tr></thead>
             <tbody>
@@ -80,10 +89,10 @@ export function renderSetup() {
                   <button type="button" class="icon" data-act="down" data-i="${i}" ${i === n - 1 ? 'disabled' : ''} aria-label="下へ">↓</button>
                   <button type="button" class="icon danger" data-act="del" data-i="${i}" aria-label="削除">×</button>
                 </td>
-              </tr>`).join('') || `<tr><td colspan="${pick ? 5 : 4}" class="muted">まだ参加者がいません。下の欄に名前を入力して追加してください。</td></tr>`}
+              </tr>`).join('')}
             </tbody>
           </table>
-        </div>
+        </div>` : ''}
         <form class="add-row" id="add-player-form">
           <input type="text" id="new-player" placeholder="名前を入力して Enter で追加" maxlength="40" aria-label="追加する参加者名">
           <button type="submit">追加</button>
@@ -339,6 +348,14 @@ function onClick(e) {
     update({ meta: { ...st.meta, date: '', time: '' } });
   } else if (act === 'import') {
     openImport();
+  } else if (act === 'focus-add') {
+    document.getElementById('new-player')?.focus();
+  } else if (act === 'sample') {
+    const r = sampleState(st);
+    if (!r.ok) { toast(r.error, { error: true }); return; }
+    setState(r.state);
+    toast('サンプルを入れました（「元に戻す」で消せます）');
+    window.dispatchEvent(new CustomEvent('app:tab', { detail: 'tournament' }));
   } else if (act === 'all-present') {
     const tournament = st.tournament && st.players.filter(isAbsent).reduce((t, p) => stopWalkover(t, p.id), st.tournament);
     update({ players: allPresent(st.players), tournament });
