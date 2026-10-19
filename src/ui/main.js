@@ -1,6 +1,6 @@
 // エントリポイント: タブ切替・ヘッダー操作・保存/読込
 
-import { getState, setState, onChange, onSaveStatus, initState, isReadOnly } from './store.js';
+import { getState, setState, onChange, onSaveStatus, initState, isReadOnly, undo, canUndo, onUndoChange } from './store.js';
 import { toast, downloadBlob, safeFileName } from './io.js';
 import { createState, parseState, serializeState } from '../core/state.js';
 import { renderSetup, setupSetupView } from './setupView.js';
@@ -63,6 +63,28 @@ function updateShareUi() {
   else if (activeTab === 'comments') renderComments();
 }
 
+/** 「元に戻す」を実行する（ヘッダーのボタン・Ctrl+Z 共通） */
+function doUndo() {
+  if (!undo()) return;
+  toast('元に戻しました');
+}
+
+function syncUndoButton() {
+  const btn = document.getElementById('undo-btn');
+  if (btn) btn.disabled = !canUndo();
+}
+
+/** Ctrl+Z（Mac は ⌘+Z）。入力欄・ダイアログが開いているときは、そちらの操作を優先する */
+function onUndoKey(e) {
+  if (e.key.toLowerCase() !== 'z' || !(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey) return;
+  const t = e.target;
+  if (t instanceof Element && t.closest('input, textarea, select, [contenteditable="true"]')) return; // 入力中の文字の取り消しを優先
+  if (document.querySelector('dialog[open]')) return;
+  if (!canUndo()) return;
+  e.preventDefault();
+  doUndo();
+}
+
 function hasData(st) {
   return st.players.length > 0 || st.tournament || st.league;
 }
@@ -99,7 +121,11 @@ function setupHeader() {
     } else if (act === 'save') saveFile();
     else if (act === 'load') fileInput.click();
     else if (act === 'print') window.print();
+    else if (act === 'undo') doUndo();
   });
+  document.addEventListener('keydown', onUndoKey);
+  onUndoChange(syncUndoButton);
+  syncUndoButton();
   fileInput.addEventListener('change', async () => {
     const f = fileInput.files[0];
     fileInput.value = '';
