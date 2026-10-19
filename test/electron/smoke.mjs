@@ -28,6 +28,7 @@ try {
   await win.fill('#im-text', '山田\n佐藤\n鈴木\n高橋\n田中');
   await win.click('#import-form button[type=submit]');
   await win.click('[data-act=gen-tournament]');
+  await win.click('#pr-ok'); // 組み合わせの確認（F4）をそのまま確定する
   await win.locator('#panel-tournament .next-item').first().click();
   await win.fill('#rd-s1', '2');
   await win.fill('#rd-s2', '0');
