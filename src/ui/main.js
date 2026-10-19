@@ -56,7 +56,8 @@ function updateShareUi() {
     const label = S.status === 'auth' ? '再ログインが必要' : S.status === 'error' ? '通信エラー' : S.status === 'sending' ? '送信中…' : isViewer() ? '閲覧中' : '共有中';
     chip.textContent = `${label} ${S.cfg.code}`;
     chip.title = S.status === 'error' || S.status === 'auth' ? S.message : '共有の設定を開く';
-    document.getElementById('tab-comments').textContent = `コメント${S.comments.length ? ` (${S.comments.length})` : ''}`;
+    const pending = isAdmin() ? S.reports.length : 0; // 運営には、承認待ちの結果の報告の数も知らせる
+    document.getElementById('tab-comments').textContent = `コメント${S.comments.length ? ` (${S.comments.length})` : ''}${pending ? ` 報告${pending}` : ''}`;
   }
   renderMyPanel(); // 閲覧者かどうかで、最初から使えるか（運営はオフ）が変わる
   if (!sharing && activeTab === 'comments') showTab('setup');

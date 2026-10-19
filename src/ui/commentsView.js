@@ -5,12 +5,14 @@ import { h, toast } from './io.js';
 import {
   S, isAdmin, isSharing, postComment, deleteComment, getCommentName, setCommentName,
 } from './share.js';
+import { renderReports, setupReportView } from './reportView.js';
 import { commentTargets, targetLabel, formatCommentTime, COMMENT_MAX, NAME_MAX } from '../core/share.js';
 
 const panel = () => document.getElementById('panel-comments');
 
 function formHtml() {
-  return `<div class="card">
+  return `<div id="report-area"></div>
+  <div class="card">
     <h2>コメント</h2>
     <form id="comment-form" class="comment-form" novalidate>
       <div class="cf-row">
@@ -64,12 +66,14 @@ export function renderComments() {
     p.innerHTML = formHtml();
     p.dataset.built = '1';
   }
+  renderReports();
   updateTargets();
   updateList();
 }
 
 export function setupCommentsView() {
   const p = panel();
+  setupReportView();
   p.addEventListener('input', (e) => {
     if (e.target.id === 'cf-text') document.getElementById('cf-count').textContent = `${e.target.value.length} / ${COMMENT_MAX}`;
   });
