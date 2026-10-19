@@ -1,6 +1,7 @@
 // 大会データの保持と自動保存（localStorage）
 
 import { createState, parseState, serializeState } from '../core/state.js';
+import { createUndo, recordChange, popUndo, canUndo as historyCanUndo } from '../core/undo.js';
 
 const KEY = 'bukatsu-taikai:state';
 let state = null;
@@ -9,6 +10,8 @@ let statusCb = () => {};
 let readOnly = false;
 let localBackup = null; // 閲覧を始める前の自分の大会データ（自動保存が使えない環境でも閲覧後に戻すため）
 const savedListeners = new Set();
+let undoHistory = createUndo(); // 「元に戻す」の履歴（再読み込みで消える）
+const undoListeners = new Set();
 
 export function getState() {
   return state;
@@ -17,13 +20,53 @@ export function getState() {
 /**
  * 状態を置き換える。
  * @param {object} next
- * @param {{render?:boolean}} opts render:false なら画面を再描画しない（入力中のフォーカスを保つため）
+ * @param {{render?:boolean, merge?:boolean}} opts
+ *   render:false なら画面を再描画しない（入力中のフォーカスを保つため）。
+ *   merge:true は入力欄の連続した入力で、「元に戻す」では1回の操作にまとめる。
  */
-export function setState(next, { render = true } = {}) {
+export function setState(next, { render = true, merge = false } = {}) {
   if (readOnly) return; // 閲覧専用（共有を見ている間）は、操作で内容を変えない
+  const prev = state;
   state = { ...next, meta: { ...next.meta, updatedAt: new Date().toISOString() } };
+  setHistory(recordChange(undoHistory, prev, state, { merge }));
   persist();
   if (render) listeners.forEach((f) => f());
+}
+
+function setHistory(next) {
+  if (next === undoHistory) return;
+  const could = historyCanUndo(undoHistory);
+  undoHistory = next;
+  if (could !== historyCanUndo(undoHistory)) undoListeners.forEach((f) => f());
+}
+
+/** 元に戻せる操作があるか（閲覧専用のときは戻せない） */
+export function canUndo() {
+  return !readOnly && historyCanUndo(undoHistory);
+}
+
+/** 戻せるかどうかが変わったときに呼ばれる（ヘッダーのボタンの状態用） */
+export function onUndoChange(f) {
+  undoListeners.add(f);
+}
+
+/**
+ * 直前の操作を1つ戻す。戻した内容は、今の保存・共有の送信と同じ仕組みで保存・送信する。
+ * @returns {boolean} 戻したか
+ */
+export function undo() {
+  if (readOnly) return false;
+  const r = popUndo(undoHistory);
+  if (!r) return false;
+  state = { ...r.state, meta: { ...r.state.meta, updatedAt: new Date().toISOString() } };
+  setHistory(r.history);
+  persist();
+  listeners.forEach((f) => f());
+  return true;
+}
+
+function clearUndo() {
+  setHistory(createUndo());
 }
 
 export function onChange(f) {
@@ -42,6 +85,7 @@ export function isReadOnly() {
 export function setReadOnly(flag) {
   if (flag && !readOnly) localBackup = state;
   readOnly = flag;
+  clearUndo(); // 閲覧を始める・やめるときは、履歴を引き継がない（別の大会データになるため）
 }
 
 /** 閲覧中に受け取った大会データを表示する。この端末の自動保存は上書きしない */
@@ -60,6 +104,7 @@ export function reloadLocal() {
   localBackup = null;
   const restored = initState();
   if (!restored && backup) state = backup;
+  clearUndo();
   listeners.forEach((f) => f());
 }
 

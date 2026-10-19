@@ -454,3 +454,37 @@ test('運営が試合を開始すると、閲覧者にも「進行中」と卓�
   await admin.close();
   await viewer.close();
 });
+
+test('運営が「元に戻す」を使うと、戻した内容が共有に送られ、閲覧者にも反映される。閲覧者には「元に戻す」が見えない', async ({ browser }) => {
+  const admin = await browser.newContext();
+  const viewer = await browser.newContext();
+  await withIp(admin, '10.0.11.1');
+  await withIp(viewer, '10.0.11.2');
+  const a = await admin.newPage();
+  const v = await viewer.newPage();
+  acceptDialogs(a);
+  acceptDialogs(v);
+  await open(a);
+  await makeTournament(a);
+  await startShare(a);
+  const link = await a.inputValue('#sh-link');
+  await a.click('#sh-close');
+  await v.goto(link);
+  await expect(v.locator('#bracket-wrap svg')).toBeVisible();
+  await expect(v.locator('#undo-btn')).toBeHidden(); // 閲覧者の画面には出ない
+
+  await a.locator('.next-item').first().click();
+  await enterScore(a, 2, 1);
+  await expect(a.locator('#result-dialog')).not.toBeVisible();
+  await untilSynced(v, async () => {
+    await expect(v.locator('#panel-tournament .progress')).toContainText('1 / ', { timeout: 1000 });
+    await expect(v.locator('#panel-tournament .progress')).not.toContainText('0 / ', { timeout: 1000 });
+  });
+  await a.click('#undo-btn');
+  await expect(a.locator('#panel-tournament .progress')).toContainText('0 / ');
+  await untilSynced(v, async () => {
+    await expect(v.locator('#panel-tournament .progress')).toContainText('0 / ', { timeout: 1000 });
+  });
+  await admin.close();
+  await viewer.close();
+});

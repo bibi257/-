@@ -354,12 +354,12 @@ function onInput(e) {
   const st = getState();
   if (el.matches('input.name')) {
     const players = st.players.map((p) => (p.id === el.dataset.id ? { ...p, name: cleanName(el.value) } : p));
-    update({ players }, { render: false });
+    update({ players }, { render: false, merge: true });
     updateValidation();
   } else if (el.matches('input.table-name')) {
-    update({ tables: st.tables.map((t) => (t.id === el.dataset.id ? { ...t, name: el.value.slice(0, 20) } : t)) }, { render: false });
+    update({ tables: st.tables.map((t) => (t.id === el.dataset.id ? { ...t, name: el.value.slice(0, 20) } : t)) }, { render: false, merge: true });
   } else if (el.id === 'meta-title') {
-    update({ meta: { ...st.meta, title: el.value } }, { render: false });
+    update({ meta: { ...st.meta, title: el.value } }, { render: false, merge: true });
     document.getElementById('print-title').textContent = el.value;
   }
 }
