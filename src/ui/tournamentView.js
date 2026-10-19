@@ -189,11 +189,9 @@ async function onExport(kind) {
 
 export function setupTournamentView() {
   const p = panel();
-  setupBracketControls(p, { refreshRounds: fillRoundView });
+  setupBracketControls(p, { refreshRounds: fillRoundView, onViewChange: () => syncFold(p, FOLD_KEY, roundsActive) });
   setupStartButtons(p, 'tournament');
   setupFold(p, FOLD_KEY, roundsActive);
-  // 回戦ごと／表の切り替え（bracketView が表示を切り替えたあと）に、折りたたみも合わせる
-  p.addEventListener('click', (e) => { if (e.target.closest('[data-view-mode]')) syncFold(p, FOLD_KEY, roundsActive); });
   p.addEventListener('click', (e) => {
     const g = e.target.closest('[data-match], g.match');
     if (g) { openMatch(g.dataset.match || g.dataset.id, { reveal: !!g.closest('.next-item') }); return; }
