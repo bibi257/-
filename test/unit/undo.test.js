@@ -34,6 +34,16 @@ test('履歴: 内容が変わらない置き換え（保存時刻だけ違う）
   assert.equal(sameContent(st(2), st(3)), false);
 });
 
+test('履歴: 大会データが無い・保存時刻の欄が無い値でも、例外にならずに比べる', () => {
+  assert.equal(sameContent(null, st(1)), false);
+  assert.equal(sameContent(st(1), undefined), false);
+  assert.equal(sameContent(null, null), true);
+  assert.equal(sameContent({ players: [] }, { players: [] }), true);
+  assert.equal(sameContent({ players: [] }, { players: [1] }), false);
+  const h = recordChange(createUndo(), st(1), null); // 置き換える先が無くても、前の値は残す
+  assert.equal(h.stack.length, 1);
+});
+
 test('履歴: 最大20件。多すぎれば古いものから捨てる', () => {
   let h = createUndo();
   for (let i = 0; i < MAX_UNDO + 5; i++) h = recordChange(h, st(i), st(i + 1));

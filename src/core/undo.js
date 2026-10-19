@@ -13,7 +13,8 @@ export function createUndo() {
 /** 保存の時刻（meta.updatedAt）を除いて、内容が同じか */
 export function sameContent(a, b) {
   if (a === b) return true;
-  const strip = (s) => JSON.stringify({ ...s, meta: { ...s.meta, updatedAt: '' } });
+  if (!a || !b) return false;
+  const strip = (s) => JSON.stringify({ ...s, meta: s.meta ? { ...s.meta, updatedAt: '' } : undefined });
   return strip(a) === strip(b);
 }
 
