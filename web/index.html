@@ -96,6 +96,21 @@
     <div class="cs-body" id="cs-body" aria-live="polite"></div>
   </dialog>
 
+  <dialog id="qr-dialog" aria-labelledby="qr-title">
+    <div class="qr-body">
+      <h2 id="qr-title"></h2>
+      <p class="qr-lead">スマホのカメラでこのQRコードを読み取ると、大会の表が見られます。</p>
+      <div class="qr-img" id="qr-img" role="img" aria-label="閲覧リンクのQRコード"></div>
+      <p class="qr-link" id="qr-link"></p>
+      <div class="dialog-buttons">
+        <button type="button" id="qr-full">全画面</button>
+        <button type="button" id="qr-png">画像（PNG）で保存</button>
+        <span class="spacer"></span>
+        <button type="button" class="primary" id="qr-close">閉じる</button>
+      </div>
+    </div>
+  </dialog>
+
   <dialog id="pairing-dialog" aria-labelledby="pr-title">
     <form method="dialog" id="pairing-form">
       <h2 id="pr-title">トーナメントの組み合わせ（1回戦）</h2>

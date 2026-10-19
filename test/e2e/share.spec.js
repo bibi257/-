@@ -1,5 +1,7 @@
 import { test, expect } from '@playwright/test';
-import { NAMES, open, importNames, acceptDialogs, enterScore, genTournament } from './helpers.js';
+import { NAMES, open, importNames, acceptDialogs, enterScore, genTournament, download, pngSize } from './helpers.js';
+import { encodeQr } from '../../src/core/qr.js';
+import { qrSvg } from '../../src/render/qr.js';
 
 // 共有機能: 画面と共有 API（Worker のコード）を同じオリジンで動かして確認する。本番の Cloudflare/D1 ではない
 test.use({ baseURL: 'http://localhost:4174/' });
@@ -485,6 +487,77 @@ test('運営が「元に戻す」を使うと、戻した内容が共有に送�
   await untilSynced(v, async () => {
     await expect(v.locator('#panel-tournament .progress')).toContainText('0 / ', { timeout: 1000 });
   });
+  await admin.close();
+  await viewer.close();
+});
+
+test('運営は、閲覧リンクのQRコードを大きく表示でき、PNGで保存できる。リンクが長すぎるときは開かない。閲覧者には出ない', async ({ browser }) => {
+  const admin = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const viewer = await browser.newContext();
+  await withIp(admin, '10.0.12.1');
+  await withIp(viewer, '10.0.12.2');
+  const a = await admin.newPage();
+  const v = await viewer.newPage();
+  acceptDialogs(a);
+  acceptDialogs(v);
+  await open(a);
+  await a.fill('#meta-title', 'QRのテスト大会');
+  await importNames(a, NAMES);
+  await genTournament(a);
+  await expect(a.locator('#panel-tournament .progress')).toBeVisible(); // スマホ幅では、表（SVG）でなく回戦ごとの表示
+  await a.click('#menu-btn'); // スマホ幅では、共有はメニューの中
+  await startShare(a);
+  const link = await a.inputValue('#sh-link');
+
+  await a.click('[data-sh=qr]');
+  await expect(a.locator('#qr-dialog')).toBeVisible();
+  await expect(a.locator('#qr-title')).toContainText('QRのテスト大会');
+  await expect(a.locator('#qr-link')).toHaveText(link);
+  await expect(a.locator('#qr-img svg')).toBeVisible();
+  // 画面のQRコードは、このリンクから作ったものと同じ（core の生成処理と一致する）
+  const expected = qrSvg(encodeQr(link)).svg.match(/<path d="([^"]+)"/)[1];
+  expect(await a.locator('#qr-img path').getAttribute('d')).toBe(expected);
+  // スマホ幅でも、画面内に収まり、読み取れる大きさ（一辺250px以上）で出る
+  const box = await a.locator('#qr-img svg').boundingBox();
+  expect(box.width).toBeGreaterThanOrEqual(250);
+  expect(Math.abs(box.width - box.height)).toBeLessThan(1.5);
+  expect(box.x).toBeGreaterThanOrEqual(0);
+  expect(box.x + box.width).toBeLessThanOrEqual(390);
+  expect(await a.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+
+  // 「全画面」: ページ全体が全画面になり、QRコードがさらに大きくなる。もう一度押すと戻る
+  await a.click('#qr-full');
+  await expect.poll(() => a.evaluate(() => document.fullscreenElement?.tagName ?? null)).toBe('HTML');
+  await expect(a.locator('#qr-dialog')).toBeVisible();
+  const big = await a.locator('#qr-img svg').boundingBox();
+  expect(big.width).toBeGreaterThan(box.width);
+  await a.click('#qr-full');
+  await expect.poll(() => a.evaluate(() => document.fullscreenElement?.tagName ?? null)).toBeNull();
+
+  // PNGで保存できる（正方形の画像）
+  const png = await download(a, '#qr-png');
+  expect(png.name).toContain('閲覧リンクのQRコード');
+  const size = pngSize(png.bytes);
+  expect(size).not.toBeNull();
+  expect(size.width).toBe(size.height);
+
+  // 閉じると、QRコードとリンクを画面に残さない
+  await a.click('#qr-close');
+  await expect(a.locator('#qr-dialog')).not.toBeVisible();
+  await expect(a.locator('#qr-img svg')).toHaveCount(0);
+
+  // リンクが長すぎてQRコードにできないときは、通知を出して開かない
+  await a.evaluate(() => { document.getElementById('sh-link').value = `https://example.com/#v=${'a'.repeat(300)}`; });
+  await a.click('[data-sh=qr]');
+  await expect(a.locator('#toast')).toContainText('長すぎて');
+  await expect(a.locator('#qr-dialog')).not.toBeVisible();
+
+  // 閲覧者の画面には、QRコードのボタンが出ない
+  await a.click('#sh-close');
+  await v.goto(link);
+  await expect(v.locator('#bracket-wrap svg, #panel-tournament .progress').first()).toBeVisible();
+  await v.click('[data-action=share]');
+  await expect(v.locator('[data-sh=qr]')).toHaveCount(0);
   await admin.close();
   await viewer.close();
 });

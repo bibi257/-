@@ -12,6 +12,7 @@ import { setupCallScreen, refreshCallScreen } from './callScreen.js';
 import { renderComments, setupCommentsView } from './commentsView.js';
 import { setupEditions } from './editions.js';
 import { setupMenu } from './menu.js';
+import { setupQrDialog } from './qrDialog.js';
 import { setupExportMenus } from './exportMenu.js';
 import { renderMyPanel, setupMyMatch } from './myMatch.js';
 import { updateElapsed, setupElapsedTimer } from './startMatch.js';
@@ -107,6 +108,7 @@ async function loadFile(file) {
 
 function setupHeader() {
   setupMenu();
+  setupQrDialog();
   setupExportMenus();
   const fileInput = document.getElementById('load-file');
   document.querySelector('.header-actions').addEventListener('click', (e) => {
