@@ -24,6 +24,7 @@ export const S = {
   rev: -1,
   crev: -1,
   comments: [],
+  reports: [], // 閲覧者からの結果の報告（承認待ち。運営の画面だけ受け取る）
   title: '',
   updatedAt: null, // サーバー側の最終更新（秒）
   keepUntil: null, // 共有ページが残る期限（秒。運営が最後に更新してから90日。サーバーが返す）
@@ -129,6 +130,7 @@ function useSession(base, data, role) {
   S.rev = -1;
   S.crev = -1;
   S.comments = [];
+  S.reports = [];
   S.title = '';
   S.updatedAt = null;
   S.keepUntil = null;
@@ -176,6 +178,7 @@ async function joinAdmin(args) {
   S.rev = r.rev;
   S.crev = r.crev;
   S.comments = r.comments || [];
+  S.reports = r.reports || [];
   if (r.state) {
     const parsed = parseState(r.state);
     if (parsed.ok && confirm('この共有に公開済みの大会データがあります。\n\nOK: 公開済みの内容をこの端末に読み込む\nキャンセル: この端末の内容で公開し直す')) {
@@ -209,6 +212,7 @@ export function disconnect() {
   dirty = false;
   S.cfg = null;
   S.comments = [];
+  S.reports = [];
   saveCfg();
   if (wasViewer) leaveViewer();
   setStatus('off');
@@ -285,6 +289,7 @@ async function pollOnce() {
     }
     if (r.comments) {
       S.comments = r.comments;
+      S.reports = r.reports || [];
       S.crev = r.crev;
     }
     if (S.status !== 'sending') setStatus('ok');
@@ -314,6 +319,20 @@ export async function postComment({ name, text, matchId }) {
 
 export async function deleteComment(id) {
   await call('DELETE', `/comments/${id}`);
+  await pollOnce();
+}
+
+// ---- 結果の報告（閲覧者が送り、運営が承認する） ----
+
+/** 試合結果を報告する。表には反映されず、運営が承認したときに反映される */
+export async function postReport({ name, matchId, outcome, score1, score2, p1, p2 }) {
+  await call('POST', '/reports', { name, matchId, outcome, score1, score2, p1, p2 });
+  await pollOnce();
+}
+
+/** 報告を取り除く（承認したあと・却下）。運営のみ */
+export async function deleteReport(id) {
+  await call('DELETE', `/reports/${id}`);
   await pollOnce();
 }
 

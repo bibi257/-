@@ -529,6 +529,19 @@ body.viewer .owner-only { display: none !important; }
 .c-head time { color: var(--muted); }
 .c-head button { margin-left: auto; }
 .comment-list .empty { color: var(--muted); padding: 12px 0; }
+/* 試合結果の報告（コメントタブ） */
+.report-form { display: grid; gap: 12px; }
+.rf-sides { display: grid; gap: 8px; }
+.rf-side { display: flex; align-items: center; gap: 10px; }
+.rf-pick { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 10px; min-height: 48px; padding: 6px 12px; border: 1px solid var(--rule-strong); border-radius: 10px; cursor: pointer; font-weight: bold; }
+.rf-pick:has(input:checked) { border-color: var(--primary); background: var(--primary-weak); }
+.rf-pick input, .rf-draw input { width: 22px; height: 22px; margin: 0; flex: none; }
+.rf-name { min-width: 0; overflow-wrap: anywhere; }
+.rf-score { flex: none; width: 72px; min-height: 48px; font-size: 20px; text-align: center; }
+.rf-draw { display: flex; align-items: center; gap: 10px; min-height: 44px; }
+.report-text { margin: 4px 0 0; font-weight: bold; overflow-wrap: anywhere; }
+.report-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.report-actions button { min-height: 44px; }
 body.viewer .next-item, body.viewer g.match, body.viewer tr.clickable, body.viewer td.cell, body.viewer button.rc { cursor: default; }
 
 /* ===== 回（第1回・第2回…） ===== */
