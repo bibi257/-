@@ -25,6 +25,7 @@
 
 - 言語: JavaScript（ES2022, ES Modules）。フレームワークなし
 - バンドル: esbuild（`src/` → `web/app.js`、IIFE 形式。`file://` でも動くようにするため）
+- フォント: 本文 IBM Plex Sans JP・数える部分 IBM Plex Mono。`@fontsource`（開発用の依存）から、ビルドが `web/fonts/` にそろえる（外部の配信サービスは使わない。生成物はコミットしない）。PNG 出力だけは端末のフォント（`pngOptions`。PLAN D48）
 - デスクトップ版: Electron + electron-builder（Windows portable `.exe`）
 - 共有サーバー: Cloudflare Workers + D1（`worker/`）。アプリ側は `fetch` のみで通信（実行時ライブラリ 0 を維持）
 - テスト: Node 標準テストランナー（`node --test`）＋ Playwright（E2E）
@@ -54,7 +55,7 @@ src/ui/        画面（DOM 操作）
 web/           配信ファイル（index.html, style.css, 生成物 app.js）
 electron/      Electron メインプロセス
 worker/        共有サーバー（src/index.js）。認証・コメント・大会データの保管。設定はルートの wrangler.jsonc
-scripts/       ビルド補助
+scripts/       ビルド補助（build.mjs・fonts.mjs・serve.mjs）
 test/unit/     単体テスト
 test/e2e/      E2E テスト（Playwright）。share.spec.js は共有 API を載せたサーバー（:4174）で実行
 test/support/  テスト用の補助（D1 互換シムなど）

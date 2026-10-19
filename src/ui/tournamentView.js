@@ -1,7 +1,7 @@
 // トーナメントタブ
 
 import { getState, setState } from './store.js';
-import { h, toast, measureText, downloadCSV, downloadPNG } from './io.js';
+import { h, toast, measureText, pngOptions, downloadCSV, downloadPNG } from './io.js';
 import { openResultDialog } from './resultDialog.js';
 import { nextEditionButton } from './editions.js';
 import { nextItemHtml } from './callCard.js';
@@ -173,10 +173,10 @@ async function onExport(kind) {
   try {
     if (kind === 'bracket-csv') downloadCSV(bracketTable(st));
     else if (kind === 'results-csv') downloadCSV(tournamentResultsTable(st));
-    else if (kind === 'bracket-png') await downloadPNG(bracketSvg(st, { measure: measureText }), `${eventTitle(st)} トーナメント表`);
+    else if (kind === 'bracket-png') await downloadPNG(bracketSvg(st, pngOptions), `${eventTitle(st)} トーナメント表`);
     else if (kind === 'results-png') {
       const table = tournamentResultsTable(st);
-      await downloadPNG(tableSvg(st, table, { measure: measureText }), table.title);
+      await downloadPNG(tableSvg(st, table, pngOptions), table.title);
     } else if (kind === 'print') window.print();
   } catch (e) {
     toast(`出力に失敗しました: ${e.message}`, { error: true });

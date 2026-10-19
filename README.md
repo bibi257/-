@@ -121,7 +121,7 @@ Windows でも Linux / macOS でもビルドできます（Linux では Wine 不
 
 ```sh
 npm ci
-npm run build        # src/ → web/app.js
+npm run build        # src/ → web/app.js、フォント → web/fonts/
 npm run serve        # http://localhost:4173/ で確認
 npm start            # Electron で起動
 npm test             # 単体テスト
@@ -129,5 +129,7 @@ npm run test:e2e     # ブラウザ E2E テスト（Playwright）
 npm run test:electron  # Electron 版の起動確認
 npm run serve:share  # 共有機能を手元で試す（http://localhost:4174/）
 ```
+
+フォントは IBM Plex Sans JP・IBM Plex Mono（SIL Open Font License 1.1）を同梱しています。`npm run build` が `node_modules` から `web/fonts/` にそろえます（コミットしません）。外部の配信サービスは使わないので、オフラインでも同じ見た目です。ライセンス全文は `web/fonts/LICENSE-*.txt` に入ります。
 
 構成・ルールは `CLAUDE.md`、計画と設計判断は `PLAN.md`、テスト結果は `TEST_REPORT.md`、残課題は `TODO.md` を参照してください。

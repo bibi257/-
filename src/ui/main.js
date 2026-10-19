@@ -1,7 +1,7 @@
 // エントリポイント: タブ切替・ヘッダー操作・保存/読込
 
 import { getState, setState, onChange, onSaveStatus, initState, isReadOnly, undo, canUndo, onUndoChange } from './store.js';
-import { toast, downloadBlob, safeFileName } from './io.js';
+import { toast, downloadBlob, safeFileName, fontsReady } from './io.js';
 import { createState, parseState, serializeState } from '../core/state.js';
 import { renderSetup, setupSetupView } from './setupView.js';
 import { renderTournament, setupTournamentView } from './tournamentView.js';
@@ -175,4 +175,5 @@ function init() {
   if (restored && !isReadOnly()) toast('前回の続きから再開しました');
 }
 
-init();
+// 半角英数字の幅が確定してから最初の描画をする（表の文字幅の計算が画面のフォントとずれないように）
+fontsReady().then(init);

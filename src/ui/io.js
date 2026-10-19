@@ -1,15 +1,32 @@
 // ダウンロード・PNG 変換・ファイル読み込み・通知
 
-import { FONT_FAMILY } from '../render/svg.js';
+import { FONT_FAMILY, EXPORT_FONT_FAMILY } from '../render/svg.js';
 import { toCSV } from '../core/csv.js';
 import { tableToRows } from '../core/exportData.js';
 
 let canvasCtx = null;
-/** canvas で文字幅を測る（SVG の配置計算用） */
-export function measureText(text, size, bold = false) {
+function measureWith(family, text, size, bold) {
   if (!canvasCtx) canvasCtx = document.createElement('canvas').getContext('2d');
-  canvasCtx.font = `${bold ? 'bold ' : ''}${size}px ${FONT_FAMILY}`;
+  canvasCtx.font = `${bold ? 'bold ' : ''}${size}px ${family}`;
   return canvasCtx.measureText(String(text)).width;
+}
+
+/** canvas で文字幅を測る（SVG の配置計算用。画面のフォント） */
+export function measureText(text, size, bold = false) {
+  return measureWith(FONT_FAMILY, text, size, bold);
+}
+
+/** PNG 出力用の SVG 生成の設定。PNG は端末のフォントで描かれるため、文字幅も同じフォントで測る */
+export const pngOptions = {
+  fontFamily: EXPORT_FONT_FAMILY,
+  measure: (text, size, bold = false) => measureWith(EXPORT_FONT_FAMILY, text, size, bold),
+};
+
+/** 画面のフォント（IBM Plex Sans JP）の読み込みを待つ。半角の英数字の幅が確定してから表を作るため。全角文字はどのフォントでも1文字=1emなので待たない。最長 1.5 秒 */
+export function fontsReady() {
+  if (!document.fonts?.load) return Promise.resolve();
+  const loads = ['', 'bold '].map((w) => document.fonts.load(`${w}14px "IBM Plex Sans JP"`, 'AaZz09 .:-/'));
+  return Promise.race([Promise.allSettled(loads), new Promise((r) => setTimeout(r, 1500))]);
 }
 
 export function safeFileName(s) {
