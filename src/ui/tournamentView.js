@@ -11,7 +11,8 @@ import { tableBoardHtml } from './tableBoardView.js';
 import { setupStartButtons } from './startMatch.js';
 import { statusBadge, matchStatusKey } from './badge.js';
 import { resultCardsHtml } from './resultCards.js';
-import { controlsHtml, setupWrap, setupBracketControls, revealMatch, viewSwitchHtml, viewMode, getRoundSel } from './bracketView.js';
+import { controlsHtml, setupWrap, setupBracketControls, revealMatch, viewSwitchHtml, viewMode, getRoundSel, roundsActive } from './bracketView.js';
+import { foldHtml, syncFold, setupFold } from './resultsFold.js';
 import { roundViewHtml, THIRD_KEY } from './roundView.js';
 import {
   resolveBracket, setTournamentResult, setTournamentTable, roundName, tournamentProgress, missingPlayers,
@@ -25,6 +26,9 @@ import { eventTitle } from '../core/edition.js';
 import { assignTable, pickNextMatch } from '../core/result.js';
 
 const panel = () => document.getElementById('panel-tournament');
+
+// 「試合結果一覧」は、スマホ幅の「回戦ごと」表示のときだけ畳める（同じ試合を回戦ごとのカードと2回並べないため）。それ以外は常に開く
+const FOLD_KEY = 'tournament-results';
 
 function samePlayers(a, b) {
   return a.length === b.length && a.every((id) => b.includes(id));
@@ -78,8 +82,7 @@ export function renderTournament() {
     <div class="round-view" id="round-view"></div>
   </div>
   <div class="card">
-    <h2>試合結果一覧</h2>
-    <div class="table-wrap results-table">
+    ${foldHtml({ key: FOLD_KEY, title: '試合結果一覧', count: `全${prog.total}試合`, body: `<div class="table-wrap results-table">
       <table class="data results">
         <thead><tr>${['試合番号', '回戦', '卓', '時間帯', '選手1', 'スコア', '選手2', '勝者', '状態'].map((x) => `<th>${x}</th>`).join('')}</tr></thead>
         <tbody>${rows.map(({ match: m, cells }) => `<tr class="st-${m.status}${m.playable ? ' clickable' : ''}" ${m.playable ? `data-match="${h(m.id)}"` : ''}>
@@ -90,9 +93,10 @@ export function renderTournament() {
           }).join('')}</tr>`).join('')}</tbody>
       </table>
     </div>
-    ${resultCardsHtml(rows, (m) => m.playable)}
+    ${resultCardsHtml(rows, (m) => m.playable)}` })}
   </div>`;
   fillRoundView();
+  syncFold(panel(), FOLD_KEY, roundsActive);
   const wrap = document.getElementById('bracket-wrap');
   setupWrap(wrap);
   if (keep) wrap.scrollLeft = keep.left; // 描画し直しても、横の位置は変えない
@@ -185,8 +189,9 @@ async function onExport(kind) {
 
 export function setupTournamentView() {
   const p = panel();
-  setupBracketControls(p, { refreshRounds: fillRoundView });
+  setupBracketControls(p, { refreshRounds: fillRoundView, onViewChange: () => syncFold(p, FOLD_KEY, roundsActive) });
   setupStartButtons(p, 'tournament');
+  setupFold(p, FOLD_KEY, roundsActive);
   p.addEventListener('click', (e) => {
     const g = e.target.closest('[data-match], g.match');
     if (g) { openMatch(g.dataset.match || g.dataset.id, { reveal: !!g.closest('.next-item') }); return; }

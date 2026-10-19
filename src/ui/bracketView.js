@@ -33,6 +33,7 @@ const state = { mode: 'pct', pct: 100 }; // mode: 'fit'（全体表示）| 'pct'
 const MOBILE = '(max-width: 700px)';
 const view = { mode: 'rounds', round: null };
 let refreshRounds = () => {};
+let onViewChange = () => {};
 
 export const getRoundSel = () => view.round;
 export const roundsActive = () => window.matchMedia(MOBILE).matches && view.mode === 'rounds';
@@ -117,10 +118,11 @@ export function revealMatch(id, roundKey) {
 
 /**
  * @param {HTMLElement} panel トーナメントタブ
- * @param {{refreshRounds:() => void}} hooks 回戦ごとの表示を、今の状態から描き直す関数（tournamentView が渡す）
+ * @param {{refreshRounds:() => void, onViewChange?:() => void}} hooks 回戦ごとの表示を、今の状態から描き直す関数と、「回戦ごと／表」を切り替えたあとに呼ぶ関数（tournamentView が渡す）
  */
 export function setupBracketControls(panel, hooks = {}) {
   refreshRounds = hooks.refreshRounds || (() => {});
+  onViewChange = hooks.onViewChange || (() => {});
   panel.addEventListener('click', (e) => {
     const sw = e.target.closest('[data-view-mode]');
     if (sw) {
@@ -131,6 +133,7 @@ export function setupBracketControls(panel, hooks = {}) {
       const wrap = document.getElementById('bracket-wrap');
       if (view.mode === 'table' && wrap) applyZoom(wrap);
       else refreshRounds();
+      onViewChange(); // 表示の切り替えが済んだあと（折りたたみを合わせる）
       return;
     }
     const tab = e.target.closest('[data-round-tab]');

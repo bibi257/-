@@ -12,6 +12,7 @@ test.describe('試合結果一覧（スマホ幅 390px はカード）', () => {
     await open(page);
     await importNames(page, NAMES12);
     await genTournament(page);
+    await openResultsFold(page); // 回戦ごとの表示のときは、一覧は折りたたまれている
     await expect(page.locator('.results-table')).toBeHidden();
     const cards = page.locator('.results-table ~ .result-cards li');
     await expect(cards.first()).toBeVisible();
@@ -30,6 +31,7 @@ test.describe('試合結果一覧（スマホ幅 390px はカード）', () => {
     await open(page);
     await importNames(page, NAMES12);
     await genTournament(page);
+    await openResultsFold(page);
     const ready = page.locator('.results-table ~ .result-cards .rc.st-ready').first();
     await expect(ready.locator('.badge-ready')).toHaveText('試合待ち');
     await ready.tap();
