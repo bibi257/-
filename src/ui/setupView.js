@@ -16,7 +16,6 @@ import {
 import { playerName } from '../core/state.js';
 import { askChoice } from './choiceDialog.js';
 import { openPairing } from './pairingDialog.js';
-import { sampleState } from '../core/sample.js';
 
 const panel = () => document.getElementById('panel-setup');
 
@@ -71,7 +70,6 @@ export function renderSetup() {
           <div class="empty-actions">
             <button type="button" class="primary" data-act="focus-add">名前を入力して追加</button>
             <button type="button" data-act="import">一括入力・CSV取込</button>
-            <button type="button" data-act="sample" title="架空の8人と卓2つを入れて、トーナメント表を作ります">サンプルで試す</button>
           </div>
         </div>`}
         ${n ? `<div class="table-wrap">
@@ -350,12 +348,6 @@ function onClick(e) {
     openImport();
   } else if (act === 'focus-add') {
     document.getElementById('new-player')?.focus();
-  } else if (act === 'sample') {
-    const r = sampleState(st);
-    if (!r.ok) { toast(r.error, { error: true }); return; }
-    setState(r.state);
-    toast('サンプルを入れました（「元に戻す」で消せます）');
-    window.dispatchEvent(new CustomEvent('app:tab', { detail: 'tournament' }));
   } else if (act === 'all-present') {
     const tournament = st.tournament && st.players.filter(isAbsent).reduce((t, p) => stopWalkover(t, p.id), st.tournament);
     update({ players: allPresent(st.players), tournament });
