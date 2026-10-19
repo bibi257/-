@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { open, importNames } from './helpers.js';
+import { open, importNames, genTournament } from './helpers.js';
 
 const NAMES12 = ['山田 太郎', '佐藤 花子', '鈴木 一郎', '高橋 次郎', '田中 三郎', '伊藤 四郎', '渡辺 五郎', '中村 六子', '小林 七海', '加藤 八郎', '吉田 九太', 'ああああああああああ'];
 const noOverflow = (page) => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth);
@@ -11,7 +11,7 @@ test.describe('試合結果一覧（スマホ幅 390px はカード）', () => {
   test('トーナメント（12人）: カードで表示し、表は隠れる。横スクロールが出ない', async ({ page }) => {
     await open(page);
     await importNames(page, NAMES12);
-    await page.click('[data-act=gen-tournament]');
+    await genTournament(page);
     await expect(page.locator('.results-table')).toBeHidden();
     const cards = page.locator('.results-table ~ .result-cards li');
     await expect(cards.first()).toBeVisible();
@@ -29,7 +29,7 @@ test.describe('試合結果一覧（スマホ幅 390px はカード）', () => {
   test('カードをタップすると結果入力が開き、保存するとカードが「終了」になり勝者が太字', async ({ page }) => {
     await open(page);
     await importNames(page, NAMES12);
-    await page.click('[data-act=gen-tournament]');
+    await genTournament(page);
     const ready = page.locator('.results-table ~ .result-cards .rc.st-ready').first();
     await expect(ready.locator('.badge-ready')).toHaveText('試合待ち');
     await ready.tap();
@@ -69,7 +69,7 @@ test.describe('試合結果一覧（PC幅 1280px は表のまま）', () => {
   test('表を表示し、カードは隠れる', async ({ page }) => {
     await open(page);
     await importNames(page, NAMES12);
-    await page.click('[data-act=gen-tournament]');
+    await genTournament(page);
     await expect(page.locator('.results-table')).toBeVisible();
     await expect(page.locator('.results-table ~ .result-cards')).toBeHidden();
   });
@@ -77,7 +77,7 @@ test.describe('試合結果一覧（PC幅 1280px は表のまま）', () => {
   test('印刷では、カードは出ず、表が出る', async ({ page }) => {
     await open(page);
     await importNames(page, NAMES12);
-    await page.click('[data-act=gen-tournament]');
+    await genTournament(page);
     await page.emulateMedia({ media: 'print' });
     await expect(page.locator('.results-table ~ .result-cards')).toBeHidden();
     await expect(page.locator('table.results')).toBeVisible();

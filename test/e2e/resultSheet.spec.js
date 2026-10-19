@@ -1,11 +1,11 @@
 import { test, expect } from '@playwright/test';
-import { open, importNames } from './helpers.js';
+import { open, importNames, genTournament } from './helpers.js';
 
 const LONG = 'ああああああああああ';
 
 async function openMatch(page) {
   await importNames(page, ['渡辺 五郎', '山田 太郎', '佐藤 花子', LONG]);
-  await page.click('[data-act=gen-tournament]');
+  await genTournament(page);
   await page.locator('.next-item').first().click();
 }
 

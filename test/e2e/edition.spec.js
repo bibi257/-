@@ -1,11 +1,11 @@
 import { test, expect } from '@playwright/test';
-import { open, importNames, acceptDialogs, enterScore, download } from './helpers.js';
+import { open, importNames, acceptDialogs, enterScore, download, genTournament } from './helpers.js';
 
 const FOUR = ['山田 太郎', '佐藤 花子', '鈴木 一郎', '高橋 次郎'];
 
 /** 4人のトーナメントを作り、最後まで入力する（毎回、表の上側の選手が勝つ） */
 async function playTournament(page) {
-  await page.click('[data-act=gen-tournament]');
+  await genTournament(page);
   await page.waitForSelector('#bracket-wrap svg');
   for (let i = 0; i < 3; i++) {
     await page.locator('.next-item').first().click();

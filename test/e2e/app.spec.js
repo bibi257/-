@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { fileURLToPath } from 'node:url';
-import { NAMES, acceptDialogs, open, importNames, setNumber, enterScore, download, pngSize } from './helpers.js';
+import { NAMES, acceptDialogs, open, importNames, setNumber, enterScore, download, pngSize, genTournament } from './helpers.js';
 
 test.describe('参加者・設定', () => {
   test('追加・編集・並べ替え・削除と入力チェック', async ({ page }) => {
@@ -19,7 +19,7 @@ test.describe('参加者・設定', () => {
     await page.press('#new-player', 'Enter');
     await page.locator('input.name').nth(2).fill('山 田');
     await expect(page.locator('#player-errors')).toContainText('重複');
-    await page.click('[data-act=gen-tournament]');
+    await page.click('[data-act=gen-tournament]'); // 名簿にエラーがあるので、組み合わせの確認には進まない
     await expect(page.locator('#toast')).toContainText('空欄・重複');
     await expect(page.locator('[data-tab=tournament]')).toHaveAttribute('aria-selected', 'false');
     // 直して並べ替え・削除
@@ -36,7 +36,7 @@ test.describe('参加者・設定', () => {
     acceptDialogs(page);
     await open(page);
     await importNames(page, ['山田']);
-    await page.click('[data-act=gen-tournament]');
+    await page.click('[data-act=gen-tournament]'); // 人数が足りないので、組み合わせの確認には進まない
     await expect(page.locator('#toast')).toContainText('2人以上');
   });
 
@@ -61,7 +61,7 @@ test.describe('参加者・設定', () => {
     await setNumber(page, '#table-count', 1);
     await expect(page.locator('input.table-name')).toHaveCount(1);
     await page.locator('input.table-name').first().fill('Aコート');
-    await page.click('[data-act=gen-tournament]');
+    await genTournament(page);
     const rows = page.locator('table.results tbody tr');
     await expect(rows.nth(0)).toContainText('Aコート');
     await expect(rows.nth(1).locator('td').nth(3)).toHaveText('2'); // 時間帯2
@@ -78,7 +78,7 @@ test.describe('トーナメント', () => {
     await page.locator('.seed-pick-box').nth(1).check();
     await expect(page.locator('.seed-badge')).toHaveCount(2);
     await expect(page.locator('#panel-setup')).toContainText('1回戦不戦（シード上位から） 2枠');
-    await page.click('[data-act=gen-tournament]');
+    await genTournament(page);
     await expect(page.locator('[data-tab=tournament]')).toHaveAttribute('aria-selected', 'true');
 
     // 6人 → 実試合5、シード2人は不戦
@@ -153,7 +153,7 @@ test.describe('トーナメント', () => {
     await open(page);
     page.on('dialog', (d) => d.accept());
     await importNames(page, NAMES.slice(0, 4));
-    await page.click('[data-act=gen-tournament]');
+    await genTournament(page);
     await page.locator('.next-item').nth(0).click();
     await enterScore(page, 1, 0);
     await page.locator('.next-item').nth(0).click();
@@ -175,7 +175,7 @@ test.describe('トーナメント', () => {
     await open(page);
     await importNames(page, NAMES.slice(0, 4));
     await page.check('#third-place');
-    await page.click('[data-act=gen-tournament]');
+    await genTournament(page);
     await expect(page.locator('table.results')).toContainText('3位決定戦');
     // 卓を手動で変更
     await page.locator('tr[data-match="R1-M1"]').click();
@@ -202,7 +202,7 @@ test.describe('トーナメント', () => {
     await importNames(page, Array.from({ length: 64 }, (_, i) => `選手${i + 1}`));
     await page.selectOption('#seed-mode', 'random');
     await setNumber(page, '#seed-count', 8);
-    await page.click('[data-act=gen-tournament]');
+    await genTournament(page);
     await expect(page.locator('#bracket-wrap g.match')).toHaveCount(63);
     await expect(page.locator('.next-item')).toHaveCount(32);
   });
@@ -264,7 +264,7 @@ test.describe('出力', () => {
 
   test('トーナメント表・試合結果の CSV（BOM付きUTF-8・日本語）と PNG', async ({ page }) => {
     await prepare(page);
-    await page.click('[data-act=gen-tournament]');
+    await genTournament(page);
     await page.locator('.next-item').first().click();
     await enterScore(page, 3, 1);
 
@@ -303,7 +303,7 @@ test.describe('出力', () => {
 
   test('順位表の CSV と PNG', async ({ page }) => {
     await prepare(page);
-    await page.click('[data-act=gen-tournament]');
+    await genTournament(page);
     await page.click('[data-tab=setup]');
     await page.click('[data-act=gen-league]');
     await page.click('[data-tab=standings]');
@@ -322,7 +322,7 @@ test.describe('保存・読込', () => {
     await open(page);
     await page.fill('#meta-title', '秋季大会');
     await importNames(page, NAMES.slice(0, 4));
-    await page.click('[data-act=gen-tournament]');
+    await genTournament(page);
     await page.locator('.next-item').first().click();
     await enterScore(page, 5, 4);
     const saved = await download(page, '[data-action=save]');
@@ -381,7 +381,7 @@ test('file:// で index.html を直接開いても動く', async ({ page }) => {
   expect(fileURLToPath(url)).toContain('web');
   await page.goto(url);
   await importNames(page, ['山田', '佐藤', '鈴木']);
-  await page.click('[data-act=gen-tournament]');
+  await genTournament(page);
   await expect(page.locator('#bracket-wrap svg')).toBeVisible();
   await page.locator('.next-item').first().click();
   await enterScore(page, 2, 1);
@@ -392,7 +392,7 @@ test('印刷用レイアウト: 操作ボタンが隠れる', async ({ page }) =
   acceptDialogs(page);
   await open(page);
   await importNames(page, NAMES.slice(0, 4));
-  await page.click('[data-act=gen-tournament]');
+  await genTournament(page);
   await page.emulateMedia({ media: 'print' });
   await expect(page.locator('.tabs')).toBeHidden();
   await expect(page.locator('.toolbar').first()).toBeHidden();

@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { NAMES, open, importNames, enterScore } from './helpers.js';
+import { NAMES, open, importNames, enterScore, genTournament } from './helpers.js';
 
 const style = (loc, prop) => loc.evaluate((el, p) => getComputedStyle(el)[p], prop);
 
@@ -7,7 +7,7 @@ test.describe('試合の状態バッジ・総当たり表の記号', () => {
   test('トーナメントの試合結果一覧: 4種類の状態が、文字と枠の形でも区別できる', async ({ page }) => {
     await open(page);
     await importNames(page, NAMES.slice(0, 6));
-    await page.click('[data-act=gen-tournament]');
+    await genTournament(page);
     const rows = page.locator('table.results tbody');
     // 試合待ち（青の塗り・白文字）
     const ready = rows.locator('.badge-ready').first();

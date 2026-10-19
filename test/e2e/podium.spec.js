@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { open, importNames, enterScore, acceptDialogs } from './helpers.js';
+import { open, importNames, enterScore, acceptDialogs, genTournament } from './helpers.js';
 
 const NAMES = ['山田 太郎', '佐藤 花子', '鈴木 一郎', '高橋 次郎'];
 
@@ -17,7 +17,7 @@ async function start(page, names, { third = false } = {}) {
   await open(page);
   await importNames(page, names);
   if (third) await page.check('#third-place');
-  await page.click('[data-act=gen-tournament]');
+  await genTournament(page);
 }
 
 for (const [w, h] of [[390, 844], [1280, 800]]) {

@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { NAMES, acceptDialogs, open, importNames, setNumber } from './helpers.js';
+import { NAMES, acceptDialogs, open, importNames, setNumber, genTournament } from './helpers.js';
 
 test.describe('シード（指名・ランダム）', () => {
   test('指名: 名前にチェックを付けた選手がシードになり、不戦はシードが受ける。順位は名簿の上から', async ({ page }) => {
@@ -19,7 +19,7 @@ test.describe('シード（指名・ランダム）', () => {
     await expect(page.locator('#panel-setup')).toContainText('指名 2人');
     await expect(page.locator('#panel-setup')).toContainText('1回戦不戦（シード上位から） 2枠');
 
-    await page.click('[data-act=gen-tournament]');
+    await genTournament(page);
     // 6人・8枠: 不戦は2つ。シード上位（指名した2人）から不戦が割り当てられる
     const byes = page.locator('table.results tbody tr', { hasText: '不戦' });
     await expect(byes).toHaveCount(2);
@@ -53,7 +53,7 @@ test.describe('シード（指名・ランダム）', () => {
     await expect(page.locator('.seed-pick-box')).toHaveCount(0);
     await setNumber(page, '#seed-count', 2);
     await expect(page.locator('#panel-setup')).toContainText('1回戦不戦（シード上位から） 1枠');
-    await page.click('[data-act=gen-tournament]');
+    await genTournament(page);
     await expect(page.locator('#bracket-wrap g.match')).toHaveCount(6);
     // 不戦の1試合（シードが受ける）は、結果入力できない試合として一覧に出る
     await expect(page.locator('table.results tbody tr', { hasText: '不戦' })).toHaveCount(1);

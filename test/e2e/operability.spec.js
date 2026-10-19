@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { open, importNames, enterScore, download } from './helpers.js';
+import { open, importNames, enterScore, download, genTournament } from './helpers.js';
 
 const EIGHT = Array.from({ length: 8 }, (_, i) => `選手${i + 1}`);
 
@@ -42,7 +42,7 @@ test.describe('幅390px: 押せる部品は高さ・幅とも44px以上', () => 
   test('トーナメント（回戦ごと・表で見る）・総当たり・順位表・出力メニュー', async ({ page }) => {
     await open(page);
     await importNames(page, EIGHT);
-    await page.click('[data-act=gen-tournament]');
+    await genTournament(page);
     expect(await tooSmall(page)).toEqual([]);
     await page.click('[data-view-mode=table]'); // 拡大縮小の －・＋ など
     expect(await tooSmall(page)).toEqual([]);
@@ -59,7 +59,7 @@ test.describe('幅390px: 押せる部品は高さ・幅とも44px以上', () => 
   test('ダイアログ（結果入力・一括入力・共有）とヘッダーのメニュー', async ({ page }) => {
     await open(page);
     await importNames(page, EIGHT);
-    await page.click('[data-act=gen-tournament]');
+    await genTournament(page);
     await page.locator('#panel-tournament .next-item').first().click();
     expect(await tooSmall(page)).toEqual([]);
     await page.click('#rd-cancel');
@@ -81,7 +81,7 @@ for (const [w, h] of [[390, 844], [1280, 800]]) {
     test('各表の上は「出力」ボタン1つで、押すと CSV・画像（PNG）・印刷の項目が出る。data-export はそのまま', async ({ page }) => {
       await open(page);
       await importNames(page, EIGHT);
-      await page.click('[data-act=gen-tournament]');
+      await genTournament(page);
       const kinds = (panel) => page.locator(`${panel} .export-list [data-export]`).evaluateAll((els) => els.map((e) => e.dataset.export));
       const toggle = page.locator('#panel-tournament [data-export-toggle]');
       await expect(page.locator('#panel-tournament .toolbar [data-export-toggle]')).toHaveCount(1);
@@ -109,7 +109,7 @@ for (const [w, h] of [[390, 844], [1280, 800]]) {
     test('Esc・外側を押す・項目を選ぶで閉じる。Esc ではボタンへ戻る。項目を選ぶとダウンロードできる', async ({ page }) => {
       await open(page);
       await importNames(page, EIGHT);
-      await page.click('[data-act=gen-tournament]');
+      await genTournament(page);
       const toggle = page.locator('#panel-tournament [data-export-toggle]');
       const list = page.locator('#panel-tournament .export-list');
       await toggle.click();
@@ -130,7 +130,7 @@ for (const [w, h] of [[390, 844], [1280, 800]]) {
     test('キーボード: Enter で開いて最初の項目へ移り、↓↑で項目を移れる', async ({ page }) => {
       await open(page);
       await importNames(page, EIGHT);
-      await page.click('[data-act=gen-tournament]');
+      await genTournament(page);
       await page.locator('#panel-tournament [data-export-toggle]').focus();
       await page.keyboard.press('Enter');
       const items = page.locator('#panel-tournament .export-list button');
@@ -153,7 +153,7 @@ for (const [w, h] of [[390, 844], [1280, 800]]) {
     test('通知は画面の下に出て、固定のタブ（上）と重ならない', async ({ page }) => {
       await open(page);
       await importNames(page, EIGHT);
-      await page.click('[data-act=gen-tournament]');
+      await genTournament(page);
       const toast = page.locator('#toast');
       await expect(toast).toContainText('作成しました');
       const t = await toast.boundingBox();
@@ -239,7 +239,7 @@ test.describe('フォーカスの枠', () => {
       const r = await ringVisible(page, sel);
       expect(r.ok, `${sel}: ${JSON.stringify(r)}`).toBe(true);
     }
-    await page.click('[data-act=gen-tournament]');
+    await genTournament(page);
     for (const sel of ['#panel-tournament .next-item', '#panel-tournament [data-export-toggle]', '#panel-tournament g.match', '.bracket-controls button']) {
       const r = await ringVisible(page, sel);
       expect(r.ok, `${sel}: ${JSON.stringify(r)}`).toBe(true);
@@ -254,7 +254,7 @@ test.describe('フォーカスの枠', () => {
     test('試合のカードと回戦のタブで枠が見える', async ({ page }) => {
       await open(page);
       await importNames(page, EIGHT);
-      await page.click('[data-act=gen-tournament]');
+      await genTournament(page);
       for (const sel of ['#round-view .rc', '#round-view [data-round-tab]', '.view-switch button']) {
         const r = await ringVisible(page, sel);
         expect(r.ok, `${sel}: ${JSON.stringify(r)}`).toBe(true);
