@@ -4,6 +4,9 @@
 
 ## [Unreleased]
 
+### ドキュメント
+- UI改善の第2弾の計画書 `docs/ui-plan-2.md` を追加（N1〜N14。前回の `docs/ui-plan.md` の実装後の状態をもとにした計画）。コードは変えていない
+
 ### 変更（フォント）
 - 画面の本文のフォントを、**IBM Plex Sans JP** に変えた。数える部分（試合番号 `No.`・点数・経過時間・表の倍率・共有コード）は **IBM Plex Mono**。どちらも SIL Open Font License で、同梱して配る
 - フォントは Google Fonts などの外部から読まず、`web/fonts/` に同梱する（`file://` で開いても、Windows の `.exe` でも、オフラインで同じ見た目になる。実行時の外部依存は増えない）。元は `@fontsource/ibm-plex-sans-jp`・`@fontsource/ibm-plex-mono`（開発用の依存）で、`npm run build` が `scripts/fonts.mjs` で `web/fonts/` にそろえる（生成物のためコミットしない）。太さは通常と太字の2つ。日本語は漢字を分けた配信（`unicode-range`）で、使う字のファイルだけを読む。`.exe` は約5MB 増える
