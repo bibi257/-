@@ -13,7 +13,7 @@ export function emptyGuide(kind, st, { readOnly = false } = {}) {
   if (readOnly) {
     return { text: kind === 'standings' ? lead : `${lead}運営が作成するまでお待ちください。`, button: null };
   }
-  if (st.players.length < 2) {
+  if ((st?.players ?? []).length < 2) {
     return { text: `${lead}まず参加者を2人以上入力しましょう。`, button: { label: '参加者を入力する', goto: 'setup' } };
   }
   const next = kind === 'standings' ? '「参加者・設定」で、トーナメント表か総当たり表を作成しましょう。' : `「参加者・設定」で「${NAMES[kind]}を作成」を押してください。`;

@@ -14,6 +14,7 @@ export const SAMPLE_TABLES = 2;
  * @returns {{ok:true, state:object} | {ok:false, error:string}}
  */
 export function sampleState(state) {
+  if (!state || !Array.isArray(state.players)) return { ok: false, error: '大会データが正しくありません' };
   if (state.players.length) return { ok: false, error: '参加者がいるときは、サンプルを入れられません' };
   const players = makePlayers(SAMPLE_NAMES);
   const plan = planSeeds(players, state.settings);

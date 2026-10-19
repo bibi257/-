@@ -69,6 +69,14 @@ test('案内: 表が無い画面は、次にすることを1文で示し、移�
   assert.match(emptyGuide('standings', some).text, /^表を作成すると、ここに順位表が表示されます。/);
 });
 
+test('サンプル・案内: 大会データが無い・名簿が配列でなくても、例外にならない', () => {
+  assert.equal(sampleState(null).ok, false);
+  assert.equal(sampleState({}).ok, false);
+  assert.equal(sampleState({ players: 'x' }).ok, false);
+  assert.match(emptyGuide('tournament', null).text, /まず参加者を2人以上入力しましょう/);
+  assert.match(emptyGuide('league', {}).text, /まず参加者を2人以上入力しましょう/);
+});
+
 test('案内: 閲覧専用（共有の閲覧者・過去の大会）では、ボタンを付けず、運営が作るのを待つ旨にする', () => {
   const st = { players: makePlayers(['A', 'B']) };
   for (const kind of ['tournament', 'league']) {
