@@ -368,6 +368,36 @@ dialog h2 { margin: 0 0 4px; font-size: 18px; color: var(--ink); }
 .rd-score { width: 64px; text-align: center; font-size: 20px; min-height: 44px; }
 .rd-dash { color: var(--muted); }
 .rd-options { display: flex; gap: 8px 18px; flex-wrap: wrap; margin: 12px 0; align-items: center; }
+#pairing-dialog { width: min(640px, calc(100vw - 24px)); }
+.pairing { list-style: none; margin: 10px 0; padding: 0; max-height: 52vh; max-height: 52dvh; overflow-y: auto; border: 1px solid var(--rule); border-radius: 10px; }
+.pr-row { display: grid; grid-template-columns: 4.5em 1fr 2em 1fr 6em; gap: 6px; align-items: center; padding: 6px 10px; border-bottom: 1px solid var(--rule); }
+.pr-row:last-child { border-bottom: none; }
+.pr-row.pr-bye { grid-template-columns: 4.5em 1fr 2fr; background: var(--canvas); }
+.pr-no { font-weight: bold; color: var(--primary); font-size: 14px; }
+.pr-bye .pr-no { color: var(--muted); }
+.pr-vs { text-align: center; color: var(--muted); font-size: 13px; }
+.pr-table, .pr-note { color: var(--muted); font-size: 13px; }
+.pr-p { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 6px; justify-content: flex-start; text-align: left; min-height: 44px; width: 100%; font-weight: bold; }
+.pr-p .pr-name { overflow-wrap: anywhere; }
+.pr-p.sel, .pr-p.sel:hover:not(:disabled) { background: var(--primary); border-color: var(--primary); color: var(--on-primary); } /* ホバーで文字が読めなくならないよう、ホバーでも同じ色 */
+.pr-absent { font-size: 12px; font-weight: normal; color: var(--muted); border: 1px dashed var(--rule-strong); border-radius: 999px; padding: 0 6px; }
+.pr-p.sel .pr-absent { color: var(--on-primary); border-color: currentColor; }
+.pr-status { min-height: 1.5em; margin: 0; font-size: 14px; color: var(--ink); }
+@media (max-width: 700px) {
+  #pairing-dialog { width: 100%; max-width: 100%; margin: auto 0 0; border-radius: 16px 16px 0 0; max-height: 92vh; max-height: 92dvh; }
+  .pairing { max-height: 46vh; max-height: 46dvh; }
+  .pr-row { grid-template-columns: 1fr auto; grid-template-areas: "no table" "a a" "vs vs" "b b"; gap: 4px 8px; padding: 8px 10px; }
+  .pr-row > .pr-no { grid-area: no; }
+  .pr-row > .pr-table { grid-area: table; text-align: right; }
+  .pr-row > .pr-vs { grid-area: vs; display: none; }
+  .pr-row > .pr-p:nth-of-type(1) { grid-area: a; }
+  .pr-row > .pr-p:nth-of-type(2) { grid-area: b; }
+  .pr-row.pr-bye { grid-template-columns: 1fr; grid-template-areas: "no" "a" "note"; }
+  .pr-row.pr-bye > .pr-note { grid-area: note; }
+  #pairing-dialog .dialog-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  #pairing-dialog .dialog-buttons .spacer { display: none; }
+  #pairing-dialog .dialog-buttons #pr-ok { grid-column: 1 / -1; order: -1; }
+}
 #choice-dialog .rd-options { flex-direction: column; align-items: stretch; gap: 8px; }
 .ch-option { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px; border: 1px solid var(--rule-strong); border-radius: 10px; cursor: pointer; }
 .ch-option:has(input:checked) { border-color: var(--primary); background: var(--primary-weak); }

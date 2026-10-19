@@ -13,7 +13,9 @@ import {
   attendanceCount, isAbsent, presentPlayers, setAbsent, allPresent, absenceImpact,
   applyTournamentWalkovers, applyLeagueWalkovers, applyWalkovers, stopWalkover,
 } from '../core/attendance.js';
+import { playerName } from '../core/state.js';
 import { askChoice } from './choiceDialog.js';
+import { openPairing } from './pairingDialog.js';
 
 const panel = () => document.getElementById('panel-setup');
 
@@ -229,11 +231,22 @@ async function generateTournamentFromSetup() {
   if (st.tournament && !confirm(hasResults(st.tournament)
     ? 'トーナメント表を作り直すと、入力済みの結果はすべて消えます。作り直しますか？'
     : 'トーナメント表を作り直しますか？')) return;
-  const plan = planSeeds(list, st.settings);
-  let t = generateTournament(plan.playerIds, { ...st.settings, seedCount: plan.seedCount });
+  // 組み合わせを確認する（入れ替え・抽選のやり直しができる）。確定するまで大会データは変えない
+  let plan = planSeeds(list, st.settings);
+  const absentIds = new Set(st.players.filter(isAbsent).map((p) => p.id));
+  let t = await openPairing({
+    make: (slots) => generateTournament(plan.playerIds, { ...st.settings, seedCount: plan.seedCount, slots }),
+    redraw: st.settings.seedMode === 'random' || st.settings.placement === 'random' ? () => { plan = planSeeds(list, st.settings); } : null,
+    tables: st.tables,
+    nameOf: (id) => playerName(st, id),
+    seedNo: () => new Map(plan.playerIds.slice(0, plan.seedCount).map((id, i) => [id, i + 1])),
+    absentIds: how === 'walkover' ? absentIds : new Set(),
+  });
+  if (!t) return;
+  st = getState();
   let skipped = 0;
   if (how === 'walkover') {
-    const r = applyTournamentWalkovers(t, new Set(st.players.filter(isAbsent).map((p) => p.id)));
+    const r = applyTournamentWalkovers(t, absentIds);
     t = r.tournament;
     skipped = r.count;
   }
