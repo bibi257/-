@@ -25,9 +25,9 @@ export function openPairing({ make, redraw, tables, nameOf, seedNo, absentIds = 
   let t = make();
   let picked = null; // 入れ替えの1人目（1回戦の枠の番号）
 
-  const player = (slot) => {
+  const player = (slot, seeds) => {
     const id = t.slots[slot];
-    const seed = seedNo().get(id);
+    const seed = seeds.get(id);
     return `<button type="button" class="pr-p${picked === slot ? ' sel' : ''}" data-slot="${slot}" aria-pressed="${picked === slot}">`
       + `<span class="pr-name">${h(nameOf(id))}</span>`
       + `${seed ? `<span class="seed-badge">第${seed}シード</span>` : ''}${absentIds.has(id) ? '<span class="pr-absent">欠席</span>' : ''}</button>`;
@@ -35,14 +35,15 @@ export function openPairing({ make, redraw, tables, nameOf, seedNo, absentIds = 
 
   function render(focusSlot = null) {
     const res = resolveBracket(t, tables);
+    const seeds = seedNo(); // 描くたびに1回だけ作る
     list.innerHTML = res.rounds[0].map((m) => {
       const a = 2 * m.index;
       if (t.slots[a] === null || t.slots[a + 1] === null) {
         const s = t.slots[a] === null ? a + 1 : a;
-        return `<li class="pr-row pr-bye"><span class="pr-no">不戦</span>${player(s)}<span class="pr-note">1回戦は不戦で、2回戦へ進みます</span></li>`;
+        return `<li class="pr-row pr-bye"><span class="pr-no">不戦</span>${player(s, seeds)}<span class="pr-note">1回戦は不戦で、2回戦へ進みます</span></li>`;
       }
       const table = tables.find((x) => x.id === m.tableId)?.name ?? '';
-      return `<li class="pr-row"><span class="pr-no">No.${m.no}</span>${player(a)}<span class="pr-vs">vs</span>${player(a + 1)}`
+      return `<li class="pr-row"><span class="pr-no">No.${m.no}</span>${player(a, seeds)}<span class="pr-vs">vs</span>${player(a + 1, seeds)}`
         + `<span class="pr-table">${h(table)}${m.timeSlot > 1 ? `・時間帯${m.timeSlot}` : ''}</span></li>`;
     }).join('');
     redrawBtn.hidden = !redraw;
