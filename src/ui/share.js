@@ -7,6 +7,7 @@
 import { getState, setState, setReadOnly, setRemoteState, reloadLocal, onSaved } from './store.js';
 import { toast, h } from './io.js';
 import { createState, parseState } from '../core/state.js';
+import { openQr } from './qrDialog.js';
 import { normalizeBase, defaultBase, normalizeCode, viewerLink, codeFromHash, PASSWORD_MIN } from '../core/share.js';
 import { fitForShare } from '../core/edition.js';
 
@@ -356,7 +357,7 @@ function bodyHtml(prefill) {
     const link = viewerLink(S.cfg.base, S.cfg.code);
     return `<p class="sh-state">${statusLine()}</p>
     <div class="sh-row"><span>共有コード</span><b class="sh-code">${h(S.cfg.code)}</b></div>
-    <div class="sh-row"><span>閲覧リンク</span><input id="sh-link" readonly value="${h(link)}"><button type="button" data-sh="copy">コピー</button></div>
+    <div class="sh-row"><span>閲覧リンク</span><input id="sh-link" readonly value="${h(link)}"><button type="button" data-sh="copy">コピー</button><button type="button" data-sh="qr">QRコード</button></div>
     <p class="hint sh-keep">${keepText()}</p>
     <p class="hint">閲覧者には、この<b>閲覧リンク</b>を伝えてください。リンクを知っている人は、パスワードなしで閲覧・コメントできます（リンクを知らない人は入れません）。個人情報は載せない運用にしてください。</p>
     <p class="sh-actions"><button type="button" class="primary" data-sh="push">今すぐ送信</button></p>
@@ -452,6 +453,8 @@ async function onAction(act, btn) {
     const link = $('sh-link');
     link.select();
     try { await navigator.clipboard.writeText(link.value); toast('閲覧リンクをコピーしました'); } catch { toast('リンクを選択しました。コピーしてください'); }
+  } else if (act === 'qr') {
+    openQr($('sh-link').value);
   } else if (act === 'pw-admin') {
     const password = val('sh-newa');
     if (password.length < PASSWORD_MIN) throw new ShareError(0, `パスワードは${PASSWORD_MIN}文字以上で入力してください`);
