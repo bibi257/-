@@ -25,9 +25,14 @@ export function defaultRoundKey(res) {
   return String(R);
 }
 
+/** 選んだ回戦（無効なら fallback）。トーナメントと総当たりで共通 */
+export function pickKey(selected, keys, fallback) {
+  return selected && keys.some((k) => k.key === selected) ? selected : fallback;
+}
+
 /** 選んだ回戦（無効なら最初に開く回戦） */
 export function pickRoundKey(selected, keys, res) {
-  return selected && keys.some((k) => k.key === selected) ? selected : defaultRoundKey(res);
+  return pickKey(selected, keys, defaultRoundKey(res));
 }
 
 /** その回戦の試合の行（tournamentResultRows の行から選ぶ） */
@@ -41,9 +46,17 @@ export function roundTabsHtml(keys, selected) {
     `<button type="button" role="tab" data-round-tab="${h(key)}" aria-selected="${key === selected}">${h(name)}</button>`).join('')}</div>`;
 }
 
-/** 回戦ごとの表示の中身（タブ＋カード） */
+/**
+ * 回戦ごとの表示の中身（タブ＋カード）。トーナメントと総当たりで共通。
+ * @param {{keys:{key:string,name:string}[], key:string, rows:object[], isClickable:(m:object) => boolean, footer?:string}} o
+ *   keys: タブ（回戦のキーと表示名）。key: 開く回戦。rows: *ResultRows の行。footer: カードの下に足す HTML（総当たりの「休み」）
+ */
+export function roundPanelHtml({ keys, key, rows, isClickable, footer = '' }) {
+  return roundTabsHtml(keys, key) + resultCardsHtml(rowsForRound(rows, key), isClickable, `${keys.find((k) => k.key === key)?.name ?? ''}の試合`) + footer;
+}
+
+/** トーナメントの回戦ごとの表示 */
 export function roundViewHtml(res, rows, selected) {
   const keys = roundKeys(res);
-  const key = pickRoundKey(selected, keys, res);
-  return roundTabsHtml(keys, key) + resultCardsHtml(rowsForRound(rows, key), (m) => m.playable, `${keys.find((k) => k.key === key)?.name ?? ''}の試合`);
+  return roundPanelHtml({ keys, key: pickRoundKey(selected, keys, res), rows, isClickable: (m) => m.playable });
 }

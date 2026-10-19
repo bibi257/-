@@ -31,6 +31,12 @@ function persist() {
 const panel = () => document.getElementById('my-panel');
 const enabled = () => isViewer() || on;
 
+/** 「自分の試合」で選んでいる選手の ID（機能が使われていない・名簿にいないときは null） */
+export function getMyPlayerId() {
+  load();
+  return enabled() ? resolveSaved(getState().players, saved) : null;
+}
+
 /** 画面の中の、選んだ選手の名前を強調する（data-pid を持つ要素に .mine を付ける） */
 export function applyMine(id) {
   document.querySelectorAll('[data-pid]').forEach((el) => el.classList.toggle('mine', !!id && el.dataset.pid === id));

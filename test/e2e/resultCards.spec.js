@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { open, importNames, genTournament } from './helpers.js';
+import { open, importNames, genTournament, openResultsFold } from './helpers.js';
 
 const NAMES12 = ['山田 太郎', '佐藤 花子', '鈴木 一郎', '高橋 次郎', '田中 三郎', '伊藤 四郎', '渡辺 五郎', '中村 六子', '小林 七海', '加藤 八郎', '吉田 九太', 'ああああああああああ'];
 const noOverflow = (page) => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth);
@@ -50,6 +50,7 @@ test.describe('試合結果一覧（スマホ幅 390px はカード）', () => {
     await open(page);
     await importNames(page, NAMES12);
     await page.click('[data-act=gen-league]');
+    await openResultsFold(page); // スマホ幅の総当たりでは、一覧は折りたたまれている
     await expect(page.locator('.results-table')).toBeHidden();
     await expect(page.locator('.results-table ~ .result-cards li')).toHaveCount(66);
     expect(await noOverflow(page)).toBe(true);

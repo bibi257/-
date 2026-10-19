@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { open, importNames, enterScore, download, genTournament } from './helpers.js';
+import { open, importNames, enterScore, download, genTournament, openResultsFold } from './helpers.js';
 
 const EIGHT = Array.from({ length: 8 }, (_, i) => `選手${i + 1}`);
 
@@ -174,10 +174,12 @@ for (const [w, h] of [[390, 844], [1280, 800]]) {
       await open(page);
       await importNames(page, EIGHT);
       await page.click('[data-act=gen-league]');
-      const sel = w > 700 ? '.results-table tbody tr[data-match]' : '.result-cards [data-match]';
+      await openResultsFold(page);
+      const sel = w > 700 ? '.results-table tbody tr[data-match]' : '.results-fold .result-cards [data-match]';
       await page.locator(sel).nth(3).click();
       await enterScore(page, 2, 1);
-      expect(await flashing(page)).toBe(3); // マス2つ＋一覧の1件
+      // PC: マス2つ＋一覧の1件。スマホ: 対戦表は隠れているので、一覧の1件＋回戦ごとの表示の1件（同じ1回戦）
+      expect(await flashing(page)).toBe(w > 700 ? 3 : 2);
       await page.waitForTimeout(1800);
       expect(await flashing(page)).toBe(0);
     });
@@ -203,6 +205,7 @@ for (const [w, h] of [[390, 844], [1280, 800]]) {
       await enterScore(page, 3, 0);
       await page.waitForTimeout(1800);
       page.once('dialog', (d) => d.accept());
+      if (w <= 700) await page.click('[data-view-mode=table]'); // スマホの初期表示は「回戦ごと」。対戦表に切り替える
       await page.locator('.matrix td.cell.done, .matrix td.cell.win, .matrix td.cell.loss').first().click();
       await page.click('#rd-clear');
       expect(await flashing(page)).toBeGreaterThan(0);

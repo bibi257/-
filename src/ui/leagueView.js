@@ -12,14 +12,30 @@ import { setupStartButtons } from './startMatch.js';
 import { scrollBehavior, flash } from './reveal.js';
 import { statusBadge, matchStatusKey } from './badge.js';
 import { resultCardsHtml } from './resultCards.js';
+import { roundPanelHtml, pickKey } from './roundView.js';
+import { foldHtml, syncFold, setupFold, isMobile } from './resultsFold.js';
+import { getMyPlayerId } from './myMatch.js';
 import { resolveLeague, setLeagueResult, setLeagueTable, leagueProgress, outcomeFor } from '../core/league.js';
 import { leagueMatrixTable, leagueResultRows, leagueResultsTable } from '../core/exportData.js';
 import { tableSvg } from '../render/svg.js';
 import { playerName, tableName } from '../core/state.js';
 import { assignTable, pickNextMatch } from '../core/result.js';
 import { sanitizeFilter, filterRows, countText, STATUS_FILTERS, MAX_NAME_FILTER } from '../core/matchFilter.js';
+import { leagueRoundKeys, defaultLeagueRoundKey, restNames, playerOpponentRows } from '../core/leagueRounds.js';
 
 const panel = () => document.getElementById('panel-league');
+
+// スマホ幅（700px 以下）の表示。'rounds'（回戦ごと。初期表示）| 'table'（対戦表で見る）。PC 幅は常に対戦表
+// round: 利用者が選んだ回戦（無ければ「試合待ちがある最初の回戦」）。player: 対戦表で選んだ選手（無ければ「自分の試合」の選手、それも無ければ「すべて」）
+const view = { mode: 'rounds', round: null, player: null };
+const FOLD_KEY = 'league-results';
+const collapsible = () => isMobile() && view.mode === 'rounds';
+
+/** 「対戦表で見る」で選んでいる選手の ID。「すべて」は 'all' */
+function currentPlayer(l) {
+  const v = view.player ?? getMyPlayerId() ?? 'all';
+  return v !== 'all' && l.playerIds.includes(v) ? v : 'all';
+}
 
 // 試合結果一覧の絞り込み。選んだ条件はこの端末の localStorage に残す（使えない環境でも動く）
 const FILTER_KEY = 'bukatsu-taikai:league-filter';
@@ -46,7 +62,7 @@ function filterChoices(st, rows) {
 /** 一覧（表とカード）の行を、条件に合わないものだけ画面から隠す。全行は DOM に残すので、印刷は全試合になる */
 function applyFilter(rows, f) {
   const shown = new Set(filterRows(rows, f).map((r) => r.match.id));
-  panel().querySelectorAll('.results-table tr[data-match], .result-cards [data-match]').forEach((el) => {
+  panel().querySelectorAll('.results-fold .results-table tr[data-match], .results-fold .result-cards [data-match]').forEach((el) => {
     el.closest('tr, li').toggleAttribute('data-filtered', !shown.has(el.dataset.match));
   });
   const count = document.getElementById('mf-count');
@@ -101,12 +117,22 @@ export function renderLeague() {
     ${tableBoardHtml(st, 'league')}
     ${prog.ready.length ? `<div class="next-list">${prog.ready.map((m) => nextItemHtml(st, m)).join('')}</div>` : ''}
   </div>
-  <div class="card">
+  <div class="card matrix-card" data-view="${view.mode}" data-player="${currentPlayer(l) === 'all' ? '' : '1'}">
     <h2>総当たり表 <span class="hint"><span class="owner-only">マスをクリックすると結果を入力できます</span>（行の選手から見た結果）</span></h2>
     <div class="toolbar no-print">${exportMenuHtml([
       { label: '総当たり表', csv: 'matrix-csv', png: 'matrix-png' },
       { label: '試合結果', csv: 'results-csv', png: 'results-png' },
     ])}</div>
+    <div class="view-switch no-print" role="group" aria-label="表示の切り替え">
+      <button type="button" class="small" data-view-mode="rounds" aria-pressed="${view.mode === 'rounds'}">回戦ごと</button>
+      <button type="button" class="small" data-view-mode="table" aria-pressed="${view.mode === 'table'}">対戦表で見る</button>
+    </div>
+    <div class="round-view" id="league-round-view"></div>
+    <div class="matrix-view">
+    <div class="player-pick no-print"><label for="lp-player">選手を選ぶ</label>
+      <select id="lp-player">${[['all', 'すべて'], ...l.playerIds.map((id) => [id, playerName(st, id)])].map(([v, label]) =>
+        `<option value="${h(v)}" ${v === currentPlayer(l) ? 'selected' : ''}>${h(label)}</option>`).join('')}</select></div>
+    <ul class="player-list no-print" id="league-player-list" aria-label="選んだ選手の対戦"></ul>
     <div class="table-wrap">
       <table class="data matrix">
         <thead><tr>${matrix.headers.map((x, i) => `<th${l.playerIds[i - 1] ? ` data-pid="${h(l.playerIds[i - 1])}"` : ''}>${h(x)}</th>`).join('')}</tr></thead>
@@ -121,10 +147,10 @@ export function renderLeague() {
         }).join('')}</tbody>
       </table>
     </div>
+    </div>
   </div>
   <div class="card">
-    <h2>試合結果一覧</h2>
-    ${filterBarHtml(st, rows, f)}
+    ${foldHtml({ key: FOLD_KEY, title: '試合結果一覧', count: `${rows.length}試合`, body: `${filterBarHtml(st, rows, f)}
     <div class="table-wrap results-table">
       <table class="data results">
         <thead><tr>${['試合番号', '回戦', '卓', '時間帯', '選手1', 'スコア', '選手2', '結果', '状態'].map((x) => `<th>${x}</th>`).join('')}</tr></thead>
@@ -136,9 +162,44 @@ export function renderLeague() {
           }).join('')}</tr>`).join('')}</tbody>
       </table>
     </div>
-    ${resultCardsHtml(rows)}
+    ${resultCardsHtml(rows)}` })}
   </div>`;
+  fillRoundView();
+  fillPlayerList();
+  syncFold(panel(), FOLD_KEY, collapsible);
   applyFilter(rows, f);
+}
+
+/** スマホ幅の「回戦ごと」表示（回戦のタブ＋試合のカード＋休みの選手）を、今の状態で描く */
+function fillRoundView() {
+  const host = document.getElementById('league-round-view');
+  const st = getState();
+  if (!host || !st.league) return;
+  const res = resolveLeague(st.league, st.tables);
+  const keys = leagueRoundKeys(res);
+  const key = pickKey(view.round, keys, defaultLeagueRoundKey(res));
+  const rest = restNames(st, res, key);
+  host.innerHTML = roundPanelHtml({
+    keys, key, rows: leagueResultRows(st), isClickable: () => true,
+    footer: rest.length ? `<p class="round-rest">休み：${h(rest.join('、'))}</p>` : '',
+  });
+  host.querySelector('[aria-selected="true"]')?.scrollIntoView?.({ inline: 'nearest', block: 'nearest' }); // 選んだタブが見える位置に
+}
+
+/** 「対戦表で見る」で選んだ選手の対戦を、縦のリストで描く（「すべて」のときは空で、対戦表を出す） */
+function fillPlayerList() {
+  const host = document.getElementById('league-player-list');
+  const st = getState();
+  if (!host || !st.league) return;
+  const id = currentPlayer(st.league);
+  const pick = document.getElementById('lp-player');
+  if (pick) pick.value = id; // 「自分の試合」で名前を選んだあとに切り替えたときも、その名前が初期値になる
+  host.closest('.matrix-card')?.setAttribute('data-player', id === 'all' ? '' : '1');
+  host.innerHTML = id === 'all' ? '' : playerOpponentRows(st, id).map((r) => `<li><button type="button" class="pl-row st-${h(r.match.status)}" data-match="${h(r.match.id)}">
+      <span class="pl-round">${r.round}回戦</span>
+      <span class="pl-opp" data-pid="${h(r.opponentId)}">${h(r.opponent)}</span>
+      <span class="pl-result pl-${r.outcome ?? 'pending'}">${h(r.text || '未実施')}</span>
+      <span class="pl-status">${statusBadge(matchStatusKey(r.match))}</span></button></li>`).join('');
 }
 
 function openNext(afterNo) {
@@ -154,8 +215,9 @@ function openNext(afterNo) {
 function revealSaved(id, region) {
   const mine = (sel) => [...panel().querySelectorAll(sel)].filter((x) => x.dataset.match === id);
   const cells = mine('.matrix td[data-match]');
-  const list = [...mine('.results-table tr[data-match]'), ...mine('.result-cards [data-match]')].filter((x) => x.getClientRects().length > 0);
-  const target = region === 'list' ? list[0] ?? cells[0] : cells[0];
+  const list = [...mine('.results-table tr[data-match]'), ...mine('.result-cards [data-match]'), ...mine('.player-list [data-match]')].filter((x) => x.getClientRects().length > 0);
+  const shown = (x) => x.getClientRects().length > 0;
+  const target = region === 'list' ? list[0] ?? cells.find(shown) : cells.find(shown) ?? list[0]; // スマホの「回戦ごと」では対戦表が隠れているので、見えている方へ
   target?.scrollIntoView({ block: region === 'next' ? 'center' : 'nearest', inline: 'nearest', behavior: scrollBehavior() });
   for (const el of [...cells, ...list]) flash(el);
 }
@@ -166,6 +228,7 @@ function openMatch(id, region = 'next') {
   const res = resolveLeague(l, st.tables);
   const m = res.matches.find((x) => x.id === id);
   if (!m) return;
+  if (region === 'rounds') view.round = String(m.round); // 回戦ごとの表示から開いたときは、保存して回戦が全部終わっても、その回戦のままにする
   const seq = res.matches.filter((x) => x.round === m.round).indexOf(m);
   const auto = assignTable(seq, st.tables, null);
   openResultDialog({
@@ -229,12 +292,32 @@ function resetFilter() {
 export function setupLeagueView() {
   const p = panel();
   setupStartButtons(p, 'league');
+  setupFold(p, FOLD_KEY, collapsible);
   p.addEventListener('input', (e) => { if (e.target.closest('.match-filter')) onFilterChange(); });
-  p.addEventListener('change', (e) => { if (e.target.closest('.match-filter')) onFilterChange(); });
+  p.addEventListener('change', (e) => {
+    if (e.target.closest('.match-filter')) onFilterChange();
+    if (e.target.id === 'lp-player') { view.player = e.target.value; fillPlayerList(); }
+  });
   p.addEventListener('click', (e) => {
     if (e.target.closest('[data-filter-reset]')) { resetFilter(); return; }
+    const sw = e.target.closest('[data-view-mode]');
+    if (sw) {
+      view.mode = sw.dataset.viewMode;
+      const card = sw.closest('.matrix-card');
+      card?.setAttribute('data-view', view.mode);
+      card?.querySelectorAll('[data-view-mode]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.viewMode === view.mode)));
+      syncFold(p, FOLD_KEY, collapsible);
+      fillPlayerList();
+      return;
+    }
+    const tab = e.target.closest('[data-round-tab]');
+    if (tab) { view.round = tab.dataset.roundTab; fillRoundView(); return; }
     const c = e.target.closest('[data-match]');
-    if (c) { openMatch(c.dataset.match, c.closest('.matrix') ? 'matrix' : c.closest('.results-table, .result-cards') ? 'list' : 'next'); return; }
+    if (c) {
+      const region = c.closest('.matrix') ? 'matrix' : c.closest('#league-round-view') ? 'rounds' : c.closest('.results-table, .result-cards, .player-list') ? 'list' : 'next';
+      openMatch(c.dataset.match, region);
+      return;
+    }
     const ex = e.target.closest('[data-export]');
     if (ex) onExport(ex.dataset.export);
   });

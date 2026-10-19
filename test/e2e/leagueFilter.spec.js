@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { open, importNames, enterScore, download, genTournament } from './helpers.js';
+import { open, importNames, enterScore, download, genTournament, openResultsFold } from './helpers.js';
 
 const FOUR = ['山田 太郎', '佐藤 花子', '鈴木 一郎', '高橋 次郎'];
 
@@ -10,10 +10,11 @@ async function prepare(page) {
   await page.click('[data-act=gen-league]');
   await page.locator('#panel-league .next-item').first().click();
   await enterScore(page, 3, 1);
+  await openResultsFold(page); // スマホ幅では、一覧は折りたたまれている
 }
 
 /** 画面に見えている試合の数（PC は表、スマホはカード） */
-const visibleCount = (page) => page.locator('.results-table tbody tr, .result-cards > li').evaluateAll(
+const visibleCount = (page) => page.locator('.results-fold .results-table tbody tr, .results-fold .result-cards > li').evaluateAll(
   (els) => els.filter((e) => e.getClientRects().length > 0).length,
 );
 const count = (page) => page.locator('#mf-count');
@@ -98,11 +99,12 @@ for (const [w, h] of [[390, 844], [1280, 800]]) {
       await page.fill('#mf-name', '山田');
       await page.reload();
       await page.click('[data-tab=league]');
+      await openResultsFold(page); // 読み込み直すと、スマホ幅の一覧は折りたたまれた状態に戻る
       await expect(page.locator('#mf-status')).toHaveValue('pending');
       await expect(page.locator('#mf-name')).toHaveValue('山田');
       await expect(count(page)).toHaveText('6試合中 2試合を表示');
       // 一覧の試合を押して結果を保存すると、その試合は「終了」になって一覧から消えるが、条件は残る
-      const sel = w > 700 ? '.results-table tbody tr[data-match]:visible' : '.result-cards [data-match]:visible';
+      const sel = w > 700 ? '.results-table tbody tr[data-match]:visible' : '.results-fold .result-cards [data-match]:visible';
       await page.locator(sel).first().click();
       await enterScore(page, 2, 0);
       await expect(page.locator('#mf-status')).toHaveValue('pending');
