@@ -111,7 +111,7 @@ export function tournamentStandingsTable(state) {
   };
 }
 
-function matrixCell(m, result, id) {
+export function matrixCell(m, result, id) {
   if (!m) return '';
   const o = outcomeFor(m, result, id);
   if (!o) return '';
