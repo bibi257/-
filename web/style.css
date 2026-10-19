@@ -1,6 +1,6 @@
 /* ===== トークン =====
    色: インク紺（ヘッダー・見出し）／紙白（カード）／キャンバス／罫線／操作の青／優勝の金。影は使わず、罫線で階層を作る
-   文字: システムの日本語フォント。本文 15px・行間 1.65。数字は幅をそろえる
+   文字: 本文は IBM Plex Sans JP（web/fonts に同梱）、コード・時刻・点数は IBM Plex Mono。本文 15px・行間 1.65。数字は幅をそろえる
    角丸: カード 12／入力・ボタン 8／チップ 999 */
 :root {
   --ink: #13233a;
@@ -40,6 +40,8 @@
   --track: #e3e8ee;
   --mine-bg: #dff3e6; /* 「自分の試合」で、選んだ選手の名前を強調する背景（緑） */
   color-scheme: light;
+  --font-sans: 'IBM Plex Sans JP', 'BIZ UDPGothic', 'Yu Gothic UI', 'Yu Gothic', Meiryo, 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+  --font-mono: 'IBM Plex Mono', 'IBM Plex Sans JP', ui-monospace, Consolas, monospace;
   --r-card: 12px;
   --r-ctl: 8px;
   /* 以前の名前（互換） */
@@ -47,7 +49,7 @@
   --panel: var(--paper);
   --line: var(--rule);
   --radius: var(--r-ctl);
-  font-family: 'BIZ UDPGothic', 'Yu Gothic UI', 'Yu Gothic', Meiryo, 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+  font-family: var(--font-sans);
   color: var(--text);
   background: var(--canvas);
   font-size: 15px;
@@ -58,6 +60,10 @@
 body { margin: 0; background: var(--canvas); font-variant-numeric: tabular-nums; }
 button, input, select, textarea { font: inherit; color: inherit; }
 h1, h2, h3, p { overflow-wrap: anywhere; }
+
+/* ===== 要所のフォント =====
+   試合番号・点数・経過時間・倍率・共有コードなど「数えるもの」は IBM Plex Mono。幅がそろい、本文の Plex Sans と並べても揺れない */
+.ni-no, .my-no, .pr-no, .cs-no, .rc-score, .rd-score, .ni-elapsed, .zoom-level, .cs-progress, .sh-code { font-family: var(--font-mono); }
 
 /* ===== ヘッダーとタブ ===== */
 .app-header {
@@ -205,7 +211,7 @@ button.rc:hover:not(:disabled) { background: var(--primary-weak); border-color: 
 .seed-pick .seed-badge { margin-left: 0; }
 .seed-badge { display: inline-block; background: var(--gold-weak); color: var(--gold); border: 1px solid var(--gold-line); border-radius: 999px; padding: 0 8px; font-size: 12px; margin-left: 6px; white-space: nowrap; line-height: 1.5; }
 .add-row { display: flex; gap: 8px; margin-top: 12px; }
-.add-row input { flex: 1; }
+.add-row input { flex: 1; min-width: 0; } /* 入力欄の標準の幅はフォントで変わる。縮められないと、狭い画面で横にはみ出す */
 /* 参加者・設定：3段階の流れ */
 .steps { margin: 0 0 16px; }
 .steps ol { list-style: none; margin: 0; padding: 0; display: flex; gap: 8px; }
@@ -508,7 +514,7 @@ body.viewer .owner-only { display: none !important; }
   .sh-row:has(#sh-link) input { flex: 1 0 100%; }
   .sh-row:has(#sh-link) button { flex: 1 1 0; }
 }
-.sh-code { font-family: ui-monospace, Consolas, monospace; font-size: 22px; letter-spacing: .12em; color: var(--ink); }
+.sh-code { font-family: var(--font-mono); font-size: 22px; letter-spacing: .12em; color: var(--ink); }
 .sh-actions { display: flex; gap: 8px; flex-wrap: wrap; margin: 14px 0 4px; }
 .sh-details { margin-top: 14px; }
 .sh-details summary { cursor: pointer; color: var(--primary); }

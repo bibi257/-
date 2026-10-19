@@ -2,7 +2,7 @@
 
 import { getState, setState } from './store.js';
 import { emptyGuideHtml } from './emptyGuide.js';
-import { h, toast, measureText, downloadCSV, downloadPNG } from './io.js';
+import { h, toast, pngOptions, downloadCSV, downloadPNG } from './io.js';
 import { openResultDialog } from './resultDialog.js';
 import { nextEditionButton } from './editions.js';
 import { nextItemHtml } from './callCard.js';
@@ -202,7 +202,7 @@ async function onExport(kind) {
     else if (kind === 'results-csv') downloadCSV(leagueResultsTable(st));
     else if (kind === 'matrix-png' || kind === 'results-png') {
       const table = kind === 'matrix-png' ? leagueMatrixTable(st) : leagueResultsTable(st);
-      await downloadPNG(tableSvg(st, table, { measure: measureText }), table.title);
+      await downloadPNG(tableSvg(st, table, pngOptions), table.title);
     } else if (kind === 'print') window.print();
   } catch (e) {
     toast(`出力に失敗しました: ${e.message}`, { error: true });

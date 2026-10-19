@@ -2,7 +2,7 @@
 
 import { getState } from './store.js';
 import { emptyGuideHtml } from './emptyGuide.js';
-import { h, toast, measureText, downloadCSV, downloadPNG } from './io.js';
+import { h, toast, pngOptions, downloadCSV, downloadPNG } from './io.js';
 import { tournamentStandingsTable, tournamentStandingsRows, leagueStandingsTable } from '../core/exportData.js';
 import { exportMenuHtml } from './exportMenu.js';
 import { aliveBadge } from './badge.js';
@@ -63,7 +63,7 @@ async function onExport(kind) {
     if (kind === 'print') { window.print(); return; }
     const table = kind.startsWith('t-') ? tournamentStandingsTable(st) : leagueStandingsTable(st);
     if (kind.endsWith('-csv')) downloadCSV(table);
-    else await downloadPNG(tableSvg(st, table, { measure: measureText }), table.title);
+    else await downloadPNG(tableSvg(st, table, pngOptions), table.title);
   } catch (e) {
     toast(`出力に失敗しました: ${e.message}`, { error: true });
   }
