@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { inflateSync } from 'node:zlib';
-import { open, importNames, enterScore, download } from './helpers.js';
+import { open, importNames, enterScore, download, genTournament } from './helpers.js';
 
 const NAMES = ['山田 太郎', '佐藤 花子', '鈴木 一郎', '高橋 次郎'];
 const rgb = (hex) => { const n = parseInt(hex.slice(1), 16); return `rgb(${n >> 16}, ${(n >> 8) & 255}, ${n & 255})`; };
@@ -22,7 +22,7 @@ function firstPixel(png) {
 async function startTournament(page) {
   await open(page);
   await importNames(page, NAMES);
-  await page.click('[data-act=gen-tournament]');
+  await genTournament(page);
 }
 
 test.describe('ダークモード（端末の設定がダーク）', () => {

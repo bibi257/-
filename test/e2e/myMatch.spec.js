@@ -1,12 +1,12 @@
 import { test, expect } from '@playwright/test';
-import { open, importNames, enterScore, acceptDialogs } from './helpers.js';
+import { open, importNames, enterScore, acceptDialogs, genTournament } from './helpers.js';
 
 const EIGHT = ['山田 太郎', '佐藤 花子', '鈴木 一郎', '高橋 次郎', '田中 三郎', '伊藤 四郎', '渡辺 五郎', '中村 六子'];
 
 async function startTournament(page, names = EIGHT) {
   await open(page);
   await importNames(page, names);
-  await page.click('[data-act=gen-tournament]');
+  await genTournament(page);
 }
 const turnOn = (page) => page.click('[data-my-toggle=on]');
 const choose = (page, name) => page.fill('#my-name', name);
@@ -138,7 +138,7 @@ test('localStorage が使えなくても動く', async ({ page }) => {
     Storage.prototype.setItem = () => { throw new Error('使えません'); };
   });
   await importNames(page, EIGHT);
-  await page.click('[data-act=gen-tournament]');
+  await genTournament(page);
   await turnOn(page);
   await choose(page, '山田 太郎');
   await expect(page.locator('#my-cards .my-card')).toHaveCount(1);
@@ -162,7 +162,7 @@ test('卓名に HTML があっても、「あなたの次の試合」では文�
   await open(page);
   await importNames(page, EIGHT);
   await page.locator('input.table-name').first().fill('<i id=pwn>a</i>');
-  await page.click('[data-act=gen-tournament]');
+  await genTournament(page);
   await turnOn(page);
   await choose(page, '山田 太郎'); // 1番の組は第1卓
   await expect(page.locator('#my-cards .my-table')).toContainText('<i id=pwn>a</i>');

@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { NAMES, open, importNames } from './helpers.js';
+import { NAMES, open, importNames, genTournament } from './helpers.js';
 
 const css = (loc, prop) => loc.evaluate((el, p) => getComputedStyle(el)[p], prop);
 
@@ -60,7 +60,7 @@ test.describe('スマホ幅（390px）のヘッダーとタブ', () => {
   test('タブは見切れず1画面に収まり、全タブを順に開ける', async ({ page }) => {
     await open(page);
     await importNames(page, NAMES);
-    await page.click('[data-act=gen-tournament]');
+    await genTournament(page);
     const tabs = page.locator('.tabs');
     for (const name of ['setup', 'tournament', 'league', 'standings']) {
       await page.tap(`.tabs [data-tab=${name}]`);
@@ -99,7 +99,7 @@ test.describe('スマホ幅（390px）のヘッダーとタブ', () => {
     const h = await page.locator('#app-header').boundingBox();
     expect(h.y + h.height).toBeLessThanOrEqual(0);
     // その位置からでもタブを押せる
-    await page.click('[data-act=gen-tournament]');
+    await genTournament(page);
     await page.evaluate(() => window.scrollTo(0, 1200));
     await page.tap('.tabs [data-tab=league]');
     await expect(page.locator('.tabs [data-tab=league]')).toHaveAttribute('aria-selected', 'true');

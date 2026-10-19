@@ -1,12 +1,12 @@
 import { test, expect } from '@playwright/test';
-import { NAMES, open, importNames, enterScore, download } from './helpers.js';
+import { NAMES, open, importNames, enterScore, download, genTournament } from './helpers.js';
 
 const css = (loc, prop) => loc.evaluate((el, p) => getComputedStyle(el)[p], prop);
 
 async function setup(page) {
   await open(page);
   await importNames(page, NAMES.slice(0, 4));
-  await page.click('[data-act=gen-tournament]');
+  await genTournament(page);
 }
 async function play(page, a, b) {
   await page.locator('.tab-panel:not([hidden]) .next-item').first().click();

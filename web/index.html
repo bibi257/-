@@ -95,6 +95,21 @@
     <div class="cs-body" id="cs-body" aria-live="polite"></div>
   </dialog>
 
+  <dialog id="pairing-dialog" aria-labelledby="pr-title">
+    <form method="dialog" id="pairing-form">
+      <h2 id="pr-title">トーナメントの組み合わせ（1回戦）</h2>
+      <p class="hint">この組み合わせで作成します。入れ替えたい選手を、2人続けて押してください（1人目を押すと色が付き、2人目を押すと位置が入れ替わります）。</p>
+      <ol id="pr-list" class="pairing"></ol>
+      <p id="pr-status" class="pr-status" role="status" aria-live="polite"></p>
+      <div class="dialog-buttons">
+        <button type="button" id="pr-redraw" hidden>抽選をやり直す</button>
+        <span class="spacer"></span>
+        <button type="button" id="pr-cancel">キャンセル</button>
+        <button type="button" class="primary" id="pr-ok">この組み合わせで作成</button>
+      </div>
+    </form>
+  </dialog>
+
   <dialog id="choice-dialog" aria-labelledby="ch-title">
     <form method="dialog" id="choice-form">
       <h2 id="ch-title"></h2>

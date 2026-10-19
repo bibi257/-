@@ -1,12 +1,12 @@
 import { test, expect } from '@playwright/test';
-import { open, importNames, enterScore, acceptDialogs } from './helpers.js';
+import { open, importNames, enterScore, acceptDialogs, genTournament } from './helpers.js';
 
 const EIGHT = ['山田 太郎', '佐藤 花子', '鈴木 一郎', '高橋 次郎', '田中 三郎', '伊藤 四郎', '渡辺 五郎', '中村 六子'];
 
 async function startTournament(page, names = EIGHT) {
   await open(page);
   await importNames(page, names);
-  await page.click('[data-act=gen-tournament]');
+  await genTournament(page);
 }
 const card = (page, no) => page.locator('#panel-tournament .ni-card', { hasText: `No.${no}` }).first();
 const board = (page) => page.locator('#panel-tournament .table-board');
@@ -145,7 +145,7 @@ test('3位決定戦も開始できる', async ({ page }) => {
   await open(page);
   await importNames(page, ['A', 'B', 'C', 'D']);
   await page.check('#third-place');
-  await page.click('[data-act=gen-tournament]');
+  await genTournament(page);
   for (let i = 0; i < 2; i++) { await card(page, i + 1).locator('.next-item').click(); await enterScore(page, 2, 1); }
   const third = page.locator('#panel-tournament .ni-card', { hasText: 'No.3' }).first();
   await third.locator('[data-start]').click();

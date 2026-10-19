@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { open, importNames, enterScore, download } from './helpers.js';
+import { open, importNames, enterScore, download, genTournament } from './helpers.js';
 
 const FOUR = ['山田 太郎', '佐藤 花子', '鈴木 一郎', '高橋 次郎'];
 
@@ -146,6 +146,6 @@ test('localStorage が使えなくても、絞り込みは動く', async ({ page
 test('総当たりの試合が絞り込みの対象で、トーナメントの結果一覧には絞り込みが出ない', async ({ page }) => {
   await open(page);
   await importNames(page, FOUR);
-  await page.click('[data-act=gen-tournament]');
+  await genTournament(page);
   await expect(page.locator('.match-filter')).toHaveCount(0);
 });

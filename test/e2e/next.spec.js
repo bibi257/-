@@ -1,12 +1,12 @@
 import { test, expect } from '@playwright/test';
-import { NAMES, acceptDialogs, open, importNames, setNumber, enterScore } from './helpers.js';
+import { NAMES, acceptDialogs, open, importNames, setNumber, enterScore, genTournament } from './helpers.js';
 
 test.describe('保存して次へ', () => {
   test('トーナメント: 結果を保存すると次の試合の入力が開く。Ctrl+Enter でも進める', async ({ page }) => {
     acceptDialogs(page);
     await open(page);
     await importNames(page, NAMES.slice(0, 4));
-    await page.click('[data-act=gen-tournament]');
+    await genTournament(page);
 
     await page.locator('.next-item', { hasText: 'No.1' }).click();
     await expect(page.locator('#rd-next')).toBeVisible();
@@ -35,7 +35,7 @@ test.describe('保存して次へ', () => {
     acceptDialogs(page);
     await open(page);
     await importNames(page, NAMES.slice(0, 4));
-    await page.click('[data-act=gen-tournament]');
+    await genTournament(page);
     await page.locator('.next-item', { hasText: 'No.1' }).click();
     await page.click('#rd-next');
     await expect(page.locator('#rd-error')).toContainText('次の試合へ進めます');
@@ -50,7 +50,7 @@ test.describe('保存して次へ', () => {
     acceptDialogs(page);
     await open(page);
     await importNames(page, NAMES.slice(0, 2));
-    await page.click('[data-act=gen-tournament]');
+    await genTournament(page);
     await page.locator('.next-item', { hasText: 'No.1' }).click();
     await page.fill('#rd-s1', '2');
     await page.fill('#rd-s2', '1');
@@ -82,7 +82,7 @@ test.describe('保存して次へ', () => {
     acceptDialogs(page);
     await open(page);
     await importNames(page, NAMES.slice(0, 4));
-    await page.click('[data-act=gen-tournament]');
+    await genTournament(page);
     await page.locator('table.results tbody tr[data-match="R2-M1"]').click();
     await expect(page.locator('#rd-next')).toBeHidden();
   });
@@ -92,7 +92,7 @@ test.describe('呼び出し画面', () => {
   test('メイン画面と同じ白ベース（薄い灰の背景・白い札・紺の文字）。濃い背景は使わない', async ({ page }) => {
     await open(page);
     await importNames(page, NAMES.slice(0, 4));
-    await page.click('[data-act=gen-tournament]');
+    await genTournament(page);
     await page.click('[data-call=tournament]');
     const dlg = page.locator('#call-screen');
     await expect(dlg).toBeVisible();
@@ -113,7 +113,7 @@ test.describe('呼び出し画面', () => {
     await importNames(page, NAMES.slice(0, 4));
     await setNumber(page, '#table-count', 2);
     await page.locator('input.table-name').first().fill('Aコート');
-    await page.click('[data-act=gen-tournament]');
+    await genTournament(page);
 
     await page.click('[data-call=tournament]');
     const dlg = page.locator('#call-screen');
@@ -140,7 +140,7 @@ test.describe('呼び出し画面', () => {
     acceptDialogs(page);
     await open(page);
     await importNames(page, ['<b>甲</b>', '乙']);
-    await page.click('[data-act=gen-tournament]');
+    await genTournament(page);
     await page.click('[data-call=tournament]');
     await expect(page.locator('.cs-card')).toContainText('<b>甲</b>');
     await expect(page.locator('.cs-card b')).toHaveCount(0);

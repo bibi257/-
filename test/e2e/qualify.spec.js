@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { NAMES, acceptDialogs, open, importNames, enterScore } from './helpers.js';
+import { NAMES, acceptDialogs, open, importNames, enterScore, genTournament } from './helpers.js';
 
 /** 総当たりを最後まで入力する（名簿で前にいる選手が勝つ） */
 async function playLeague(page, n) {
@@ -42,7 +42,7 @@ test('総当たりの上位N人を順位順の名簿にして、次の回を始�
   await expect(page.locator('#editions-card')).toContainText('総当たり 1位 山田 太郎');
 
   // そのまま決勝トーナメントを作れる（シード順＝順位順）
-  await page.click('[data-act=gen-tournament]');
+  await genTournament(page);
   await page.waitForSelector('#bracket-wrap svg');
   await expect(page.locator('.next-item')).toHaveCount(1);
 
@@ -80,7 +80,7 @@ test('トーナメントだけの大会には出さない', async ({ page }) => 
   acceptDialogs(page);
   await open(page);
   await importNames(page, NAMES.slice(0, 4));
-  await page.click('[data-act=gen-tournament]');
+  await genTournament(page);
   await page.click('.tabs [data-tab=standings]');
   await expect(page.locator('.qualify')).toHaveCount(0);
 });

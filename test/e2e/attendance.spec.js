@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { open, importNames, enterScore, acceptDialogs } from './helpers.js';
+import { open, importNames, enterScore, acceptDialogs, genTournament } from './helpers.js';
 
 const EIGHT = ['山田 太郎', '佐藤 花子', '鈴木 一郎', '高橋 次郎', '田中 三郎', '伊藤 四郎', '渡辺 五郎', '中村 六子'];
 const FOUR = ['山田 太郎', '佐藤 花子', '鈴木 一郎', '高橋 次郎'];
@@ -53,7 +53,7 @@ for (const [w, h] of [[390, 844], [1280, 800]]) {
 
     test('欠席者がいなければ、作成時に何も聞かない', async ({ page }) => {
       await setup(page);
-      await page.click('[data-act=gen-tournament]');
+      await genTournament(page);
       await expect(choice(page)).not.toBeVisible();
       await expect(page.locator('#panel-tournament .card').first()).toBeVisible();
       expect((await saved(page)).tournament.playerIds).toHaveLength(8);
@@ -74,6 +74,7 @@ for (const [w, h] of [[390, 844], [1280, 800]]) {
       await page.click('[data-act=gen-tournament]');
       await expect(choice(page).locator('input[value=exclude]')).toBeChecked(); // 初期値は「除いて作る」
       await choice(page).locator('#ch-ok').click();
+      await page.click('#pr-ok'); // 組み合わせの確認
       await expect(page.locator('#toast')).toContainText('欠席の2人を除きました');
       const st = await saved(page);
       expect(st.tournament.playerIds).toHaveLength(6);
@@ -88,6 +89,7 @@ for (const [w, h] of [[390, 844], [1280, 800]]) {
       await page.click('[data-act=gen-tournament]');
       await choice(page).locator('input[value=walkover]').check();
       await choice(page).locator('#ch-ok').click();
+      await page.click('#pr-ok'); // 組み合わせの確認
       await expect(page.locator('#toast')).toContainText('不戦にしました');
       const st = await saved(page);
       expect(st.tournament.playerIds).toHaveLength(8);
@@ -139,7 +141,7 @@ for (const [w, h] of [[390, 844], [1280, 800]]) {
 
     test('作成後に欠席にする: 出る試合があれば聞く。「不戦にする」で相手の不戦勝になる', async ({ page }) => {
       await setup(page);
-      await page.click('[data-act=gen-tournament]');
+      await genTournament(page);
       await page.click('[data-tab=setup]');
       await box(page, 0).uncheck();
       await expect(choice(page)).toBeVisible();
@@ -157,7 +159,7 @@ for (const [w, h] of [[390, 844], [1280, 800]]) {
 
     test('作成後に欠席にする: キャンセルならチェックを元に戻す。「記録だけ残す」なら試合は変えない', async ({ page }) => {
       await setup(page);
-      await page.click('[data-act=gen-tournament]');
+      await genTournament(page);
       await page.click('[data-tab=setup]');
       await box(page, 0).uncheck();
       await choice(page).locator('#ch-cancel').click();
@@ -188,6 +190,7 @@ for (const [w, h] of [[390, 844], [1280, 800]]) {
       await page.click('[data-act=gen-tournament]');
       await choice(page).locator('input[value=walkover]').check();
       await choice(page).locator('#ch-ok').click();
+      await page.click('#pr-ok'); // 組み合わせの確認
       let st = await saved(page);
       expect(Object.keys(st.tournament.results)).toHaveLength(1); // 欠席どうしの1回戦だけ
       // 残りの1回戦（佐藤-鈴木）を入力すると、勝者と欠席の山田の決勝が、続けて不戦になる
@@ -207,6 +210,7 @@ for (const [w, h] of [[390, 844], [1280, 800]]) {
       await page.click('[data-act=gen-tournament]');
       await choice(page).locator('input[value=walkover]').check();
       await choice(page).locator('#ch-ok').click();
+      await page.click('#pr-ok'); // 組み合わせの確認
       await page.click('[data-tab=setup]');
       await page.click('[data-act=all-present]');
       let st = await saved(page);

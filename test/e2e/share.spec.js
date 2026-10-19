@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { NAMES, open, importNames, acceptDialogs, enterScore } from './helpers.js';
+import { NAMES, open, importNames, acceptDialogs, enterScore, genTournament } from './helpers.js';
 
 // 共有機能: 画面と共有 API（Worker のコード）を同じオリジンで動かして確認する。本番の Cloudflare/D1 ではない
 test.use({ baseURL: 'http://localhost:4174/' });
@@ -31,7 +31,7 @@ async function startShare(page) {
 
 async function makeTournament(page) {
   await importNames(page, NAMES);
-  await page.click('[data-act=gen-tournament]');
+  await genTournament(page);
   await page.waitForSelector('#bracket-wrap svg');
 }
 
@@ -270,7 +270,7 @@ test('閲覧者も過去の回の結果を見られる。見ている間に運�
   acceptDialogs(v);
   await open(a);
   await importNames(a, ['山田 太郎', '佐藤 花子', '鈴木 一郎', '高橋 次郎']);
-  await a.click('[data-act=gen-tournament]');
+  await genTournament(a);
   for (let i = 0; i < 3; i++) {
     await a.locator('.next-item').first().click();
     await enterScore(a, 2, 1);
@@ -280,7 +280,7 @@ test('閲覧者も過去の回の結果を見られる。見ている間に運�
   await a.click('#sh-close');
   // 第2回を始めて、表を作る（まだ結果は無い）
   await a.click('.progress [data-edition=next]');
-  await a.click('[data-act=gen-tournament]');
+  await genTournament(a);
   await a.waitForSelector('#bracket-wrap svg');
 
   // 閲覧者: 現在の回（第2回）が開き、「過去の回の結果も見られます」が出る

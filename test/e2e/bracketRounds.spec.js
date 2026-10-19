@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { open, importNames, enterScore } from './helpers.js';
+import { open, importNames, enterScore, genTournament } from './helpers.js';
 
 const players = (n) => Array.from({ length: n }, (_, i) => `選手${i + 1} 山田`);
 const noOverflow = (page) => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth);
@@ -8,7 +8,7 @@ async function start(page, n, { third = false } = {}) {
   await open(page);
   await importNames(page, players(n));
   if (third) await page.check('#third-place');
-  await page.click('[data-act=gen-tournament]');
+  await genTournament(page);
   await expect(page.locator('#round-view')).toBeVisible();
 }
 const tab = (page, key) => page.locator(`#round-view [data-round-tab="${key}"]`);
@@ -114,7 +114,7 @@ test.describe('PC幅（1280px）は今までどおり表だけ', () => {
   test('回戦ごとの表示と切り替えは出ない', async ({ page }) => {
     await open(page);
     await importNames(page, players(12));
-    await page.click('[data-act=gen-tournament]');
+    await genTournament(page);
     await expect(page.locator('#bracket-wrap')).toBeVisible();
     await expect(page.locator('.bracket-controls')).toBeVisible();
     await expect(page.locator('#round-view')).toBeHidden();
@@ -125,7 +125,7 @@ test.describe('PC幅（1280px）は今までどおり表だけ', () => {
     await page.setViewportSize({ width: 390, height: 844 });
     await open(page);
     await importNames(page, players(12));
-    await page.click('[data-act=gen-tournament]');
+    await genTournament(page);
     await expect(page.locator('#round-view')).toBeVisible(); // スマホ幅では回戦ごと
     await page.emulateMedia({ media: 'print' });
     await expect(page.locator('#round-view')).toBeHidden();

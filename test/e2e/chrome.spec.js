@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { open, importNames } from './helpers.js';
+import { open, importNames, genTournament } from './helpers.js';
 
 for (const [w, h] of [[390, 844], [1280, 800]]) {
   test.describe(`タブとポップ（幅${w}px）`, () => {
@@ -20,7 +20,7 @@ for (const [w, h] of [[390, 844], [1280, 800]]) {
     test('操作後のポップは文字が中央揃えで、画面の半分の幅で折り返さない', async ({ page }) => {
       await open(page);
       await importNames(page, ['A', 'B', 'C', 'D']);
-      await page.click('[data-act=gen-tournament]');
+      await genTournament(page);
       const toast = page.locator('#toast');
       await expect(toast).toContainText('作成しました');
       expect(await toast.evaluate((el) => getComputedStyle(el).textAlign)).toBe('center');

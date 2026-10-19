@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { open, importNames } from './helpers.js';
+import { open, importNames, genTournament } from './helpers.js';
 
 const NAMES = Array.from({ length: 12 }, (_, i) => `選手${i + 1}`);
 const done = (page, n) => page.locator(`.steps li:nth-child(${n}) .step`);
@@ -28,7 +28,7 @@ for (const [w, h] of [[390, 844], [1280, 800]]) {
       await expect(done(page, 3)).not.toHaveClass(/done/);
       await expect(done(page, 1)).toHaveAttribute('aria-label', /済み/);
 
-      await page.click('[data-act=gen-tournament]');
+      await genTournament(page);
       await page.click('.tabs [data-tab=setup]');
       await expect(done(page, 3)).toHaveClass(/done/);
       await expect(done(page, 2)).not.toHaveClass(/done/); // 2 には確認する項目がない
@@ -80,7 +80,7 @@ for (const [w, h] of [[390, 844], [1280, 800]]) {
         expect(bb.y + bb.height).toBeGreaterThan(cb.y + cb.height - 30); // カードの下
         await expect(page.locator(`#${card} .create-note`)).toHaveCount(0);
       }
-      await page.click('[data-act=gen-tournament]');
+      await genTournament(page);
       await page.click('.tabs [data-tab=setup]');
       await expect(page.locator('[data-act=gen-tournament]')).toHaveText('トーナメント表を作り直す');
       await expect(page.locator('#setup-tournament .create-note')).toContainText('結果はすべて消えます');

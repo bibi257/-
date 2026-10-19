@@ -47,8 +47,10 @@ export function roundName(round, roundCount) {
  * playerIds の並び順がシード順。先頭 seedCount 人がシード。
  * シード外は placement が 'random' なら抽選、'order' なら名簿順で順位付けし、
  * 標準シード順の位置に配置する。不戦（bye）は順位の高い選手から割り当てられる。
+ * slots を渡すと、1回戦の配置をその指定どおりにする（組み合わせの確認画面で選手を入れ替えたとき）。
+ * 渡す配置は、全員がちょうど1回ずつ入り、残りが不戦（null）で、不戦どうしの組がないこと。正しくなければ例外にする。
  */
-export function generateTournament(playerIds, { seedCount = 0, placement = 'order', thirdPlace = false } = {}, rng = Math.random) {
+export function generateTournament(playerIds, { seedCount = 0, placement = 'order', thirdPlace = false, slots: given = null } = {}, rng = Math.random) {
   const n = playerIds.length;
   if (n < MIN_PLAYERS) throw new Error(`トーナメントには${MIN_PLAYERS}人以上必要です`);
   if (n > MAX_PLAYERS) throw new Error(`トーナメントは${MAX_PLAYERS}人までです`);
@@ -57,7 +59,7 @@ export function generateTournament(playerIds, { seedCount = 0, placement = 'orde
   const head = playerIds.slice(0, seeds);
   const rest = placement === 'random' ? shuffle(playerIds.slice(seeds), rng) : playerIds.slice(seeds);
   const ranked = [...head, ...rest];
-  const slots = seedOrder(size).map((rank) => (rank <= n ? ranked[rank - 1] : null));
+  const slots = given ? checkSlots(given, playerIds, size) : seedOrder(size).map((rank) => (rank <= n ? ranked[rank - 1] : null));
   return {
     size,
     slots,
@@ -69,6 +71,25 @@ export function generateTournament(playerIds, { seedCount = 0, placement = 'orde
     tableOverrides: {},
     started: {},
   };
+}
+
+/** 指定された1回戦の配置を検査して返す（全員が1回ずつ・残りは不戦・不戦どうしの組なし） */
+function checkSlots(slots, playerIds, size) {
+  const ok = Array.isArray(slots) && slots.length === size
+    && slots.filter((s) => s !== null).length === playerIds.length
+    && new Set(slots.filter((s) => s !== null)).size === playerIds.length
+    && slots.every((s) => s === null || playerIds.includes(s));
+  if (!ok) throw new Error('組み合わせが正しくありません');
+  for (let i = 0; i < size; i += 2) if (slots[i] === null && slots[i + 1] === null) throw new Error('組み合わせが正しくありません（不戦どうしの試合ができます）');
+  return [...slots];
+}
+
+/** 1回戦の配置で、2人の選手の位置を入れ替える（新しい配置を返す。選手でない位置・同じ位置は例外） */
+export function swapSlots(slots, a, b) {
+  if (!Number.isInteger(a) || !Number.isInteger(b) || a === b || !slots[a] || !slots[b]) throw new Error('入れ替える選手を2人選んでください');
+  const out = [...slots];
+  [out[a], out[b]] = [out[b], out[a]];
+  return out;
 }
 
 export function matchId(round, index) {

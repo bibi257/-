@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { open, importNames, enterScore } from './helpers.js';
+import { open, importNames, enterScore, genTournament } from './helpers.js';
 
 const players = (n) => Array.from({ length: n }, (_, i) => `選手${i + 1} 山田`);
 const css = (loc, prop) => loc.evaluate((el, p) => getComputedStyle(el)[p], prop);
@@ -8,7 +8,7 @@ const level = (page) => page.locator('#zoom-level').textContent();
 async function start(page, n) {
   await open(page);
   await importNames(page, players(n));
-  await page.click('[data-act=gen-tournament]');
+  await genTournament(page);
   await expect(page.locator('#bracket-wrap svg')).toBeVisible();
 }
 

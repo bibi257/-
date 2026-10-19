@@ -30,6 +30,12 @@ export async function setNumber(page, selector, value) {
   await page.press(selector, 'Tab');
 }
 
+/** 「トーナメント表を作成」を押し、組み合わせの確認（F4）をそのまま確定する */
+export async function genTournament(page) {
+  await page.click('[data-act=gen-tournament]');
+  await page.click('#pr-ok');
+}
+
 /** 結果入力ダイアログでスコアを入れて保存 */
 export async function enterScore(page, s1, s2) {
   await page.fill('#rd-s1', String(s1));
