@@ -324,6 +324,23 @@ table.data td[data-pid].mine, table.data th[data-pid].mine, table.data tr[data-p
 .round-tabs button[aria-selected="true"] { background: var(--primary); border-color: var(--primary); color: var(--on-primary); font-weight: bold; }
 .round-view .result-cards { margin-top: 2px; }
 .view-switch button[aria-pressed="true"] { background: var(--primary-weak); border-color: var(--primary); color: var(--primary); font-weight: bold; }
+/* 総当たりのスマホ表示（回戦ごと・選手ごとの対戦）と、試合結果一覧の折りたたみ */
+.player-pick, .player-list { display: none; }
+.round-rest { margin: 8px 2px 0; color: var(--muted); font-size: 14px; }
+.fold > summary { list-style: none; display: flex; align-items: baseline; gap: 4px 12px; }
+.fold > summary::-webkit-details-marker { display: none; }
+.fold > summary h2 { margin: 0; }
+.fold[open] > summary { margin-bottom: 12px; }
+.fold-count { color: var(--muted); font-size: 14px; }
+.fold-locked > summary { cursor: default; }
+.fold-locked > summary .fold-count { display: none; }
+.pl-row { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; width: 100%; min-height: 56px; padding: 10px 12px; text-align: left; border: 1px solid var(--rule-strong); border-radius: 10px; background: var(--paper); }
+.pl-round { flex: none; min-width: 3.6em; color: var(--muted); font-size: 14px; }
+.pl-opp { flex: 1 1 7em; min-width: 0; font-weight: bold; overflow-wrap: anywhere; }
+.pl-result { flex: none; font-variant-numeric: tabular-nums; }
+.pl-pending { color: var(--faint); }
+.pl-win { color: var(--text); font-weight: bold; }
+.pl-row.flash { background: var(--primary-weak); box-shadow: inset 0 0 0 2px var(--primary); }
 table.data td.cell.flash { background: var(--primary-weak); box-shadow: inset 0 0 0 2px var(--primary); }
 table.data tr.flash td { background: var(--primary-weak); box-shadow: inset 0 2px 0 var(--primary), inset 0 -2px 0 var(--primary); }
 table.data tr.flash td:first-child { box-shadow: inset 2px 2px 0 var(--primary), inset 0 -2px 0 var(--primary); }
@@ -650,6 +667,15 @@ table.editions td.ops { white-space: nowrap; }
   /* トーナメント表は、初期表示を「回戦ごと」にする。「表で見る」で今の表（拡大縮小つき）に切り替える */
   .view-switch { display: flex; gap: 6px; margin: 0 0 10px; }
   .bracket-card[data-view="rounds"] .round-view { display: block; }
+  .matrix-card[data-view="rounds"] .round-view { display: block; }
+  .matrix-card[data-view="rounds"] .matrix-view { display: none; }
+  .matrix-card[data-view="table"] .player-pick { display: flex; align-items: center; gap: 10px; margin: 0 0 10px; }
+  .matrix-card[data-view="table"] .player-pick select { flex: 1 1 auto; min-width: 0; min-height: 44px; }
+  .matrix-card[data-view="table"][data-player="1"] .player-list { display: grid; gap: 8px; list-style: none; margin: 0; padding: 0; }
+  .matrix-card[data-view="table"][data-player="1"] .table-wrap { display: none; }
+  .fold:not(.fold-locked) > summary { min-height: 44px; align-items: center; cursor: pointer; }
+  .fold:not(.fold-locked) > summary::after { content: '▸'; margin-left: auto; color: var(--muted); }
+  .fold[open]:not(.fold-locked) > summary::after { content: '▾'; }
   .bracket-card[data-view="rounds"] .bracket-controls, .bracket-card[data-view="rounds"] .bracket-wrap { display: none; }
   .progress-bar { flex-basis: 100%; }
   .edition-banner { margin: 12px 12px 0; }
@@ -748,6 +774,8 @@ table.editions td.ops { white-space: nowrap; }
   table.data.results { min-width: 0; }
   table.data.results th, table.data.results td { white-space: normal; }
   .result-cards, .round-view, .view-switch { display: none !important; }
+  .matrix-card .matrix-view, .matrix-card .table-wrap { display: block !important; }
+  .player-pick, .player-list, .fold > summary .fold-count { display: none !important; }
   .bracket-card .bracket-wrap { display: block !important; }
   #panel-comments, .share-chip, .edition-banner, #call-screen, #qr-dialog, .qualify { display: none !important; }
 }

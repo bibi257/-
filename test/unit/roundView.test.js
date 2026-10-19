@@ -4,7 +4,10 @@ import { createState } from '../../src/core/state.js';
 import { makePlayers } from '../../src/core/players.js';
 import { generateTournament, setTournamentResult, resolveBracket, THIRD_PLACE_ID } from '../../src/core/bracket.js';
 import { tournamentResultRows } from '../../src/core/exportData.js';
-import { roundKeys, defaultRoundKey, pickRoundKey, rowsForRound, roundTabsHtml, roundViewHtml, THIRD_KEY } from '../../src/ui/roundView.js';
+import { roundKeys, defaultRoundKey, pickRoundKey, pickKey, rowsForRound, roundTabsHtml, roundViewHtml, roundPanelHtml, THIRD_KEY } from '../../src/ui/roundView.js';
+import { generateLeague, resolveLeague } from '../../src/core/league.js';
+import { leagueResultRows } from '../../src/core/exportData.js';
+import { leagueRoundKeys, defaultLeagueRoundKey } from '../../src/core/leagueRounds.js';
 
 function make(n, opts = {}) {
   const st = createState();
@@ -74,4 +77,33 @@ test('タブとカード: 選んだタブだけ aria-selected、カードは選�
   assert.ok(!view.includes('<b>太郎</b>'));
   // 決勝の回戦を選ぶと、決勝の1試合
   assert.equal((roundViewHtml(res, tournamentResultRows(st), '2').match(/<li>/g) || []).length, 1);
+});
+
+test('回戦の選び方は共通: 選んだキーが無ければ代わりのキー。トーナメントの pickRoundKey も同じ結果', () => {
+  const keys = [{ key: '1', name: '1回戦' }, { key: '2', name: '2回戦' }];
+  assert.equal(pickKey('2', keys, '1'), '2');
+  assert.equal(pickKey('9', keys, '1'), '1');
+  assert.equal(pickKey(null, keys, '1'), '1');
+  const st = make(8);
+  const res = resolveBracket(st.tournament, st.tables);
+  assert.equal(pickRoundKey('9', roundKeys(res), res), defaultRoundKey(res));
+});
+
+test('総当たりの回戦ごとの表示: 回戦のタブと、その回戦の試合のカードだけが出る', () => {
+  const st = createState();
+  st.players = makePlayers(Array.from({ length: 4 }, (_, i) => `選手${i + 1}`));
+  st.league = generateLeague(st.players.map((p) => p.id));
+  const res = resolveLeague(st.league, st.tables);
+  const rows = leagueResultRows(st);
+  const html = roundPanelHtml({ keys: leagueRoundKeys(res), key: defaultLeagueRoundKey(res), rows, isClickable: () => true, footer: '<p class="round-rest">休み：X</p>' });
+  assert.equal((html.match(/data-round-tab=/g) || []).length, 3); // 3回戦
+  assert.match(html, /data-round-tab="1" aria-selected="true"/);
+  assert.equal((html.match(/data-match=/g) || []).length, 2); // 4人の1回戦は2試合
+  assert.match(html, /aria-label="1回戦の試合"/);
+  assert.ok(html.endsWith('<p class="round-rest">休み：X</p>')); // 休みの行はカードの下
+  // 2回戦を選ぶと、2回戦の試合になる
+  const second = roundPanelHtml({ keys: leagueRoundKeys(res), key: '2', rows, isClickable: () => true });
+  assert.match(second, /data-round-tab="2" aria-selected="true"/);
+  const ids2 = res.matches.filter((m) => m.round === 2).map((m) => m.id);
+  for (const id of ids2) assert.ok(second.includes(`data-match="${id}"`));
 });

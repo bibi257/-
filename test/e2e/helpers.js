@@ -36,6 +36,12 @@ export async function genTournament(page) {
   await page.click('#pr-ok');
 }
 
+/** スマホ幅で閉じている「試合結果一覧」の折りたたみを開く（PC 幅や表の表示では常に開いているので、何もしない） */
+export async function openResultsFold(page) {
+  const d = page.locator('details.fold[data-fold]').first();
+  if ((await d.count()) && !(await d.evaluate((el) => el.open))) await d.locator('summary').click();
+}
+
 /** 結果入力ダイアログでスコアを入れて保存 */
 export async function enterScore(page, s1, s2) {
   await page.fill('#rd-s1', String(s1));
