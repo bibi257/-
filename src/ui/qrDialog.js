@@ -1,5 +1,6 @@
 // 閲覧リンクのQRコードを大きく見せる画面（会場の掲示・スクリーン向け）。
 
+import { canFullscreen, toggleFullscreen, leaveFullscreen } from './fullscreen.js';
 import { toast, downloadPNG } from './io.js';
 import { encodeQr } from '../core/qr.js';
 import { qrSvg } from '../render/qr.js';
@@ -30,16 +31,11 @@ export function openQr(link) {
 export function setupQrDialog() {
   const dlg = $('qr-dialog');
   const full = $('qr-full');
-  full.hidden = !dlg.requestFullscreen;
-  full.addEventListener('click', async () => {
-    try {
-      if (document.fullscreenElement) await document.exitFullscreen();
-      else await dlg.requestFullscreen();
-    } catch { /* 全画面にできない環境では何もしない */ }
-  });
+  full.hidden = !canFullscreen();
+  full.addEventListener('click', toggleFullscreen);
   $('qr-close').addEventListener('click', () => dlg.close());
   dlg.addEventListener('close', () => {
-    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    leaveFullscreen();
     $('qr-img').innerHTML = ''; // 閉じたら、リンクを画面に残さない
     current = null;
   });

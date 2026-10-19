@@ -525,6 +525,15 @@ test('運営は、閲覧リンクのQRコードを大きく表示でき、PNGで
   expect(box.x + box.width).toBeLessThanOrEqual(390);
   expect(await a.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 
+  // 「全画面」: ページ全体が全画面になり、QRコードがさらに大きくなる。もう一度押すと戻る
+  await a.click('#qr-full');
+  await expect.poll(() => a.evaluate(() => document.fullscreenElement?.tagName ?? null)).toBe('HTML');
+  await expect(a.locator('#qr-dialog')).toBeVisible();
+  const big = await a.locator('#qr-img svg').boundingBox();
+  expect(big.width).toBeGreaterThan(box.width);
+  await a.click('#qr-full');
+  await expect.poll(() => a.evaluate(() => document.fullscreenElement?.tagName ?? null)).toBeNull();
+
   // PNGで保存できる（正方形の画像）
   const png = await download(a, '#qr-png');
   expect(png.name).toContain('閲覧リンクのQRコード');

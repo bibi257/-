@@ -385,10 +385,10 @@ dialog h2 { margin: 0 0 4px; font-size: 18px; color: var(--ink); }
 .qr-img svg { width: 100%; height: auto; display: block; }
 .qr-link { margin: 12px 0 0; font-size: 13px; color: var(--muted); overflow-wrap: anywhere; user-select: all; }
 .qr-body .dialog-buttons { justify-content: center; flex-wrap: wrap; }
-#qr-dialog:fullscreen { width: 100vw; max-width: none; height: 100vh; max-height: none; border-radius: 0; display: flex; align-items: center; justify-content: center; }
-#qr-dialog:fullscreen .qr-body { width: 100%; }
-#qr-dialog:fullscreen .qr-img { width: min(80vw, 72vh); }
-#qr-dialog:fullscreen .qr-link { font-size: clamp(14px, 2vw, 24px); }
+html:fullscreen #qr-dialog[open] { width: 100vw; max-width: none; height: 100vh; max-height: none; border-radius: 0; display: flex; align-items: center; justify-content: center; }
+html:fullscreen #qr-dialog .qr-body { width: 100%; }
+html:fullscreen #qr-dialog .qr-img { width: min(80vw, 72vh); }
+html:fullscreen #qr-dialog .qr-link { font-size: clamp(14px, 2vw, 24px); }
 #pairing-dialog { width: min(640px, calc(100vw - 24px)); }
 .pairing { list-style: none; margin: 10px 0; padding: 0; max-height: 52vh; max-height: 52dvh; overflow-y: auto; border: 1px solid var(--rule); border-radius: 10px; }
 .pr-row { display: grid; grid-template-columns: 4.5em 1fr 2em 1fr 6em; gap: 6px; align-items: center; padding: 6px 10px; border-bottom: 1px solid var(--rule); }

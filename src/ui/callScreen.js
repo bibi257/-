@@ -1,5 +1,6 @@
 // 呼び出し画面（会場のプロジェクター・大型ディスプレイ向けの大きな表示）
 
+import { canFullscreen, toggleFullscreen, leaveFullscreen } from './fullscreen.js';
 import { getState } from './store.js';
 import { h } from './io.js';
 import { callBoard } from '../core/callBoard.js';
@@ -62,16 +63,11 @@ export function refreshCallScreen() {
 export function setupCallScreen() {
   const dlg = $('call-screen');
   const full = $('cs-full');
-  full.hidden = !dlg.requestFullscreen;
-  full.addEventListener('click', async () => {
-    try {
-      if (document.fullscreenElement) await document.exitFullscreen();
-      else await dlg.requestFullscreen();
-    } catch { /* 全画面にできない環境では何もしない */ }
-  });
+  full.hidden = !canFullscreen();
+  full.addEventListener('click', toggleFullscreen);
   $('cs-close').addEventListener('click', () => dlg.close());
   dlg.addEventListener('close', () => {
-    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    leaveFullscreen();
   });
   document.addEventListener('click', (e) => {
     const b = e.target.closest('[data-call]');
