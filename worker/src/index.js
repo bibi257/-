@@ -8,6 +8,8 @@
 //   PUT    /api/rooms/:code/state          大会データの公開（運営のみ）
 //   POST   /api/rooms/:code/comments       コメント投稿
 //   DELETE /api/rooms/:code/comments/:id   コメント削除（運営のみ）
+//   POST   /api/rooms/:code/reports        試合結果の報告（閲覧者）。運営が承認するまで表には反映されない
+//   DELETE /api/rooms/:code/reports/:id    報告の削除（運営のみ。承認したあと・却下するときに使う）
 //   PUT    /api/rooms/:code/passwords      運営用パスワードの変更（運営のみ）
 //   DELETE /api/rooms/:code                共有の終了。データをすべて削除（運営のみ）
 //
@@ -15,6 +17,7 @@
 // 表示側（アプリ）が HTML エスケープするが、サーバーでも文字数・制御文字・形式を検証する。
 // 共有の期限は「最後の利用」（大会データの送信、またはコメント）から90日。
 import { ID_PATTERN } from '../../src/core/state.js';
+import { normalizeResultInput } from '../../src/core/result.js';
 
 const PBKDF2_ITERATIONS = 5000; // 無料プランの CPU 時間（10ms）に収めるための値。保存値に回数を含めるので後から上げられる
 const TOKEN_TTL = 12 * 60 * 60;
@@ -23,6 +26,8 @@ const MAX_STATE_CHARS = 1_000_000;
 const MAX_BODY_CHARS = 8_000;
 const MAX_COMMENTS = 500;
 const COMMENT_LIST_LIMIT = 300;
+const MAX_REPORTS = 60; // 1つの共有で、承認待ちの報告に置ける件数
+const MAX_REPORTS_PER_MATCH = 3; // 1試合あたり
 const JOIN_MISS_MAX = 30; // 存在しない共有コードを10分間に試せる回数（IP ごと）
 const NAME_MAX = 20;
 const COMMENT_MAX = 200;
@@ -37,6 +42,8 @@ const SCHEMA = [
   'CREATE TABLE IF NOT EXISTS rooms (code TEXT PRIMARY KEY, title TEXT NOT NULL DEFAULT \'\', viewer_pw TEXT NOT NULL, viewer_ver INTEGER NOT NULL DEFAULT 1, admin_pw TEXT NOT NULL, admin_ver INTEGER NOT NULL DEFAULT 1, state TEXT, rev INTEGER NOT NULL DEFAULT 0, crev INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL)',
   'CREATE TABLE IF NOT EXISTS comments (id INTEGER PRIMARY KEY AUTOINCREMENT, code TEXT NOT NULL, match_id TEXT, name TEXT NOT NULL, body TEXT NOT NULL, at INTEGER NOT NULL, who TEXT NOT NULL)',
   'CREATE INDEX IF NOT EXISTS idx_comments_code ON comments (code, id)',
+  'CREATE TABLE IF NOT EXISTS reports (id INTEGER PRIMARY KEY AUTOINCREMENT, code TEXT NOT NULL, match_id TEXT NOT NULL, outcome TEXT NOT NULL, score1 INTEGER, score2 INTEGER, p1 TEXT, p2 TEXT, name TEXT NOT NULL, at INTEGER NOT NULL, who TEXT NOT NULL)',
+  'CREATE INDEX IF NOT EXISTS idx_reports_code ON reports (code, id)',
   'CREATE TABLE IF NOT EXISTS limits (k TEXT PRIMARY KEY, n INTEGER NOT NULL, until INTEGER NOT NULL)',
 ];
 
@@ -260,6 +267,7 @@ async function createRoom(env, request) {
   const cutoff = t - ROOM_TTL;
   await env.DB.batch([
     env.DB.prepare(`DELETE FROM comments WHERE code IN (SELECT code FROM rooms WHERE NOT ${ACTIVE_SQL})`).bind(cutoff, cutoff),
+    env.DB.prepare(`DELETE FROM reports WHERE code IN (SELECT code FROM rooms WHERE NOT ${ACTIVE_SQL})`).bind(cutoff, cutoff),
     env.DB.prepare(`DELETE FROM rooms WHERE NOT ${ACTIVE_SQL}`).bind(cutoff, cutoff),
     env.DB.prepare('DELETE FROM limits WHERE until < ?').bind(t),
   ]);
@@ -314,6 +322,10 @@ function commentRow(r) {
   return { id: r.id, matchId: r.match_id, name: r.name, text: r.body, at: r.at };
 }
 
+function reportRow(r) {
+  return { id: r.id, matchId: r.match_id, outcome: r.outcome, score1: r.score1, score2: r.score2, p1: r.p1, p2: r.p2, name: r.name, at: r.at };
+}
+
 async function sync(env, request, url, code) {
   const auth = await authorize(env, request, code);
   const { room } = auth;
@@ -328,6 +340,12 @@ async function sync(env, request, url, code) {
     const { results } = await env.DB.prepare('SELECT id, match_id, name, body, at FROM comments WHERE code = ? ORDER BY id DESC LIMIT ?')
       .bind(code, COMMENT_LIST_LIMIT).all();
     out.comments = results.reverse().map(commentRow);
+    // 結果の報告は運営だけに返す（閲覧者には見せない）。コメントと同じ変更番号（crev）で更新を知らせる
+    if (auth.role === 'admin') {
+      const rows = await env.DB.prepare('SELECT id, match_id, outcome, score1, score2, p1, p2, name, at FROM reports WHERE code = ? ORDER BY id LIMIT ?')
+        .bind(code, MAX_REPORTS).all();
+      out.reports = rows.results.map(reportRow);
+    }
   }
   return json(out);
 }
@@ -375,6 +393,46 @@ async function deleteComment(env, request, code, id) {
   return json({ ok: true, deleted: r.meta.changes });
 }
 
+/** 試合結果の報告。閲覧者も運営も送れる。表への反映は運営が承認したときにアプリ側で行う（サーバーは結果を書き換えない） */
+async function postReport(env, request, code) {
+  const auth = await authorize(env, request, code);
+  const body = await readJson(request, MAX_BODY_CHARS);
+  const name = cleanName(body.name);
+  const matchId = String(body.matchId ?? '');
+  if (!ID_PATTERN.test(matchId)) throw new HttpError(400, '報告の対象が正しくありません');
+  const v = normalizeResultInput({ outcome: body.outcome, score1: body.score1, score2: body.score2 }, { allowDraw: true });
+  if (!v.ok) throw new HttpError(400, v.error);
+  const { outcome, score1, score2 } = v.value;
+  const player = (x) => {
+    if (x == null || x === '') return null;
+    if (!ID_PATTERN.test(String(x))) throw new HttpError(400, '報告の対戦者が正しくありません');
+    return String(x);
+  };
+  const p1 = player(body.p1);
+  const p2 = player(body.p2);
+  const who = (await sha256Hex(`${clientIp(request)}:${code}`)).slice(0, 12);
+  const key = `rp:${code}:${who}`;
+  if (await isLimited(env, key, 4)) throw new HttpError(429, '報告が続いています。少し待ってから送ってください');
+  const total = await env.DB.prepare('SELECT COUNT(*) AS n FROM reports WHERE code = ?').bind(code).first('n');
+  if (total >= MAX_REPORTS) throw new HttpError(429, `承認待ちの報告が上限（${MAX_REPORTS}件）に達しています。運営が処理するまでお待ちください`);
+  const same = await env.DB.prepare('SELECT COUNT(*) AS n, SUM(who = ?) AS mine FROM reports WHERE code = ? AND match_id = ?').bind(who, code, matchId).first();
+  if (same.mine > 0) throw new HttpError(409, 'この試合の結果は、すでに報告済みです。運営の承認をお待ちください');
+  if (same.n >= MAX_REPORTS_PER_MATCH) throw new HttpError(429, 'この試合には報告が集まっています。運営の承認をお待ちください');
+  await countHit(env, key, 60);
+  const r = await env.DB.prepare('INSERT INTO reports (code, match_id, outcome, score1, score2, p1, p2, name, at, who) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+    .bind(code, matchId, outcome, score1, score2, p1, p2, name, now(env), who).run();
+  await env.DB.prepare('UPDATE rooms SET crev = crev + 1 WHERE code = ?').bind(code).run();
+  return json({ ok: true, id: r.meta.last_row_id, role: auth.role }, 201);
+}
+
+async function deleteReport(env, request, code, id) {
+  const auth = await authorize(env, request, code);
+  requireAdmin(auth);
+  const r = await env.DB.prepare('DELETE FROM reports WHERE id = ? AND code = ?').bind(id, code).run();
+  if (r.meta.changes) await env.DB.prepare('UPDATE rooms SET crev = crev + 1 WHERE code = ?').bind(code).run();
+  return json({ ok: true, deleted: r.meta.changes });
+}
+
 async function changePassword(env, request, code) {
   const auth = await authorize(env, request, code);
   requireAdmin(auth);
@@ -392,6 +450,7 @@ async function closeRoom(env, request, code) {
   requireAdmin(auth);
   await env.DB.batch([
     env.DB.prepare('DELETE FROM comments WHERE code = ?').bind(code),
+    env.DB.prepare('DELETE FROM reports WHERE code = ?').bind(code),
     env.DB.prepare('DELETE FROM rooms WHERE code = ?').bind(code),
   ]);
   return json({ ok: true });
@@ -416,6 +475,8 @@ async function route(env, request) {
   if (action === 'state' && method === 'PUT') return putState(env, request, code);
   if (action === 'comments' && !id && method === 'POST') return postComment(env, request, code);
   if (action === 'comments' && id && method === 'DELETE') return deleteComment(env, request, code, Number(id));
+  if (action === 'reports' && !id && method === 'POST') return postReport(env, request, code);
+  if (action === 'reports' && id && method === 'DELETE') return deleteReport(env, request, code, Number(id));
   if (action === 'passwords' && method === 'PUT') return changePassword(env, request, code);
   throw new HttpError(404, '見つかりません');
 }

@@ -407,3 +407,116 @@ test('コメントの対象は、読み込める試合 ID（_ を含む・64字�
   assert.equal((await post('a'.repeat(64))).status, 201);
   assert.equal((await post('a'.repeat(65))).status, 400);
 });
+
+// ---- 試合結果の報告（F8） ----
+
+const report = (over = {}) => ({ name: '見学者', matchId: 'R1-M1', outcome: 'p1', score1: 3, score2: 1, p1: 'p1', p2: 'p2', ...over });
+
+test('結果の報告: 閲覧者が送れて、一覧は運営にだけ返る（閲覧者には返らない）', async () => {
+  const { api } = setup();
+  const r = await newRoom(api);
+  const vt = await viewerToken(api, r.code);
+  const sent = await api('POST', `/api/rooms/${r.code}/reports`, { token: vt, body: report() });
+  assert.equal(sent.status, 201, JSON.stringify(sent.data));
+  const admin = await api('GET', `/api/rooms/${r.code}/sync?rev=0&crev=0`, { token: r.token });
+  assert.deepEqual(admin.data.reports.map((x) => [x.matchId, x.outcome, x.score1, x.score2, x.p1, x.p2, x.name]),
+    [['R1-M1', 'p1', 3, 1, 'p1', 'p2', '見学者']]);
+  const viewer = await api('GET', `/api/rooms/${r.code}/sync?rev=0&crev=0`, { token: vt });
+  assert.equal('reports' in viewer.data, false);
+  assert.equal(admin.data.crev, 1); // 運営の画面が更新に気づける
+});
+
+test('結果の報告: 大会データ（結果）は書き換えない', async () => {
+  const { api } = setup();
+  const r = await newRoom(api);
+  await api('PUT', `/api/rooms/${r.code}/state`, { token: r.token, body: { state: sampleState() } });
+  const vt = await viewerToken(api, r.code);
+  const before = await api('GET', `/api/rooms/${r.code}/sync?rev=-1&crev=0`, { token: vt });
+  await api('POST', `/api/rooms/${r.code}/reports`, { token: vt, body: report() });
+  const after = await api('GET', `/api/rooms/${r.code}/sync?rev=-1&crev=0`, { token: vt });
+  assert.equal(after.data.rev, before.data.rev);
+  assert.deepEqual(after.data.state, before.data.state);
+});
+
+test('結果の報告: 勝者もスコアも無い・スコアと勝者の矛盾・不正な対象や対戦者を弾く', async () => {
+  const { api } = setup();
+  const r = await newRoom(api);
+  const vt = await viewerToken(api, r.code);
+  const post = (body) => api('POST', `/api/rooms/${r.code}/reports`, { token: vt, body });
+  assert.equal((await post(report({ outcome: null, score1: null, score2: null }))).status, 400);
+  assert.equal((await post(report({ outcome: 'p2' }))).status, 400); // 3-1 なのに p2 の勝ち
+  assert.equal((await post(report({ score1: 3, score2: null }))).status, 400);
+  assert.equal((await post(report({ score1: -1, score2: 0 }))).status, 400);
+  assert.equal((await post(report({ matchId: '<script>' }))).status, 400);
+  assert.equal((await post(report({ matchId: '' }))).status, 400);
+  assert.equal((await post(report({ p1: '"><x' }))).status, 400);
+  assert.equal((await post(report({ name: 'あ'.repeat(21) }))).status, 400);
+  assert.equal((await post(report({ outcome: 'p1', score1: null, score2: null }))).status, 201); // 勝者だけでもよい
+});
+
+test('結果の報告: 同じ人が同じ試合を2回は送れない。1試合 3 件まで、1共有 60 件まで', async () => {
+  const { api, env, setIp } = setup();
+  const r = await newRoom(api);
+  const vt = await viewerToken(api, r.code);
+  const post = (body) => api('POST', `/api/rooms/${r.code}/reports`, { token: vt, body });
+  assert.equal((await post(report())).status, 201);
+  assert.equal((await post(report())).status, 409);
+  assert.equal((await post(report({ matchId: 'R1-M2' }))).status, 201); // 別の試合は送れる
+  for (const ip of ['198.51.100.1', '198.51.100.2']) {
+    setIp(ip);
+    assert.equal((await post(report())).status, 201);
+  }
+  setIp('198.51.100.3');
+  assert.equal((await post(report())).status, 429); // この試合は 3 件で打ち止め
+  await env.DB.batch(Array.from({ length: 60 }, (_, i) =>
+    env.DB.prepare('INSERT INTO reports (code, match_id, outcome, p1, p2, name, at, who) VALUES (?, ?, ?, NULL, NULL, ?, 1, ?)').bind(r.code, `X${i}`, 'p1', 'n', `w${i}`)));
+  assert.equal((await post(report({ matchId: 'R2-M1' }))).status, 429);
+});
+
+test('結果の報告: 続けて送ると制限され、1分後に再開できる', async () => {
+  const { api, clock } = setup();
+  const r = await newRoom(api);
+  const vt = await viewerToken(api, r.code);
+  const post = (n) => api('POST', `/api/rooms/${r.code}/reports`, { token: vt, body: report({ matchId: `R1-M${n}` }) });
+  for (let n = 1; n <= 4; n++) assert.equal((await post(n)).status, 201);
+  assert.equal((await post(5)).status, 429);
+  clock.t += 61;
+  assert.equal((await post(5)).status, 201);
+});
+
+test('結果の報告の削除（承認したあと・却下）は運営だけ。他の共有の報告は消せない', async () => {
+  const { api } = setup();
+  const a = await newRoom(api);
+  const b = await newRoom(api);
+  const vt = await viewerToken(api, a.code);
+  const id = (await api('POST', `/api/rooms/${a.code}/reports`, { token: vt, body: report() })).data.id;
+  assert.equal((await api('DELETE', `/api/rooms/${a.code}/reports/${id}`, { token: vt })).status, 403);
+  assert.equal((await api('DELETE', `/api/rooms/${b.code}/reports/${id}`, { token: b.token })).data.deleted, 0);
+  assert.equal((await api('DELETE', `/api/rooms/${a.code}/reports/${id}`, { token: a.token })).data.deleted, 1);
+  const s = await api('GET', `/api/rooms/${a.code}/sync?rev=0&crev=0`, { token: a.token });
+  assert.deepEqual(s.data.reports, []);
+  assert.equal(s.data.crev, 2);
+});
+
+test('結果の報告: 共有の終了で消える。報告だけでは共有の期限は延びない', async () => {
+  const { api, env, clock } = setup();
+  const r = await newRoom(api);
+  const vt = await viewerToken(api, r.code);
+  const before = (await api('GET', `/api/rooms/${r.code}/sync?rev=0&crev=0`, { token: r.token })).data.keepUntil;
+  clock.t += 3600;
+  await api('POST', `/api/rooms/${r.code}/reports`, { token: vt, body: report() });
+  const after = (await api('GET', `/api/rooms/${r.code}/sync?rev=0&crev=0`, { token: r.token })).data.keepUntil;
+  assert.equal(after, before);
+  await api('DELETE', `/api/rooms/${r.code}`, { token: r.token });
+  assert.equal(await env.DB.prepare('SELECT COUNT(*) AS n FROM reports').first('n'), 0);
+});
+
+test('結果の報告: 運営用パスワードの変更後、古い運営トークンでは報告の一覧も削除もできない', async () => {
+  const { api } = setup();
+  const r = await newRoom(api);
+  const vt = await viewerToken(api, r.code);
+  const id = (await api('POST', `/api/rooms/${r.code}/reports`, { token: vt, body: report() })).data.id;
+  await api('PUT', `/api/rooms/${r.code}/passwords`, { token: r.token, body: { password: 'new-pass-22' } });
+  assert.equal((await api('GET', `/api/rooms/${r.code}/sync?rev=0&crev=0`, { token: r.token })).status, 401);
+  assert.equal((await api('DELETE', `/api/rooms/${r.code}/reports/${id}`, { token: r.token })).status, 401);
+});
