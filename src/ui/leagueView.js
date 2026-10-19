@@ -1,6 +1,7 @@
 // 総当たりタブ
 
 import { getState, setState } from './store.js';
+import { emptyGuideHtml } from './emptyGuide.js';
 import { h, toast, measureText, downloadCSV, downloadPNG } from './io.js';
 import { openResultDialog } from './resultDialog.js';
 import { nextEditionButton } from './editions.js';
@@ -72,8 +73,7 @@ export function renderLeague() {
   const st = getState();
   const l = st.league;
   if (!l) {
-    panel().innerHTML = `<div class="card empty-state"><p>総当たり表はまだ作成されていません。</p>
-      <button type="button" class="primary" data-goto="setup">参加者・設定へ</button></div>`;
+    panel().innerHTML = emptyGuideHtml('league', st);
     return;
   }
   const res = resolveLeague(l, st.tables);

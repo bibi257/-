@@ -1,6 +1,7 @@
 // 順位表タブ
 
 import { getState } from './store.js';
+import { emptyGuideHtml } from './emptyGuide.js';
 import { h, toast, measureText, downloadCSV, downloadPNG } from './io.js';
 import { tournamentStandingsTable, tournamentStandingsRows, leagueStandingsTable } from '../core/exportData.js';
 import { exportMenuHtml } from './exportMenu.js';
@@ -39,8 +40,7 @@ function toolbar(prefix) {
 export function renderStandings() {
   const st = getState();
   if (!st.tournament && !st.league) {
-    panel().innerHTML = `<div class="card empty-state"><p>表を作成すると、ここに順位表が表示されます。</p>
-      <button type="button" class="primary" data-goto="setup">参加者・設定へ</button></div>`;
+    panel().innerHTML = emptyGuideHtml('standings', st);
     return;
   }
   let html = '';

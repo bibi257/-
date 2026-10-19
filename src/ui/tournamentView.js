@@ -16,6 +16,7 @@ import { roundViewHtml, THIRD_KEY } from './roundView.js';
 import {
   resolveBracket, setTournamentResult, setTournamentTable, roundName, tournamentProgress, missingPlayers,
 } from '../core/bracket.js';
+import { emptyGuideHtml } from './emptyGuide.js';
 import { settleWalkovers } from '../core/attendance.js';
 import { bracketTable, tournamentResultRows, tournamentResultsTable } from '../core/exportData.js';
 import { bracketSvg, tableSvg } from '../render/svg.js';
@@ -33,8 +34,7 @@ export function renderTournament() {
   const st = getState();
   const t = st.tournament;
   if (!t) {
-    panel().innerHTML = `<div class="card empty-state"><p>トーナメント表はまだ作成されていません。</p>
-      <button type="button" class="primary" data-goto="setup">参加者・設定へ</button></div>`;
+    panel().innerHTML = emptyGuideHtml('tournament', st);
     return;
   }
   const res = resolveBracket(t, st.tables);

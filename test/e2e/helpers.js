@@ -19,7 +19,7 @@ export async function open(page) {
 }
 
 export async function importNames(page, names, mode = 'append') {
-  await page.click('[data-act=import]');
+  await page.click('.h2-actions [data-act=import]');
   await page.fill('#im-text', names.join('\n'));
   await page.check(`input[name=im-mode][value=${mode}]`);
   await page.click('#import-form button[type=submit]');

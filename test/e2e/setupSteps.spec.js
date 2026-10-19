@@ -137,17 +137,23 @@ test.describe('幅390pxの崩れ', () => {
   test('参加者の「一括入力・CSV取込」「全員削除」は見出しの下の1行に並ぶ', async ({ page }) => {
     await open(page);
     const h2 = await page.locator('#setup-players h2').boundingBox();
-    const a = await page.locator('[data-act=import]').boundingBox();
+    const a = await page.locator('.h2-actions [data-act=import]').boundingBox();
     const b = await page.locator('[data-act=clear-players]').boundingBox();
     expect(Math.abs(a.y - b.y)).toBeLessThan(2);
     expect(a.y).toBeGreaterThan(h2.y + 15); // 見出しの文字より下の段
     expect(b.x + b.width).toBeLessThanOrEqual(390);
   });
 
-  test('参加者0人の「まだ参加者がいません」が1列に潰れず、表の全幅に出る', async ({ page }) => {
+  test('参加者0人の名簿は、表ではなく案内（1文と3つのボタン）が全幅で出て、画面からはみ出さない', async ({ page }) => {
     await open(page);
-    const td = page.locator('#setup-players tbody td.muted');
-    expect(await td.getAttribute('colspan')).toBe('4'); // No・出席・名前・並べ替え削除の4列（出席の列を足したため3から変更）
+    const box = page.locator('#setup-players #roster-empty');
+    await expect(box).toBeVisible();
+    await expect(box).toContainText('まず参加者を入力しましょう');
+    await expect(page.locator('#setup-players table.players')).toHaveCount(0);
+    const card = await page.locator('#setup-players').boundingBox();
+    const b = await box.boundingBox();
+    expect(b.width).toBeGreaterThan(card.width - 60);
+    expect(b.x + b.width).toBeLessThanOrEqual(390);
   });
 
   test('横スクロールが出ない', async ({ page }) => {
