@@ -5,6 +5,7 @@ import { createUndo, recordChange, popUndo, undoLabel as historyUndoLabel, canUn
 import { describeChange } from '../core/undoLabel.js';
 
 const KEY = 'bukatsu-taikai:state';
+export const STORAGE_KEY = KEY; // 別ウィンドウ（呼び出し画面）が、保存の変更を見分けるため
 let state = null;
 const listeners = new Set();
 let statusCb = () => {};
