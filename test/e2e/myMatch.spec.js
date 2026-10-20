@@ -87,7 +87,7 @@ for (const [w, h] of [[390, 844], [1280, 800]]) {
       const card = page.locator('#my-cards .my-card');
       await expect(card).toContainText('次の試合は未定です'); // 準決勝の相手が、隣の試合の結果待ち
       await expect(card).toContainText('準決勝');
-      await page.locator('#panel-tournament .next-item').first().click(); // No.2
+      await page.locator('#panel-tournament .next-item', { hasText: 'No.2' }).click(); // No.2（第2卓）
       await enterScore(page, 2, 1);
       await expect(card).toContainText('No.5'); // 準決勝（試合番号5）が次になる
       await expect(card.locator('.my-opp b')).not.toHaveText('');

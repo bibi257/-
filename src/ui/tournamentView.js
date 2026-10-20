@@ -4,11 +4,10 @@ import { getState, setState } from './store.js';
 import { h, toast, measureText, pngOptions, downloadCSV, downloadPNG } from './io.js';
 import { openResultDialog } from './resultDialog.js';
 import { nextEditionButton } from './editions.js';
-import { nextItemHtml } from './callCard.js';
 import { exportMenuHtml } from './exportMenu.js';
 import { podiumHtml } from './podium.js';
 import { tableBoardHtml } from './tableBoardView.js';
-import { setupStartButtons } from './startMatch.js';
+import { setupStartButtons, changeStart } from './startMatch.js';
 import { statusBadge, matchStatusKey } from './badge.js';
 import { resultCardsHtml } from './resultCards.js';
 import { controlsHtml, setupWrap, setupBracketControls, revealMatch, viewSwitchHtml, viewMode, getRoundSel, roundsActive } from './bracketView.js';
@@ -67,8 +66,6 @@ export function renderTournament() {
       <button type="button" class="small" data-call="tournament" title="会場の大型ディスプレイ向けに、次に行う試合を大きく表示します">呼び出し画面</button>
     </div>
     ${tableBoardHtml(st, 'tournament')}
-    ${prog.ready.length ? `<p class="hint">次に行う試合<span class="owner-only">（クリックで結果入力）</span></p>
-    <div class="next-list">${prog.ready.map((m) => nextItemHtml(st, m)).join('')}</div>` : ''}
   </div>
   <div class="card bracket-card" data-view="${viewMode()}">
     <h2>トーナメント表 <span class="hint owner-only">試合をクリックすると結果を入力できます</span></h2>
@@ -145,6 +142,7 @@ function openMatch(id, { reveal = false } = {}) {
     tableOverride: t.tableOverrides?.[id] ?? null,
     autoTableName: tableName(st, auto.tableId),
     openNext: () => openNext(m.no),
+    onUnstart: m.startedAt ? () => changeStart('tournament', id, false) : undefined, // 進行中の試合は、ここで開始を取り消せる
     onSave(input, tableId, { tableOnly }) {
       let next = setTournamentTable(t, id, tableId);
       if (!tableOnly) {

@@ -5,10 +5,9 @@ import { emptyGuideHtml } from './emptyGuide.js';
 import { h, toast, pngOptions, downloadCSV, downloadPNG } from './io.js';
 import { openResultDialog } from './resultDialog.js';
 import { nextEditionButton } from './editions.js';
-import { nextItemHtml } from './callCard.js';
 import { exportMenuHtml } from './exportMenu.js';
 import { tableBoardHtml } from './tableBoardView.js';
-import { setupStartButtons } from './startMatch.js';
+import { setupStartButtons, changeStart } from './startMatch.js';
 import { scrollBehavior, flash } from './reveal.js';
 import { statusBadge, matchStatusKey } from './badge.js';
 import { resultCardsHtml } from './resultCards.js';
@@ -115,7 +114,6 @@ export function renderLeague() {
       <button type="button" class="small" data-call="league" title="会場の大型ディスプレイ向けに、次に行う試合を大きく表示します">呼び出し画面</button>
     </div>
     ${tableBoardHtml(st, 'league')}
-    ${prog.ready.length ? `<div class="next-list">${prog.ready.map((m) => nextItemHtml(st, m)).join('')}</div>` : ''}
   </div>
   <div class="card matrix-card" data-view="${view.mode}" data-player="${currentPlayer(l) === 'all' ? '' : '1'}">
     <h2>総当たり表 <span class="hint"><span class="owner-only">マスをクリックすると結果を入力できます</span>（行の選手から見た結果）</span></h2>
@@ -243,6 +241,7 @@ function openMatch(id, region = 'next') {
     tableOverride: l.tableOverrides?.[id] ?? null,
     autoTableName: tableName(st, auto.tableId),
     openNext: () => openNext(m.no),
+    onUnstart: m.startedAt ? () => changeStart('league', id, false) : undefined, // 進行中の試合は、ここで開始を取り消せる
     onSave(input, tableId, { tableOnly }) {
       let next = setLeagueTable(l, id, tableId);
       if (!tableOnly) {

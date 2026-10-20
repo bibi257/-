@@ -63,7 +63,7 @@ h1, h2, h3, p { overflow-wrap: anywhere; }
 
 /* ===== 要所のフォント =====
    試合番号・点数・経過時間・倍率・共有コードなど「数えるもの」は IBM Plex Mono。幅がそろい、本文の Plex Sans と並べても揺れない */
-.ni-no, .my-no, .pr-no, .cs-no, .rc-score, .rd-score, .ni-elapsed, .zoom-level, .cs-progress, .sh-code { font-family: var(--font-mono); }
+.ni-no, .tc-no, .my-no, .pr-no, .cs-no, .rc-score, .rd-score, .ni-elapsed, .zoom-level, .cs-progress, .sh-code { font-family: var(--font-mono); }
 
 /* ===== ヘッダーとタブ ===== */
 .app-header {
@@ -293,14 +293,27 @@ table.data td[data-pid].mine, table.data th[data-pid].mine, table.data tr[data-p
 .ni-card.running .next-item { border-color: var(--ok); box-shadow: inset 4px 0 0 var(--ok); }
 .ni-actions { display: flex; justify-content: flex-end; }
 .ni-elapsed { font-weight: bold; color: var(--ok); font-variant-numeric: tabular-nums; }
-/* 卓の状況（空き／進行中） */
-.table-board { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 4px; }
-.tb { display: flex; align-items: baseline; gap: 4px 12px; flex-wrap: wrap; padding: 6px 12px; border: 1px solid var(--rule); border-radius: var(--r-ctl); background: var(--paper); }
-.tb.busy { border-color: var(--ok); }
-.tb-name { min-width: 4.5em; font-weight: bold; color: var(--ink); }
-.tb-free { color: var(--muted); font-weight: bold; }
-.tb-next { margin-left: 12px; color: var(--muted); font-size: 14px; }
-.tb-state { overflow-wrap: anywhere; }
+/* 卓ごとのカード（進行状況の欄）: 左に卓名の帯、右に「今」と「次」の2行。進行中の卓は緑の枠 */
+.table-board { list-style: none; margin: 10px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 460px)); gap: 10px; }
+.tc { display: flex; align-items: stretch; min-width: 0; overflow: hidden; border: 1px solid var(--rule-strong); border-radius: 10px; background: var(--paper); }
+.tc.busy { border-color: var(--ok); }
+.tc-name { display: flex; align-items: center; justify-content: center; flex: none; min-width: 4.6em; max-width: 7em; padding: 6px 10px; background: var(--chip); color: #fff; font-weight: bold; font-size: 15px; line-height: 1.3; text-align: center; overflow-wrap: anywhere; }
+.tc-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+.tc-line { display: flex; align-items: center; flex-wrap: wrap; gap: 0 8px; padding: 0 6px; }
+.tc-line + .tc-line { border-top: 1px solid var(--rule); }
+.tc-row { flex: 1 1 12em; min-width: 0; display: flex; align-items: center; flex-wrap: wrap; gap: 2px 8px; min-height: 44px; padding: 6px 4px; text-align: left; }
+.tc-idle { flex-basis: 6em; }
+.tc .next-item { border: none; background: none; border-radius: 6px; overflow: visible; min-height: 44px; }
+.tc .next-item:hover:not(:disabled) { background: var(--primary-weak); }
+.tc-label { flex: none; width: 1.6em; color: var(--muted); font-size: 13px; font-weight: bold; }
+.tc-no { font-family: var(--font-mono); font-size: 12px; font-weight: bold; color: var(--primary); }
+.tc-players { font-size: 15px; font-weight: bold; color: var(--ink); overflow-wrap: anywhere; }
+.tc-players i { font-style: normal; font-weight: normal; color: var(--muted); margin: 0 .35em; font-size: 13px; }
+.tc-players [data-pid].mine { background: var(--mine-bg); border-radius: 4px; box-shadow: 0 0 0 3px var(--mine-bg); }
+.tc-free { color: var(--muted); }
+.tc-none, .tc-slot { color: var(--muted); font-size: 14px; }
+.tc-action { flex: none; margin-left: auto; display: flex; }
+.tc-action button { min-height: 44px; }
 .ni-table {
   display: flex; flex-direction: column; justify-content: center; align-items: center; min-width: 5.2em; padding: 6px 10px;
   background: var(--chip); color: #fff; font-weight: bold; font-size: 15px; line-height: 1.3; text-align: center;
@@ -565,7 +578,7 @@ body.viewer .owner-only { display: none !important; }
 .report-text { margin: 4px 0 0; font-weight: bold; overflow-wrap: anywhere; }
 .report-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
 .report-actions button { min-height: 44px; }
-body.viewer .next-item, body.viewer g.match, body.viewer tr.clickable, body.viewer td.cell, body.viewer button.rc { cursor: default; }
+body.viewer .next-item, body.viewer .tc-row, body.viewer g.match, body.viewer tr.clickable, body.viewer td.cell, body.viewer button.rc { cursor: default; }
 
 /* ===== 回（第1回・第2回…） ===== */
 .edition-banner {
@@ -661,7 +674,7 @@ table.editions td.ops { white-space: nowrap; }
   /* タブは画面の上に固定する（スクロールしても見える）。全タブが1画面に収まるよう、字と余白を詰める */
   .tabs { position: sticky; top: 0; z-index: 20; gap: 0; padding: 0 4px; }
   .tabs button { flex: 1 1 auto; padding: 14px 6px 11px; font-size: 13px; min-height: 48px; }
-  .next-list { grid-template-columns: 1fr; }
+  .next-list, .table-board { grid-template-columns: 1fr; }
   .results-table { display: none; }
   .result-cards { display: grid; gap: 8px; }
   /* トーナメント表は、初期表示を「回戦ごと」にする。「表で見る」で今の表（拡大縮小つき）に切り替える */
