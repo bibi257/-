@@ -49,15 +49,16 @@ try {
   const after = await callWin.waitForFunction((b) => document.getElementById('cs-progress').textContent.trim() !== b, before, { timeout: 5000 }).then(() => true, () => false);
   if (!after) fail('別ウィンドウの呼び出し画面が更新されません（file:// での通知）');
   await callWin.close();
-  // PNG 変換（SVG→canvas）が動くか
+  // PNG 変換（canvas に直接描く。N14）が動くか。ページに読み込んだ IBM Plex Sans JP が、file:// で使えること
   const png = await win.evaluate(async () => {
-    const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="80" height="30"><text x="4" y="20">日本語</text></svg>';
-    const img = new Image();
-    await new Promise((r, j) => { img.onload = r; img.onerror = j; img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`; });
+    await document.fonts.load('14px "IBM Plex Sans JP"', '日本語');
     const c = document.createElement('canvas');
-    c.width = 80; c.height = 30;
-    c.getContext('2d').drawImage(img, 0, 0);
-    return c.toDataURL('image/png').startsWith('data:image/png');
+    c.width = 80;
+    c.height = 30;
+    const ctx = c.getContext('2d');
+    ctx.font = '14px "IBM Plex Sans JP"';
+    ctx.fillText('日本語', 4, 20);
+    return document.fonts.check('14px "IBM Plex Sans JP"', '日本語') && c.toDataURL('image/png').startsWith('data:image/png');
   });
   if (!png) fail('PNG 変換に失敗');
   const saved = await win.evaluate(() => !!localStorage.getItem('bukatsu-taikai:state'));
