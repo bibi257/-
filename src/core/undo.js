@@ -5,9 +5,9 @@ export const MAX_UNDO = 20;
 /** 入力欄の連続した入力を1回の操作にまとめる間隔（ミリ秒） */
 export const MERGE_MS = 1200;
 
-/** 空の履歴 */
+/** 空の履歴。labels は stack と同じ並びの、戻る操作の名前 */
 export function createUndo() {
-  return { stack: [], mergedAt: 0 };
+  return { stack: [], labels: [], mergedAt: 0 };
 }
 
 /** 保存の時刻（meta.updatedAt）を除いて、内容が同じか */
@@ -23,21 +23,28 @@ export function sameContent(a, b) {
  * 内容が変わらないときは残さない。merge（入力欄の入力）は、直前の入力から MERGE_MS 以内なら、前の入力と1つにまとめる。
  * @returns {{stack:object[], mergedAt:number}} 新しい履歴（変えないときは同じ値）
  */
-export function recordChange(history, prev, next, { merge = false, now = Date.now() } = {}) {
+export function recordChange(history, prev, next, { merge = false, now = Date.now(), label = '' } = {}) {
   if (!prev || sameContent(prev, next)) return history;
   if (merge && history.mergedAt && now - history.mergedAt <= MERGE_MS) {
-    return { stack: history.stack, mergedAt: now }; // 前の入力の履歴に含める
+    return { stack: history.stack, labels: history.labels, mergedAt: now }; // 前の入力の履歴に含める
   }
   const stack = [...history.stack, prev];
-  if (stack.length > MAX_UNDO) stack.shift(); // 古いものから捨てる
-  return { stack, mergedAt: merge ? now : 0 };
+  const labels = [...(history.labels ?? []), label];
+  if (stack.length > MAX_UNDO) { stack.shift(); labels.shift(); } // 古いものから捨てる
+  return { stack, labels, mergedAt: merge ? now : 0 };
 }
 
 /** 1つ戻す。戻す先がなければ null */
 export function popUndo(history) {
   if (!history.stack.length) return null;
   const stack = history.stack.slice(0, -1);
-  return { state: history.stack[history.stack.length - 1], history: { stack, mergedAt: 0 } };
+  const labels = (history.labels ?? []).slice(0, stack.length);
+  return { state: history.stack[history.stack.length - 1], history: { stack, labels, mergedAt: 0 } };
+}
+
+/** 今「元に戻す」を押すと戻る操作の名前（戻せないときは空） */
+export function undoLabel(history) {
+  return history.stack.length ? (history.labels ?? [])[history.stack.length - 1] ?? '' : '';
 }
 
 export const canUndo = (history) => history.stack.length > 0;
