@@ -111,7 +111,7 @@ export function setupResultDialog() {
   });
   $('rd-unstart').addEventListener('click', () => {
     $('result-dialog').close();
-    current.onUnstart();
+    if (typeof current?.onUnstart === 'function') current.onUnstart();
   });
   $('rd-clear').addEventListener('click', () => {
     if (!confirm('この試合の結果を取り消しますか？')) return;
