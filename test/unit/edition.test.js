@@ -7,6 +7,7 @@ import { createState, parseState, serializeState } from '../../src/core/state.js
 import { generateTournament, resolveBracket, setTournamentResult } from '../../src/core/bracket.js';
 import { generateLeague, setLeagueResult } from '../../src/core/league.js';
 import { bracketTable, tournamentResultsTable } from '../../src/core/exportData.js';
+import { setAbsent } from '../../src/core/attendance.js';
 
 function base(n = 4) {
   const st = createState();
@@ -114,6 +115,20 @@ test('過去の回を表示用の大会データにする: 既存の出力がそ
   assert.match(bracketTable(view).title, /春の大会 第1回/);
   assert.match(tournamentResultsTable(view).title, /春の大会 第1回/);
   assert.ok(tournamentResultsTable(view).rows.length > 0);
+});
+
+test('欠席の印: 過去の回は、その回のときの出欠で付く（次の回で出欠がリセットされても、過去の回には残る）', () => {
+  const st = finishTournament(base());
+  const absentId = st.players[0].id;
+  const marked = { ...st, players: setAbsent(st.players, absentId, true) };
+  const next = startNextEdition(marked).state;
+  assert.ok(next.players.every((p) => p.absent !== true)); // 次の回は全員出席に戻る
+  assert.ok(!JSON.stringify(next.players).includes('absent'));
+  const view = editionState(next, 1);
+  assert.equal(view.players.find((p) => p.id === absentId).absent, true); // 過去の回には残る
+  const name = view.players.find((p) => p.id === absentId).name;
+  assert.ok(bracketTable(view).rows.flat().some((c) => c.includes(`${name}（欠席）`)));
+  assert.ok(tournamentResultsTable(view).rows.flat().some((c) => c === `${name}（欠席）`));
 });
 
 test('過去の回の概要: 優勝者・総当たりの1位・途中の進み具合', () => {

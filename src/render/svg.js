@@ -2,7 +2,7 @@
 // measure(text, fontSize, bold) で文字幅を測る（ブラウザでは canvas、テストでは概算）。
 
 import { resolveBracket, roundName } from '../core/bracket.js';
-import { playerName, tableName } from '../core/state.js';
+import { playerLabel, tableName } from '../core/state.js';
 import { eventTitle } from '../core/edition.js';
 import { formatEventDate } from '../core/schedule.js';
 import { THEME as T } from './theme.js';
@@ -71,7 +71,7 @@ export function bracketSvg(state, { measure = approxMeasure, interactive = false
   const R = res.roundCount;
   const rowH = 36;
   const boxH = 26;
-  const nameW = Math.max(...t.playerIds.map((id) => measure(playerName(state, id), 14, true)), measure('（削除された参加者）', 14));
+  const nameW = Math.max(...t.playerIds.map((id) => measure(playerLabel(state, id), 14, true)), measure('（削除された参加者）', 14));
   const boxW = Math.round(Math.min(320, Math.max(120, nameW + 44)));
   const labels = res.playable.map((m) => measure(matchLabel(state, m), 11));
   const gap = Math.round(Math.max(64, (labels.length ? Math.max(...labels) : 0) + 30));
@@ -91,7 +91,7 @@ export function bracketSvg(state, { measure = approxMeasure, interactive = false
   out.push(text(left, 24, `${eventTitle(state)}　トーナメント表`, { size: 20, bold: true }));
   if (res.champion) {
     // 右上に優勝者名を小さく入れる。タイトルと重なるときは、1行下げる
-    const champ = `優勝　${playerName(state, res.champion)}`;
+    const champ = `優勝　${playerLabel(state, res.champion)}`;
     const fits = measure(`${eventTitle(state)}　トーナメント表`, 20, true) + measure(champ, 13, true) + 32 <= width;
     out.push(text(width - 16, fits ? 24 : 44, champ, { size: 13, bold: true, color: T.gold, anchor: 'end' }));
   }
@@ -103,7 +103,7 @@ export function bracketSvg(state, { measure = approxMeasure, interactive = false
     const fill = st === 'win' ? C.winFill : st === 'champ' ? C.champFill : C.boxFill;
     const stroke = st === 'win' ? C.win : st === 'champ' ? C.champ : C.box;
     const color = st === 'lose' ? T.faint : T.text;
-    const name = id === undefined ? '' : playerName(state, id);
+    const name = id === undefined ? '' : playerLabel(state, id);
     // 画面の表（interactive）だけ、選手の ID を付ける（「自分の試合」の強調に使う。PNG には付けない）
     const pid = interactive && typeof id === 'string' ? id : '';
     let s = `<rect x="${x}" y="${y - boxH / 2}" width="${boxW}" height="${boxH}" rx="4" fill="${fill}" stroke="${stroke}" stroke-width="${st === 'win' || st === 'champ' ? 1.6 : 1}"${pid ? ` data-pid="${esc(pid)}"` : ''}/>`;

@@ -9,7 +9,7 @@ import { exportMenuHtml } from './exportMenu.js';
 import { tableBoardHtml } from './tableBoardView.js';
 import { setupStartButtons, changeStart } from './startMatch.js';
 import { scrollBehavior, flash } from './reveal.js';
-import { statusBadge, matchStatusKey } from './badge.js';
+import { statusBadge, matchStatusKey, nameHtml } from './badge.js';
 import { resultCardsHtml } from './resultCards.js';
 import { roundPanelHtml, pickKey } from './roundView.js';
 import { foldHtml, syncFold, setupFold, isMobile } from './resultsFold.js';
@@ -133,10 +133,10 @@ export function renderLeague() {
     <ul class="player-list no-print" id="league-player-list" aria-label="選んだ選手の対戦"></ul>
     <div class="table-wrap">
       <table class="data matrix">
-        <thead><tr>${matrix.headers.map((x, i) => `<th${l.playerIds[i - 1] ? ` data-pid="${h(l.playerIds[i - 1])}"` : ''}>${h(x)}</th>`).join('')}</tr></thead>
+        <thead><tr>${matrix.headers.map((x, i) => `<th${l.playerIds[i - 1] ? ` data-pid="${h(l.playerIds[i - 1])}"` : ''}>${nameHtml(x)}</th>`).join('')}</tr></thead>
         <tbody>${matrix.rows.map((row, i) => {
           const id = l.playerIds[i];
-          return `<tr><th class="rowhead" data-pid="${h(id)}">${h(row[0])}</th>${l.playerIds.map((op, j) => {
+          return `<tr><th class="rowhead" data-pid="${h(id)}">${nameHtml(row[0])}</th>${l.playerIds.map((op, j) => {
             if (op === id) return '<td class="self">－</td>';
             const m = pairs.get(`${id}|${op}`);
             const o = outcomeFor(m, l.results[m.id], id) || 'pending';
@@ -156,7 +156,7 @@ export function renderLeague() {
           ${cells.map((c, i) => {
             if (i === 8) return `<td>${statusBadge(matchStatusKey(m))}</td>`;
             const pid = { 4: m.p1, 6: m.p2 }[i]; // 選手の列には ID を付ける（「自分の試合」の強調）
-            return `<td${[0, 3, 5].includes(i) ? ' class="num"' : ''}${typeof pid === 'string' ? ` data-pid="${h(pid)}"` : ''}>${h(c)}</td>`;
+            return `<td${[0, 3, 5].includes(i) ? ' class="num"' : ''}${typeof pid === 'string' ? ` data-pid="${h(pid)}"` : ''}>${nameHtml(c)}</td>`;
           }).join('')}</tr>`).join('')}</tbody>
       </table>
     </div>

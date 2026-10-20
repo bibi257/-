@@ -4,6 +4,7 @@
 
 import { h } from './io.js';
 import { STATUS } from '../core/exportData.js';
+import { ABSENT_MARK } from '../core/state.js';
 
 /** バッジを出す状態（表に出さない 'empty' を除く） */
 export const BADGE_STATUSES = ['ready', 'running', 'done', 'waiting', 'bye'];
@@ -20,4 +21,18 @@ export function statusBadge(status) {
 /** 順位表で、まだ勝ち残っている選手に出すバッジ（順位の欄） */
 export function aliveBadge() {
   return '<span class="badge badge-alive">勝ち残り</span>';
+}
+
+/** 欠席の選手に出すバッジ（名前の後ろ。灰の枠） */
+export function absentBadge() {
+  return '<span class="badge badge-absent">欠席</span>';
+}
+
+/**
+ * 表のセルの文字をエスケープして出す。出力用の名前が末尾に「（欠席）」を持つときは、その文字を灰の枠のバッジに替える
+ * （CSV・PNG は文字のまま、画面の表だけバッジにする）。
+ */
+export function nameHtml(text) {
+  const t = String(text ?? '');
+  return t.endsWith(ABSENT_MARK) ? `${h(t.slice(0, -ABSENT_MARK.length))}${absentBadge()}` : h(t);
 }

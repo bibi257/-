@@ -104,6 +104,36 @@ test('運営が共有を始め、閲覧者はリンクを開くだけで見ら�
   await viewer.close();
 });
 
+test('欠席の印は、閲覧者の画面（表・結果一覧・順位表）にも出る', async ({ browser }) => {
+  const admin = await browser.newContext();
+  const viewer = await browser.newContext();
+  await withIp(admin, '10.0.4.1');
+  await withIp(viewer, '10.0.4.2');
+  const a = await admin.newPage();
+  const v = await viewer.newPage();
+  acceptDialogs(a);
+  acceptDialogs(v);
+  await open(a);
+  await importNames(a, ['山田 太郎', '佐藤 花子', '鈴木 一郎', '高橋 次郎']);
+  await a.locator('#panel-setup input.attend-box').nth(2).uncheck(); // 鈴木 一郎が欠席
+  await a.click('[data-act=gen-tournament]');
+  await a.locator('#choice-dialog input[value=walkover]').check();
+  await a.locator('#choice-dialog #ch-ok').click();
+  await a.click('#pr-ok');
+  await a.waitForSelector('#bracket-wrap svg');
+  const code = await startShare(a);
+  await a.click('#sh-close');
+
+  await v.goto(`http://localhost:4174/#v=${code}`);
+  await expect(v.locator('#bracket-wrap svg')).toBeVisible();
+  await expect(v.locator('#bracket-wrap svg text', { hasText: '鈴木 一郎（欠席）' }).first()).toBeVisible();
+  await expect(v.locator('#panel-tournament table.results td .badge-absent').first()).toHaveText('欠席');
+  await v.click('.tabs [data-tab=standings]');
+  await expect(v.locator('#panel-standings .badge-absent')).toHaveCount(1);
+  await admin.close();
+  await viewer.close();
+});
+
 test('運営用パスワードを変えても閲覧は続く。共有を終了すると閲覧者は切断される', async ({ browser }) => {
   const admin = await browser.newContext();
   const viewer = await browser.newContext();

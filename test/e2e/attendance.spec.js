@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
-import { open, importNames, enterScore, acceptDialogs, genTournament } from './helpers.js';
+import { readFile } from 'node:fs/promises';
+import { open, importNames, enterScore, acceptDialogs, genTournament, openResultsFold } from './helpers.js';
 
 const EIGHT = ['山田 太郎', '佐藤 花子', '鈴木 一郎', '高橋 次郎', '田中 三郎', '伊藤 四郎', '渡辺 五郎', '中村 六子'];
 const FOUR = ['山田 太郎', '佐藤 花子', '鈴木 一郎', '高橋 次郎'];
@@ -227,3 +228,94 @@ for (const [w, h] of [[390, 844], [1280, 800]]) {
     });
   });
 }
+
+// ---- 欠席の印を、表・順位表にも出す（N11）----
+/** 欠席の人を表に入れたまま（不戦にして）作る */
+async function genWalkover(page, kind) {
+  await page.click(`[data-act=gen-${kind}]`);
+  await choice(page).locator('input[value=walkover]').check();
+  await choice(page).locator('#ch-ok').click();
+  if (kind === 'tournament') await page.click('#pr-ok');
+  await page.waitForSelector(`#panel-${kind} .progress`);
+}
+
+test.describe('欠席の印（トーナメント表・総当たり表・結果一覧・順位表）', () => {
+  test.use({ viewport: { width: 1280, height: 900 } });
+
+  async function absentSetup(page) {
+    await open(page);
+    await importNames(page, FOUR);
+    await page.locator('#panel-setup input.attend-box').nth(2).uncheck(); // 鈴木 一郎が欠席
+    await genWalkover(page, 'tournament'); // 欠席の人を入れたまま、不戦にして作る
+  }
+  const mark = (page, scope) => page.locator(`${scope} .badge-absent`);
+
+  test('トーナメント表の SVG は「（欠席）」の文字、結果一覧・順位表は灰の枠のバッジ', async ({ page }) => {
+    await absentSetup(page);
+    await expect(page.locator('#bracket-wrap svg text', { hasText: '鈴木 一郎（欠席）' }).first()).toBeVisible();
+    await expect(page.locator('#bracket-wrap svg text', { hasText: '山田 太郎（欠席）' })).toHaveCount(0); // 出席の人には付かない
+    // 試合結果一覧（表）: 名前の後ろにバッジ
+    const row = page.locator('#panel-tournament table.results td[data-pid]', { hasText: '鈴木 一郎' }).first();
+    await expect(row.locator('.badge-absent')).toHaveText('欠席');
+    expect((await row.textContent()).replace(/\s+/g, '')).toBe('鈴木一郎欠席');
+    // バッジは灰の枠（塗りなし）
+    const style = await row.locator('.badge-absent').evaluate((el) => { const c = getComputedStyle(el); return [c.backgroundColor, c.borderTopStyle, c.borderTopWidth]; });
+    expect(style).toEqual(['rgba(0, 0, 0, 0)', 'solid', '1px']);
+    // 順位表
+    await page.click('.tabs [data-tab=standings]');
+    await expect(page.locator('#panel-standings table tr[data-pid]', { hasText: '鈴木 一郎' }).locator('.badge-absent')).toHaveCount(1);
+    await expect(mark(page, '#panel-standings')).toHaveCount(1); // 欠席は1人だけ
+    // 出席の人にはバッジが無い
+    await expect(page.locator('#panel-standings table tr[data-pid]', { hasText: '山田 太郎' }).locator('.badge-absent')).toHaveCount(0);
+  });
+
+  test('総当たり表（見出し・行）・結果一覧・順位表にも出る', async ({ page }) => {
+    await open(page);
+    await importNames(page, FOUR);
+    await page.locator('#panel-setup input.attend-box').nth(1).uncheck(); // 佐藤 花子が欠席
+    acceptDialogs(page);
+    await genWalkover(page, 'league');
+    await page.waitForSelector('#panel-league table.matrix', { state: 'attached' });
+    await expect(page.locator('#panel-league table.matrix th', { hasText: '佐藤 花子' }).first().locator('.badge-absent')).toHaveCount(1);
+    await expect(mark(page, '#panel-league table.matrix th.rowhead')).toHaveCount(1);
+    await expect(mark(page, '#panel-league table.results')).toHaveCount(3); // 佐藤 花子の3試合
+    await page.click('.tabs [data-tab=standings]');
+    await expect(mark(page, '#panel-standings')).toHaveCount(1);
+  });
+
+  test('欠席がいなければ、どこにも印は出ない', async ({ page }) => {
+    await open(page);
+    await importNames(page, FOUR);
+    await genTournament(page);
+    await expect(page.locator('.badge-absent')).toHaveCount(0);
+    await expect(page.locator('#bracket-wrap svg text', { hasText: '欠席' })).toHaveCount(0);
+  });
+
+  test('CSV には「（欠席）」の文字で出る（結果一覧・順位表）', async ({ page }) => {
+    await absentSetup(page);
+    const [dl] = await Promise.all([page.waitForEvent('download'), (async () => {
+      await page.click('.tabs [data-tab=standings]');
+      await page.locator('#panel-standings [data-export-toggle]').first().click();
+      await page.click('#panel-standings [data-export=t-csv]');
+    })()]);
+    const csv = (await readFile(await dl.path(), 'utf8'));
+    expect(csv).toContain('鈴木 一郎（欠席）');
+    expect(csv).not.toContain('山田 太郎（欠席）');
+  });
+});
+
+test.describe('欠席の印（スマホ幅のカード）', () => {
+  test.use({ viewport: { width: 390, height: 844 }, hasTouch: true });
+
+  test('結果一覧のカードの名前の後ろにも、バッジが出る', async ({ page }) => {
+    await open(page);
+    await importNames(page, FOUR);
+    await page.locator('#panel-setup input.attend-box').nth(2).uncheck();
+    await genWalkover(page, 'tournament');
+    // 「回戦ごと」のカード（初期表示）の中に、バッジが出る（欠席の人の試合は、どの回戦かが決まっていないので、全部の回戦のカードを数える）
+    await expect(page.locator('#round-view .rc .badge-absent').first()).toBeAttached();
+    // 試合結果一覧（折りたたみを開く）のカードにも出る
+    await openResultsFold(page);
+    await expect(page.locator('#panel-tournament details.fold .result-cards .badge-absent:visible').first()).toBeVisible();
+  });
+});
