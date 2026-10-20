@@ -159,3 +159,5 @@
 フォント変更（IBM Plex Sans JP・IBM Plex Mono。2026-10-19）の後、`npm run build`・`npm test`（285 件）・`npm run test:e2e`（279 件）・`npm run test:electron` を再実行し、すべて成功（不具合 33 の修正後）。追加したテスト: 単体 2（画面用と PNG 用の字体の指定）、E2E 3（本文と太字のフォントのファイルが読み込まれ日本語の字に使われる／試合番号は IBM Plex Mono／表の SVG の字体と PNG 出力の成功）。`file://` で開いてもフォントが読み込まれることは、Playwright で確認した。**未検証**: Windows 実機・Safari・Firefox での見た目、Cloudflare・GitHub Pages に公開した後の読み込み（フォント約5MB が配信されるか）、PNG への IBM Plex の埋め込み（見送り。PLAN D48）。
 
 PNG 出力のフォント（N14。2026-10-20）の実装の後、`npm run build`・`npm test`（328 件）・`npm run test:e2e`（346 件）・`npm run test:electron` を再実行し、すべて成功（最新の main に載せ直した後）。途中で、共有の QR の保存の E2E が1件失敗した（原因と対応は、上の「PNG 出力のフォント（N14）」の行と PLAN D58 (5)）。単体テストは、初回の実行で1件失敗したことがあったが（ドキュメントだけの変更の PR #53 の確認時）、同じコードの再実行では失敗せず、原因は特定できていない。
+
+開催日時の時刻の欄・「2 卓と形式」の修正（2026-10-20）の後、`npm run build`・`npm test`（329 件）・`npm run test:e2e`（349 件）を再実行し、すべて成功。`npm run test:electron` は、起動の処理に触れないため実行していない。
