@@ -34,6 +34,7 @@
 ```
 src/core/      純粋ロジック（DOM非依存・Nodeでテスト可能）
   bracket.js   トーナメント生成・結果反映・順位
+  bracketFit.js トーナメント表の最初の倍率（枠の幅と表の幅から決める）
   league.js    総当たり生成・日程・順位計算
   csv.js       CSV 生成・解析・文字コード判定
   exportData.js 出力用の表データ（CSV/PNG共通）
