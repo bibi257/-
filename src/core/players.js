@@ -65,10 +65,11 @@ export function resizeTables(tables, count) {
   return out;
 }
 
-/** 「参加者・設定」タブの3段階（1 大会情報と参加者／2 卓と形式／3 表を作成）の進み具合。2 は確認する項目がないので持たない */
+/** 「参加者・設定」タブの3段階（1 大会情報と参加者／2 卓と形式／3 表を作成）の進み具合 */
 export function setupProgress(state) {
   return {
     players: state.players.length >= 2, // 1: 対戦表を作れる人数がいる
+    tables: state.tables.length >= 1 && state.tables.every((t) => t.name.trim() !== ''), // 2: 卓があり、すべてに名前がある
     created: !!(state.tournament || state.league), // 3: トーナメントか総当たりを作成済み
   };
 }

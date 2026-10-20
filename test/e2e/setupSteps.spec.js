@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { open, importNames, genTournament } from './helpers.js';
+import { open, importNames, genTournament, setNumber } from './helpers.js';
 
 const NAMES = Array.from({ length: 12 }, (_, i) => `選手${i + 1}`);
 const done = (page, n) => page.locator(`.steps li:nth-child(${n}) .step`);
@@ -15,7 +15,9 @@ for (const [w, h] of [[390, 844], [1280, 800]]) {
       await expect(steps.nth(0)).toContainText('大会情報と参加者');
       await expect(steps.nth(1)).toContainText('卓と形式');
       await expect(steps.nth(2)).toContainText('表を作成');
-      for (const n of [1, 2, 3]) await expect(done(page, n)).not.toHaveClass(/done/);
+      await expect(done(page, 1)).not.toHaveClass(/done/);
+      await expect(done(page, 2)).toHaveClass(/done/); // 卓が2つあり、どれにも名前が入っている（初期値）
+      await expect(done(page, 3)).not.toHaveClass(/done/);
       // 最上部（大会情報のカードより上）にある
       const sb = await page.locator('.steps').boundingBox();
       const ib = await page.locator('#setup-info').boundingBox();
@@ -31,7 +33,21 @@ for (const [w, h] of [[390, 844], [1280, 800]]) {
       await genTournament(page);
       await page.click('.tabs [data-tab=setup]');
       await expect(done(page, 3)).toHaveClass(/done/);
-      await expect(done(page, 2)).not.toHaveClass(/done/); // 2 には確認する項目がない
+      await expect(done(page, 2)).toHaveClass(/done/);
+    });
+
+    test('「2 卓と形式」は、卓の名前を空にするとチェックが外れ、入れると付く（卓の数を変えても）', async ({ page }) => {
+      await open(page);
+      await expect(done(page, 2)).toHaveClass(/done/);
+      await expect(done(page, 2)).toHaveAttribute('aria-label', /済み/);
+      await page.fill('input.table-name >> nth=0', '');
+      await expect(done(page, 2)).not.toHaveClass(/done/);
+      await expect(done(page, 2)).not.toHaveAttribute('aria-label', /済み/);
+      await page.fill('input.table-name >> nth=0', 'A卓');
+      await expect(done(page, 2)).toHaveClass(/done/);
+      await setNumber(page, '#table-count', 3); // 増やした卓には、初期の名前が入る
+      await expect(page.locator('input.table-name')).toHaveCount(3);
+      await expect(done(page, 2)).toHaveClass(/done/);
     });
 
     test('段階を押すと、その位置へスクロールする', async ({ page }) => {
@@ -160,5 +176,25 @@ test.describe('幅390pxの崩れ', () => {
     await open(page);
     await importNames(page, NAMES);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  });
+});
+
+test.describe('開催日時の欄（スマホ幅）', () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+
+  test('日付と時刻の欄が、カードからはみ出さず、重ならない', async ({ page }) => {
+    await open(page);
+    await page.fill('#meta-date', '2999-01-01');
+    await page.press('#meta-date', 'Tab');
+    const card = await page.locator('#setup-info').boundingBox();
+    const d = await page.locator('#meta-date').boundingBox();
+    const t = await page.locator('#meta-time').boundingBox();
+    for (const b of [d, t]) {
+      expect(b.x).toBeGreaterThanOrEqual(card.x);
+      expect(b.x + b.width).toBeLessThanOrEqual(card.x + card.width);
+    }
+    expect(d.x + d.width).toBeLessThanOrEqual(t.x); // 並んだ2つが重ならない
+    expect(Math.abs(d.width - t.width)).toBeLessThan(2); // 同じ幅
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   });
 });

@@ -149,7 +149,7 @@ export function renderSetup() {
 
 const STEPS = [
   { target: 'setup-info', no: 1, label: '大会情報と参加者', key: 'players' },
-  { target: 'setup-tables', no: 2, label: '卓と形式', key: null },
+  { target: 'setup-tables', no: 2, label: '卓と形式', key: 'tables' },
   { target: 'setup-create', no: 3, label: '表を作成', key: 'created' },
 ];
 
@@ -160,6 +160,12 @@ function stepsHtml(progress) {
     return `<li><button type="button" class="step ${done ? 'done' : ''}" data-act="step" data-target="${p.target}" aria-label="${p.no} ${p.label}${done ? '（済み）' : ''}">`
       + `<span class="step-no" aria-hidden="true">${done ? '✓' : p.no}</span><span class="step-label">${p.label}</span></button></li>`;
   }).join('')}</ol></nav>`;
+}
+
+/** 3段階の表示だけを作り直す（入力中は画面全体を再描画しないため） */
+function refreshSteps() {
+  const nav = panel().querySelector('.steps');
+  if (nav) nav.outerHTML = stepsHtml(setupProgress(getState()));
 }
 
 /** 表を作成するボタン（カードの下で全幅）。作成済みのときは「作り直す」にして、結果が消えることを添える */
@@ -367,6 +373,7 @@ function onInput(e) {
     updateValidation();
   } else if (el.matches('input.table-name')) {
     update({ tables: st.tables.map((t) => (t.id === el.dataset.id ? { ...t, name: el.value.slice(0, 20) } : t)) }, { render: false, merge: true });
+    refreshSteps(); // 名前を空にした・入れたとき、「2 卓と形式」のチェックを今つける・外す
   } else if (el.id === 'meta-title') {
     update({ meta: { ...st.meta, title: el.value } }, { render: false, merge: true });
     document.getElementById('print-title').textContent = el.value;

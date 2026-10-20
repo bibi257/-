@@ -128,7 +128,7 @@ button.danger:hover:not(:disabled) { background: var(--danger-weak); border-colo
 button.small { min-height: 28px; padding: 0 10px; font-size: 13px; }
 button.icon { min-height: 30px; min-width: 32px; padding: 0 8px; }
 
-input[type="text"], input[type="number"], input[type="date"], input:not([type]), select, textarea {
+input[type="text"], input[type="number"], input[type="date"], input[type="time"], input:not([type]), select, textarea {
   border: 1px solid var(--rule-strong); border-radius: var(--r-ctl); padding: 0 10px; min-height: 36px; background: var(--paper);
 }
 textarea { padding: 8px 10px; width: 100%; resize: vertical; line-height: 1.6; }
@@ -730,9 +730,10 @@ table.editions td.ops { white-space: nowrap; }
   .steps ol { gap: 6px; }
   .steps .step { flex-direction: column; gap: 4px; padding: 8px 4px; font-size: 12px; line-height: 1.3; min-height: 64px; }
   .steps .step-label { text-align: center; }
-  .schedule-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .schedule-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
   .schedule-row > label:first-child, .schedule-row > button { grid-column: 1 / -1; }
-  .schedule-row input { min-width: 0; width: 100%; }
+  /* iPhone の日付・時刻の欄は、標準の見た目のままだと幅の指定を無視してはみ出すため、見た目を外して幅に収める */
+  .schedule-row input { display: block; min-width: 0; max-width: 100%; width: 100%; -webkit-appearance: none; appearance: none; text-align: left; }
   .pt-row { display: block; }
   .pt-row > label:first-child { display: block; margin-bottom: 6px; }
   .pt-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
