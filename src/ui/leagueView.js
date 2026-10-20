@@ -15,7 +15,8 @@ import { roundPanelHtml, pickKey } from './roundView.js';
 import { foldHtml, syncFold, setupFold, isMobile } from './resultsFold.js';
 import { getMyPlayerId } from './myMatch.js';
 import { resolveLeague, setLeagueResult, setLeagueTable, leagueProgress, outcomeFor } from '../core/league.js';
-import { leagueMatrixTable, leagueResultRows, leagueResultsTable } from '../core/exportData.js';
+import { leagueMatrixTable, leagueResultRows, leagueResultsTable, matrixCellLabel } from '../core/exportData.js';
+import { nextGridCell, nextListIndex, NAV_KEYS } from '../core/gridNav.js';
 import { tableSvg } from '../render/svg.js';
 import { playerName, tableName } from '../core/state.js';
 import { assignTable, pickNextMatch } from '../core/result.js';
@@ -137,10 +138,10 @@ export function renderLeague() {
         <tbody>${matrix.rows.map((row, i) => {
           const id = l.playerIds[i];
           return `<tr><th class="rowhead" data-pid="${h(id)}">${nameHtml(row[0])}</th>${l.playerIds.map((op, j) => {
-            if (op === id) return '<td class="self">－</td>';
+            if (op === id) return `<td class="self" data-r="${i}" data-c="${j}">－</td>`;
             const m = pairs.get(`${id}|${op}`);
             const o = outcomeFor(m, l.results[m.id], id) || 'pending';
-            return `<td class="cell ${o}" data-match="${h(m.id)}" title="${h(playerName(st, id))} vs ${h(playerName(st, op))}">${h(row[j + 1])}</td>`;
+            return `<td class="cell ${o}" data-match="${h(m.id)}" data-r="${i}" data-c="${j}" tabindex="-1" aria-label="${h(matrixCellLabel(st, m, l.results[m.id], id, op))}" title="${h(playerName(st, id))} vs ${h(playerName(st, op))}">${h(row[j + 1])}</td>`;
           }).join('')}${row.slice(n + 1).map((c) => `<td>${h(c)}</td>`).join('')}</tr>`;
         }).join('')}</tbody>
       </table>
@@ -152,7 +153,7 @@ export function renderLeague() {
     <div class="table-wrap results-table">
       <table class="data results">
         <thead><tr>${['試合番号', '回戦', '卓', '時間帯', '選手1', 'スコア', '選手2', '結果', '状態'].map((x) => `<th>${x}</th>`).join('')}</tr></thead>
-        <tbody>${rows.map(({ match: m, cells }) => `<tr class="st-${m.status} clickable" data-match="${h(m.id)}">
+        <tbody>${rows.map(({ match: m, cells }) => `<tr class="st-${m.status} clickable" data-match="${h(m.id)}" tabindex="-1" aria-label="${h(rowLabel(cells))}">
           ${cells.map((c, i) => {
             if (i === 8) return `<td>${statusBadge(matchStatusKey(m))}</td>`;
             const pid = { 4: m.p1, 6: m.p2 }[i]; // 選手の列には ID を付ける（「自分の試合」の強調）
@@ -166,6 +167,7 @@ export function renderLeague() {
   fillPlayerList();
   syncFold(panel(), FOLD_KEY, collapsible);
   applyFilter(rows, f);
+  syncRoving();
 }
 
 /** スマホ幅の「回戦ごと」表示（回戦のタブ＋試合のカード＋休みの選手）を、今の状態で描く */
@@ -280,12 +282,104 @@ function onFilterChange() {
   saveFilter();
   const rows = leagueResultRows(st);
   applyFilter(rows, sanitizeFilter(filter, filterChoices(st, rows)));
+  syncRoving(); // 隠れた行に、Tab の停止位置が残らないように
 }
 
 function resetFilter() {
   filter = null;
   saveFilter();
   renderLeague();
+}
+
+// ---- キーボード操作（ローピング tabindex）----
+// 対戦表（.matrix）では、Tab が止まるのは1マスだけ（tabindex="0"、ほかは -1）。矢印キーで上下左右のマス（自分自身のマスは飛ばす）、
+// Home／End で行の先頭／最後、Enter・Space で結果入力。試合結果一覧の表も、上下の矢印キーで行を移る。
+// 画面は保存のたびに作り直すので、どのマス・行にいるかは、位置（行・列／試合）で覚えておく。
+const rov = { cell: null, row: null }; // cell: {r, c}、row: 試合の ID
+let returnTo = null; // 結果入力を閉じたときにフォーカスを戻す先: { cell: {r, c} } か { row: 試合の ID }
+
+/** 一覧の行を読み上げる文（例:「No.3 山田 太郎 対 佐藤 花子、2 － 1、終了」）。cells は leagueResultRows の cells */
+const rowLabel = (cells) => `No.${cells[0]} ${cells[4]} 対 ${cells[6]}、${cells[5] ? `スコア ${cells[5]}、` : ''}${cells[8]}`;
+
+const matrixCells = () => [...panel().querySelectorAll('.matrix td.cell[data-r]')];
+const cellAt = (r, c) => panel().querySelector(`.matrix td.cell[data-r="${r}"][data-c="${c}"]`);
+const isShown = (el) => el.getClientRects().length > 0;
+const resultRows = () => [...panel().querySelectorAll('.results-table tbody tr[data-match]')].filter(isShown);
+
+/** Tab の停止位置を1つにそろえる（描き直したあと・絞り込んだあと・フォーカスが動いたあと） */
+function syncRoving() {
+  const cells = matrixCells();
+  if (cells.length) {
+    const cur = (rov.cell && cellAt(rov.cell.r, rov.cell.c)) || cells.find(isShown) || cells[0];
+    for (const el of cells) el.tabIndex = el === cur ? 0 : -1;
+    rov.cell = { r: Number(cur.dataset.r), c: Number(cur.dataset.c) };
+  }
+  const rows = resultRows();
+  for (const el of panel().querySelectorAll('.results-table tbody tr[data-match]')) el.tabIndex = -1;
+  if (rows.length) {
+    const cur = rows.find((x) => x.dataset.match === rov.row) || rows[0];
+    cur.tabIndex = 0;
+    rov.row = cur.dataset.match;
+  }
+}
+
+function focusCell(r, c) {
+  const el = cellAt(r, c);
+  if (!el) return;
+  rov.cell = { r, c };
+  syncRoving();
+  el.focus();
+}
+
+function onRovingKey(e) {
+  const cell = e.target.closest?.('.matrix td.cell[data-r]');
+  const row = !cell && e.target.closest?.('.results-table tbody tr[data-match]');
+  if (!cell && !row) return;
+  if (e.target !== cell && e.target !== row) return; // 行の中の部品（ボタンなど）のキーは、そのまま
+  if (e.altKey || e.ctrlKey || e.metaKey) return;
+  if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault(); // Space でページが動かないように
+    (cell || row).click(); // 結果入力（閲覧専用のときは開かない）
+    return;
+  }
+  if (!NAV_KEYS.includes(e.key)) return;
+  if (cell) {
+    const rows = panel().querySelectorAll('.matrix tbody tr').length;
+    const cols = rows; // 対戦表は正方形（選手 × 選手）
+    const to = nextGridCell({ rows, cols, r: Number(cell.dataset.r), c: Number(cell.dataset.c), key: e.key, canFocus: (r, c) => !!cellAt(r, c) });
+    e.preventDefault();
+    focusCell(to.r, to.c);
+    return;
+  }
+  const rows = resultRows();
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') return;
+  const at = nextListIndex({ count: rows.length, i: rows.indexOf(row), key: e.key });
+  e.preventDefault();
+  if (at >= 0) { rov.row = rows[at].dataset.match; syncRoving(); rows[at].focus(); }
+}
+
+/** Tab・クリックでフォーカスが入ったマス・行を、次の Tab の停止位置にする */
+function onRovingFocus(e) {
+  const cell = e.target.closest?.('.matrix td.cell[data-r]');
+  if (cell) { rov.cell = { r: Number(cell.dataset.r), c: Number(cell.dataset.c) }; syncRoving(); return; }
+  const row = e.target.closest?.('.results-table tbody tr[data-match]');
+  if (row && e.target === row) { rov.row = row.dataset.match; syncRoving(); }
+}
+
+/** 結果入力を開いた要素（マス・一覧の行）を覚える。閉じたら、保存で画面が作り直されていても、同じ位置にフォーカスを戻す */
+function rememberReturn(el) {
+  const cell = el.closest('.matrix td.cell[data-r]');
+  const row = !cell && el.closest('.results-table tbody tr[data-match]');
+  returnTo = cell ? { cell: { r: Number(cell.dataset.r), c: Number(cell.dataset.c) } } : row ? { row: row.dataset.match } : null;
+}
+
+function restoreFocus() {
+  if (!returnTo || !panel() || panel().hidden) return;
+  if (returnTo.cell) focusCell(returnTo.cell.r, returnTo.cell.c);
+  else {
+    const el = [...panel().querySelectorAll('.results-table tbody tr[data-match]')].find((x) => x.dataset.match === returnTo.row && isShown(x));
+    if (el) { rov.row = returnTo.row; syncRoving(); el.focus(); }
+  }
 }
 
 export function setupLeagueView() {
@@ -297,6 +391,9 @@ export function setupLeagueView() {
     if (e.target.closest('.match-filter')) onFilterChange();
     if (e.target.id === 'lp-player') { view.player = e.target.value; fillPlayerList(); }
   });
+  p.addEventListener('keydown', onRovingKey);
+  p.addEventListener('focusin', onRovingFocus);
+  document.getElementById('result-dialog').addEventListener('close', restoreFocus);
   p.addEventListener('click', (e) => {
     if (e.target.closest('[data-filter-reset]')) { resetFilter(); return; }
     const sw = e.target.closest('[data-view-mode]');
@@ -313,6 +410,7 @@ export function setupLeagueView() {
     if (tab) { view.round = tab.dataset.roundTab; fillRoundView(); return; }
     const c = e.target.closest('[data-match]');
     if (c) {
+      rememberReturn(c);
       const region = c.closest('.matrix') ? 'matrix' : c.closest('#league-round-view') ? 'rounds' : c.closest('.results-table, .result-cards, .player-list') ? 'list' : 'next';
       openMatch(c.dataset.match, region);
       return;

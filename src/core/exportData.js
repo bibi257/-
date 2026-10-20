@@ -123,6 +123,22 @@ export function matrixCell(m, result, id) {
   return `${mark} ${mine}-${theirs}`;
 }
 
+/**
+ * 総当たり表のマスを読み上げるための文（aria-label）。例:「山田 太郎 対 佐藤 花子、勝ち 3-1」「…、未入力」「…、不戦勝」。
+ * 行の選手（id）から見た結果で言う。
+ */
+export function matrixCellLabel(state, m, result, id, opId) {
+  const head = `${playerLabel(state, id)} 対 ${playerLabel(state, opId)}`;
+  const o = m && result ? outcomeFor(m, result, id) : null;
+  if (!o) return `${head}、未入力`;
+  if (result.walkover) return `${head}、${o === 'win' ? '不戦勝' : '不戦敗'}`;
+  const word = { win: '勝ち', loss: '負け', draw: '引き分け' }[o];
+  if (result.score1 === null || result.score1 === undefined) return `${head}、${word}`;
+  const mine = id === m.p1 ? result.score1 : result.score2;
+  const theirs = id === m.p1 ? result.score2 : result.score1;
+  return `${head}、${word} ${mine}-${theirs}`;
+}
+
 /** 総当たり表（対戦マトリクス） */
 export function leagueMatrixTable(state) {
   const l = state.league;
