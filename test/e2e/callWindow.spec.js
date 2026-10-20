@@ -71,6 +71,20 @@ test.describe('呼び出し画面を別ウィンドウで開く（N9）', () => 
     await expect(popup.locator('.header-actions')).toBeHidden();
   });
 
+  test('1回の保存で、別ウィンドウは1回だけ描き直す（BroadcastChannel と storage の両方が届いても）', async ({ page, context }) => {
+    await setup(page);
+    const popup = await openWindow(page, context);
+    await popup.evaluate(() => {
+      window.__draws = 0;
+      new MutationObserver((recs) => { window.__draws += recs.some((r) => r.type === 'childList') ? 1 : 0; }).observe(document.getElementById('cs-body'), { childList: true });
+    });
+    await (await lowestNextItem(page, '#panel-tournament')).click();
+    await enterScore(page, 2, 0);
+    await expect(popup.locator('#cs-progress')).toHaveText('1 / 3 試合終了');
+    await popup.waitForTimeout(500); // 2つ目の通知が遅れて届く時間を待つ
+    expect(await popup.evaluate(() => window.__draws)).toBe(1);
+  });
+
   test('運営の画面を閉じても、別ウィンドウは最後の内容を出し続ける', async ({ page, context }) => {
     await setup(page);
     const popup = await openWindow(page, context);

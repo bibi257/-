@@ -30,9 +30,17 @@ export function openCallWindow(kind) {
   return true;
 }
 
-/** 別ウィンドウ側: 運営の画面の保存を受け取ったら f を呼ぶ */
+/** 別ウィンドウ側: 運営の画面の保存を受け取ったら f を呼ぶ。同じ保存で BroadcastChannel と storage の両方が届いても、1回だけ呼ぶ */
 export function listenCallUpdate(f) {
+  const read = () => { try { return localStorage.getItem(STORAGE_KEY); } catch { return undefined; } };
+  let last = read();
+  const onUpdate = () => {
+    const now = read();
+    if (now !== undefined && now === last) return; // もう反映した内容
+    last = now;
+    f();
+  };
   const ch = openChannel();
-  if (ch) ch.onmessage = () => f();
-  window.addEventListener('storage', (e) => { if (e.key === STORAGE_KEY || e.key === null) f(); });
+  if (ch) ch.onmessage = onUpdate;
+  window.addEventListener('storage', (e) => { if (e.key === STORAGE_KEY || e.key === null) onUpdate(); });
 }
