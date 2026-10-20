@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <!-- アプリのアイコンの元の図柄（ヘッダーのロゴ＝トーナメントの勝ち上がり線を、角丸の正方形に載せたもの）。
+       ここを直したら `npm run icons` で web/ と build/ のファイルを作り直す -->
+  <rect width="64" height="64" rx="14" fill="#13233a"/>
+  <g transform="translate(8 8) scale(1.5)">
+    <path d="M4 6h8v6h6v8h-6v6H4v-4h4v-4h6v-4H8V10H4z" fill="#ffffff"/>
+    <path d="M18 14h10v4H18z" fill="#6fa5ea"/>
+  </g>
+</svg>
