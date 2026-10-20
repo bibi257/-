@@ -19,7 +19,7 @@ test.describe('フォント（IBM Plex Sans JP・IBM Plex Mono）', () => {
     await importNames(page, NAMES);
     await genTournament(page);
     const family = (sel) => page.locator(sel).first().evaluate((el) => getComputedStyle(el).fontFamily);
-    expect(await family('.ni-no')).toMatch(/^"?IBM Plex Mono"?,/);
+    expect(await family('.tc-no')).toMatch(/^"?IBM Plex Mono"?,/);
   });
 
   test('表の SVG は画面のフォントで、PNG 用は端末のフォントで作る（PNG 出力は引き続き成功する）', async ({ page }) => {

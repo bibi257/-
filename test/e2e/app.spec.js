@@ -204,7 +204,7 @@ test.describe('トーナメント', () => {
     await setNumber(page, '#seed-count', 8);
     await genTournament(page);
     await expect(page.locator('#bracket-wrap g.match')).toHaveCount(63);
-    await expect(page.locator('.next-item')).toHaveCount(32);
+    await expect(page.locator('#panel-tournament .table-board .tc')).toHaveCount(2); // 卓ごとのカード（卓は2つ）
   });
 });
 

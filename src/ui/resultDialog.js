@@ -20,6 +20,7 @@ let current = null;
  * @param {string|null} o.tableOverride
  * @param {string} o.autoTableName
  * @param {(input:object|null, tableId:string|null, opts:{tableOnly:boolean}) => string|null} o.onSave 失敗時はエラー文を返す
+ * @param {(() => void)|undefined} o.onUnstart 進行中の試合の「開始を取り消す」。進行中でない（または操作できない）ときは渡さない
  * @param {(() => void)|undefined} o.openNext 「保存して次へ」で、保存したあとに次の試合の入力を開く
  */
 export function openResultDialog(o) {
@@ -42,6 +43,7 @@ export function openResultDialog(o) {
   $('rd-draw-wrap').hidden = !o.allowDraw;
   for (const id of ['rd-s1', 'rd-s2', 'rd-walkover']) $(id).disabled = !o.editable;
   $('rd-clear').hidden = !r;
+  $('rd-unstart').hidden = !o.onUnstart || !o.editable;
   $('rd-next').hidden = !o.editable || !o.openNext;
   $('rd-table').innerHTML = `<option value="">自動（${h(o.autoTableName || '－')}）</option>` +
     o.tables.map((t) => `<option value="${h(t.id)}" ${o.tableOverride === t.id ? 'selected' : ''}>${h(t.name)}</option>`).join('');
@@ -106,6 +108,10 @@ export function setupResultDialog() {
   $('rd-next').addEventListener('click', () => save(true));
   $('result-form').addEventListener('keydown', (e) => {
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && !$('rd-next').hidden) { e.preventDefault(); save(true); }
+  });
+  $('rd-unstart').addEventListener('click', () => {
+    $('result-dialog').close();
+    if (typeof current?.onUnstart === 'function') current.onUnstart();
   });
   $('rd-clear').addEventListener('click', () => {
     if (!confirm('この試合の結果を取り消しますか？')) return;

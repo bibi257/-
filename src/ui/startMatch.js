@@ -8,24 +8,27 @@ import { setLeagueStarted } from '../core/league.js';
 import { busyOnSameTable } from '../core/tableBoard.js';
 import { elapsedMinutes } from '../core/started.js';
 
-/** 「開始」「開始を取り消す」のボタンを受ける。kind は 'tournament' か 'league' */
+/** 試合を開始する（starting=true）か、開始を取り消す。kind は 'tournament' か 'league' */
+export function changeStart(kind, id, starting) {
+  if (isReadOnly()) return;
+  const st = getState();
+  if (!st[kind]) return;
+  if (starting) {
+    const busy = busyOnSameTable(st, kind, id);
+    if (busy && !confirm(`${busy.table}では、No.${busy.no}（${busy.p1} 対 ${busy.p2}・${busy.minutes}分）が進行中です。この試合も開始しますか？`)) return;
+  }
+  const at = starting ? new Date().toISOString() : null;
+  const r = kind === 'league' ? setLeagueStarted(st.league, id, at) : setTournamentStarted(st.tournament, id, at);
+  if (!r.ok) { toast(r.error, { error: true }); return; }
+  setState({ ...st, [kind]: kind === 'league' ? r.league : r.tournament });
+  toast(starting ? '試合を開始しました' : '開始を取り消しました');
+}
+
+/** 「開始」のボタンを受ける（「開始を取り消す」は、結果入力シートの中）。kind は 'tournament' か 'league' */
 export function setupStartButtons(panel, kind) {
   panel.addEventListener('click', (e) => {
-    const b = e.target instanceof Element ? e.target.closest('[data-start], [data-unstart]') : null;
-    if (!b || isReadOnly()) return;
-    const st = getState();
-    if (!st[kind]) return;
-    const starting = b.dataset.start !== undefined;
-    const id = starting ? b.dataset.start : b.dataset.unstart;
-    if (starting) {
-      const busy = busyOnSameTable(st, kind, id);
-      if (busy && !confirm(`${busy.table}では、No.${busy.no}（${busy.p1} 対 ${busy.p2}・${busy.minutes}分）が進行中です。この試合も開始しますか？`)) return;
-    }
-    const at = starting ? new Date().toISOString() : null;
-    const r = kind === 'league' ? setLeagueStarted(st.league, id, at) : setTournamentStarted(st.tournament, id, at);
-    if (!r.ok) { toast(r.error, { error: true }); return; }
-    setState({ ...st, [kind]: kind === 'league' ? r.league : r.tournament });
-    toast(starting ? '試合を開始しました' : '開始を取り消しました');
+    const b = e.target instanceof Element ? e.target.closest('[data-start]') : null;
+    if (b) changeStart(kind, b.dataset.start, true);
   });
 }
 

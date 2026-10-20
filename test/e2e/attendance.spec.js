@@ -194,7 +194,7 @@ for (const [w, h] of [[390, 844], [1280, 800]]) {
       let st = await saved(page);
       expect(Object.keys(st.tournament.results)).toHaveLength(1); // 欠席どうしの1回戦だけ
       // 残りの1回戦（佐藤-鈴木）を入力すると、勝者と欠席の山田の決勝が、続けて不戦になる
-      await page.locator('#panel-tournament .ni-card button.next-item').first().click();
+      await page.locator('#panel-tournament .tc .next-item').first().click();
       await enterScore(page, 2, 1);
       await expect(page.locator('#toast')).toContainText('欠席の人の試合1件を不戦にしました');
       st = await saved(page);

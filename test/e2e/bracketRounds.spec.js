@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { open, importNames, enterScore, genTournament } from './helpers.js';
+import { open, importNames, enterScore, genTournament, lowestNextItem } from './helpers.js';
 
 const players = (n) => Array.from({ length: n }, (_, i) => `選手${i + 1} 山田`);
 const noOverflow = (page) => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth);
@@ -79,11 +79,11 @@ test.describe('スマホ幅（390px）: トーナメントは「回戦ごと」�
     await start(page, 12);
     // 1回戦を最後まで進める
     for (let i = 0; i < 4; i++) {
-      await page.locator('.next-item').first().tap();
+      await (await lowestNextItem(page)).tap();
       await enterScore(page, 2, 0);
     }
     await tab(page, '4').tap(); // 別の回戦を見ている状態から
-    const next = page.locator('.next-item').first();
+    const next = await lowestNextItem(page);
     const id = await next.getAttribute('data-match');
     await next.tap();
     await expect(tab(page, '2')).toHaveAttribute('aria-selected', 'true'); // 2回戦のタブに移る

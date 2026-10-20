@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { open, importNames, enterScore, genTournament } from './helpers.js';
+import { open, importNames, enterScore, genTournament, lowestNextItem } from './helpers.js';
 
 const players = (n) => Array.from({ length: n }, (_, i) => `選手${i + 1} 山田`);
 const css = (loc, prop) => loc.evaluate((el, p) => getComputedStyle(el)[p], prop);
@@ -78,10 +78,10 @@ test.describe('トーナメント表の表示操作（PC 1280px）', () => {
     await page.click('[data-zoom=in]'); // 150%
     // 1回戦・2回戦を最後まで進める（準決勝が次の試合になる）
     for (let i = 0; i < 8; i++) {
-      await page.locator('.next-item').first().click();
+      await (await lowestNextItem(page)).click();
       await enterScore(page, 2, 0);
     }
-    const next = page.locator('.next-item').first();
+    const next = await lowestNextItem(page);
     const id = await next.getAttribute('data-match');
     await next.click();
     await expect(page.locator(`g.match.flash[data-id="${id}"]`)).toHaveCount(1);

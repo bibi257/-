@@ -42,6 +42,13 @@ export async function openResultsFold(page) {
   if ((await d.count()) && !(await d.evaluate((el) => el.open))) await d.locator('summary').click();
 }
 
+/** 試合番号がいちばん小さい「今・次」の行（卓ごとのカードは卓の順に並ぶので、番号順の先頭とは限らない）。scope は '#panel-tournament' など */
+export async function lowestNextItem(page, scope = '') {
+  const items = page.locator(`${scope} .next-item`.trim());
+  const nos = await items.evaluateAll((els) => els.map((e) => Number(/No\.(\d+)/.exec(e.textContent)?.[1] ?? Infinity)));
+  return items.nth(nos.indexOf(Math.min(...nos)));
+}
+
 /** 結果入力ダイアログでスコアを入れて保存 */
 export async function enterScore(page, s1, s2) {
   await page.fill('#rd-s1', String(s1));

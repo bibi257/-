@@ -7,7 +7,7 @@ import {
 } from '../../src/core/bracket.js';
 import { generateLeague, resolveLeague, setLeagueResult, setLeagueStarted } from '../../src/core/league.js';
 import { isStartTime, elapsedMinutes } from '../../src/core/started.js';
-import { tableBoard, busyOnSameTable } from '../../src/core/tableBoard.js';
+import { tableBoard, busyOnSameTable, readyWithoutTable } from '../../src/core/tableBoard.js';
 import { callBoard } from '../../src/core/callBoard.js';
 import { startNextEdition, editionState } from '../../src/core/edition.js';
 
@@ -166,7 +166,9 @@ test('卓の状況: 進行中の卓と、空いている卓（その卓の次の
   assert.equal(board[0].running.minutes, 12);
   assert.equal(board[0].running.label, '準々決勝');
   assert.equal(board[0].running.p1, '選手1');
-  assert.equal(board[0].next, null);
+  // 進行中の卓でも、その卓の次の試合（開始していない試合のうち番号が最も小さいもの）を出す。8人・卓2つで、第1卓は No.1・3・…
+  assert.equal(board[0].next.no, 3);
+  assert.equal(board[0].next.timeSlot, 2);
   assert.equal(board[1].state, 'free');
   assert.equal(board[1].next.no, 2);
   // 表がない・種類が違うときは空
@@ -226,4 +228,20 @@ test('過去の回の表示には、進行中を出さない', () => {
   assert.deepEqual(view.tournament.started, {});
   assert.equal(resolveBracket(view.tournament).matches.find((m) => m.id === 'R1-M1').startedAt, null);
   assert.equal(r.state.tournament, null); // 次の回は表が空
+});
+
+test('卓ごとの「次」: 空き卓の次は番号が最も小さい未開始の試合。卓が割り当てられていない試合は別に取り出せる', () => {
+  const st = sample(8);
+  const board = tableBoard(st, 'tournament', mins(0));
+  assert.equal(board[0].next.no, 1);
+  assert.equal(board[0].next.timeSlot, 1);
+  assert.equal(board[1].next.no, 2);
+  assert.deepEqual(readyWithoutTable(st, 'tournament'), []); // 全部の試合が卓に載っている
+  // 卓が無いと、卓ごとのカードは無く、次に行う試合はすべて「卓未定」
+  st.tables = [];
+  assert.deepEqual(tableBoard(st, 'tournament'), []);
+  const loose = readyWithoutTable(st, 'tournament');
+  assert.deepEqual(loose.map((m) => m.no), [1, 2, 3, 4]);
+  assert.deepEqual(readyWithoutTable({ ...st, tournament: null }, 'tournament'), []);
+  assert.deepEqual(readyWithoutTable(createState(), 'league'), []);
 });
