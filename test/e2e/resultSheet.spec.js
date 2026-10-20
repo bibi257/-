@@ -48,6 +48,63 @@ test.describe('結果入力（スマホ幅のシート）', () => {
     expect((await page.locator('#rd-ok').boundingBox()).width).toBeGreaterThan(340);
   });
 
+  test('長い名前は2行まで折り返し、「…」になるときだけ対戦の全文を出す', async ({ page }) => {
+    const VERY = 'あいうえおかきくけこさしすせそたちつてと'; // 20文字
+    for (const width of [375, 390]) {
+      await page.setViewportSize({ width, height: 844 });
+      await open(page);
+      await importNames(page, ['山田', VERY, '佐藤 花子', '鈴木']);
+      await genTournament(page);
+      // 20文字の選手が出る試合を開く
+      const item = page.locator('.next-item', { hasText: VERY }).first();
+      await item.click();
+      const p1 = await page.locator('#rd-p1').boundingBox();
+      const p2 = await page.locator('#rd-p2').boundingBox();
+      const longBox = p1.height > p2.height ? p1 : p2;
+      expect(longBox.height).toBeGreaterThan(30); // 2行になっている
+      expect(longBox.height).toBeLessThan(60); // 3行にはならない
+      for (const id of ['.rd-row']) {
+        expect((await page.locator(id).first().boundingBox()).height).toBeGreaterThanOrEqual(48);
+      }
+      // 2行を超えて「…」になるときだけ、対戦の全文が出る（20文字は狭い幅では2行を超えない場合もある）
+      const cut = await page.evaluate(() => ['rd-p1', 'rd-p2'].some((id) => document.getElementById(id).scrollHeight > document.getElementById(id).clientHeight + 1));
+      const versus = page.locator('#rd-versus');
+      if (cut) await expect(versus).toContainText(`対戦：`);
+      else await expect(versus).toBeHidden();
+      await page.keyboard.press('Escape');
+    }
+  });
+
+  test('とても長い名前では「…」の代わりに対戦の全文が見出しの下に出る', async ({ page }) => {
+    const HUGE = 'あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよ'; // 36文字
+    await open(page);
+    await importNames(page, ['山田', HUGE, '佐藤', '鈴木']);
+    await genTournament(page);
+    await page.locator('.next-item', { hasText: HUGE }).first().click();
+    const versus = page.locator('#rd-versus');
+    await expect(versus).toBeVisible();
+    await expect(versus).toContainText(HUGE);
+    await expect(versus).toContainText('対戦：');
+    // 2文字・短い名前の試合では出ない
+    await page.keyboard.press('Escape');
+    await page.locator('.next-item').filter({ hasNotText: HUGE }).first().click();
+    await expect(versus).toBeHidden();
+  });
+
+  test('シートを開いたまま画面の幅が変わると、対戦の全文の表示も追従する', async ({ page }) => {
+    const HUGE = 'あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよ';
+    await open(page);
+    await importNames(page, ['山田', HUGE, '佐藤', '鈴木']);
+    await genTournament(page);
+    await page.locator('.next-item', { hasText: HUGE }).first().click();
+    const versus = page.locator('#rd-versus');
+    await expect(versus).toBeVisible();
+    await page.setViewportSize({ width: 1280, height: 800 }); // PC幅では名前を省略しない
+    await expect(versus).toBeHidden();
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(versus).toBeVisible();
+  });
+
   test('画面が低いときは中身だけスクロールし、ボタンは下に固定される', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 480 });
     await open(page);

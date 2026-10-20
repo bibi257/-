@@ -50,8 +50,22 @@ export function openResultDialog(o) {
   $('rd-error').textContent = o.editable ? '' : o.notice || '';
   updateWalkover();
   $('result-dialog').showModal();
+  showFullNames(o);
   (o.editable ? $('rd-s1') : $('rd-table')).focus();
 }
+
+/** 名前が2行に収まらず「…」になったときだけ、対戦の全文を見出しの下に出す */
+function showFullNames(o) {
+  const cut = ['rd-p1', 'rd-p2'].some((id) => $(id).scrollHeight > $(id).clientHeight + 1);
+  const el = $('rd-versus');
+  el.hidden = !cut;
+  el.textContent = cut ? `対戦：${o.p1Name} 対 ${o.p2Name}` : '';
+}
+
+// 画面の回転・ウィンドウの大きさの変更で名前の切れ方が変わるので、開いている間は追従する
+window.addEventListener('resize', () => {
+  if (current && $('result-dialog').open) showFullNames(current);
+});
 
 function selectedOutcome() {
   return document.querySelector('#result-form input[name="outcome"]:checked')?.value || null;

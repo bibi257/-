@@ -407,6 +407,7 @@ dialog::backdrop { background: rgba(10, 20, 40, .5); }
 dialog form { padding: 20px 22px; }
 dialog h2 { margin: 0 0 4px; font-size: 18px; color: var(--ink); }
 .rd-sub { margin: 0 0 14px; color: var(--muted); font-size: 14px; }
+.rd-versus { margin-top: -8px; overflow-wrap: anywhere; }
 .rd-grid { display: grid; grid-template-columns: 1fr 64px auto 64px 1fr; gap: 8px; align-items: center; }
 .rd-row { display: contents; }
 .rd-badge { display: none; }
@@ -773,7 +774,7 @@ table.editions td.ops { white-space: nowrap; }
   .rd-player, .rd-player:hover, .rd-player:has(input:checked) { flex: 1 1 auto; min-width: 0; min-height: 48px; padding: 0; border: none; background: none; justify-content: flex-start; text-align: left; }
   .rd-player::after { content: ''; position: absolute; inset: 0; border-radius: 9px; } /* 行全体をタップできるようにする */
   .rd-player input { order: -1; width: 24px; height: 24px; margin: 0; flex: none; }
-  .rd-name { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rd-name { flex: 0 1 auto; min-width: 0; overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow-wrap: anywhere; line-height: 1.35; } /* 最大2行。超えるときだけ「…」（対戦の全文は #rd-versus に出す） */
   .rd-badge { flex: none; margin-left: auto; padding: 0 8px; border-radius: 999px; background: var(--primary); color: var(--on-primary); font-size: 13px; line-height: 22px; white-space: nowrap; }
   .rd-row:has(input[name="outcome"]:checked) .rd-badge { display: inline-block; }
   #result-dialog .rd-score { position: relative; z-index: 1; flex: none; width: 72px; min-height: 48px; font-size: 20px; }
