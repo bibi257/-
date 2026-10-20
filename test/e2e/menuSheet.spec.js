@@ -82,6 +82,18 @@ test.describe('スマホのメニュー（幅390px）', () => {
     await expect(page.locator('#undo-sub')).toHaveText('');
   });
 
+  test('名前欄への連続した入力（まとめて1回の操作）でも、戻る操作の名前が付く', async ({ page }) => {
+    await open(page);
+    await importNames(page, FOUR);
+    const first = page.locator('input.name').first();
+    await first.click();
+    await first.fill('');
+    await first.pressSequentially('あいう', { delay: 30 });
+    await page.locator('#panel-setup h2').first().click(); // 入力欄から離れる
+    await page.tap('#menu-btn');
+    await expect(page.locator('#undo-sub')).toHaveText('直前：参加者の変更'); // 「直前の操作」ではない
+  });
+
   test('Esc で閉じて、メニューのボタンにフォーカスが戻る。開いている間、Tab はメニューの外に出ない', async ({ page }) => {
     await open(page);
     await page.tap('#menu-btn');

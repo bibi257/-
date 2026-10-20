@@ -29,7 +29,7 @@ export function setState(next, { render = true, merge = false } = {}) {
   if (readOnly) return; // 閲覧専用（共有を見ている間）は、操作で内容を変えない
   const prev = state;
   state = { ...next, meta: { ...next.meta, updatedAt: new Date().toISOString() } };
-  setHistory(recordChange(undoHistory, prev, state, { merge, label: prev && !merge ? describeChange(prev, state) : '' }));
+  setHistory(recordChange(undoHistory, prev, state, { merge, label: prev ? describeChange(prev, state) : '' }));
   persist();
   if (render) listeners.forEach((f) => f());
 }
