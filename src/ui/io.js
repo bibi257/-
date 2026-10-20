@@ -65,7 +65,8 @@ function centralBaseline(ctx, y) {
  */
 export async function svgToPng(svg, width, height, scale = 2) {
   const { fontFamily, shapes } = parseExportSvg(svg);
-  await loadFontsFor(fontFamily, shapes.filter((s) => s.type === 'text').map((s) => s.text).join(''));
+  // 同じ字は1回でよい（読み込みの判定が、字の数だけ増えないように）
+  await loadFontsFor(fontFamily, [...new Set(shapes.filter((s) => s.type === 'text').map((s) => s.text).join(''))].join(''));
   const canvas = document.createElement('canvas');
   // ブラウザの canvas 上限（約 16000px 角）を超えないよう倍率を下げる
   const s = Math.max(0.5, Math.min(scale, 16000 / width, 16000 / height));

@@ -15,7 +15,9 @@ function unescapeXml(s) {
     if (e === 'gt') return '>';
     if (e === 'quot') return '"';
     if (e === 'apos') return "'";
-    return String.fromCodePoint(e[1] === 'x' || e[1] === 'X' ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10));
+    const code = e[1] === 'x' || e[1] === 'X' ? parseInt(e.slice(2), 16) : parseInt(e.slice(1), 10);
+    if (!(code >= 0 && code <= 0x10ffff)) throw new Error(`PNG 用の SVG に、不正な文字参照があります: &${e};`);
+    return String.fromCodePoint(code);
   });
 }
 

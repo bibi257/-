@@ -76,6 +76,8 @@ test('未対応の要素や属性を見つけたら、静かに無視せずエ�
   assert.throws(() => parseExportSvg(wrap('<line x1="0" y1="0" x2="1" y2="1" stroke="#000" stroke-dasharray="2"/>')), /未対応の属性/);
   assert.throws(() => parseExportSvg(wrap('<text x="0" y="0" dominant-baseline="hanging">a</text>')), /dominant-baseline/);
   assert.throws(() => parseExportSvg(wrap('<text x="0" y="0">a<tspan>b</tspan></text>')), /未対応の要素.*tspan/);
+  assert.throws(() => parseExportSvg(wrap('<text x="0" y="0">&#1114112;</text>')), /不正な文字参照/);
+  assert.doesNotThrow(() => parseExportSvg(wrap('<text x="0" y="0">&#x1F600;&#26085;</text>')));
   assert.throws(() => parseExportSvg(wrap('<rect x="a" y="0" width="1" height="1"/>')), /数値/);
   assert.throws(() => parseExportSvg('<rect x="0"/>'), /<svg>/);
 });
