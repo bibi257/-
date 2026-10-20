@@ -10,7 +10,7 @@ const port = Number(process.env.PORT || 4173);
 const withShare = process.env.WITH_SHARE_API === '1';
 const worker = withShare ? (await import('../worker/src/index.js')).default : null;
 const env = withShare ? { DB: (await import('../test/support/d1Shim.js')).createD1() } : null;
-const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json' };
+const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.woff2': 'font/woff2', '.woff': 'font/woff' };
 
 async function handleApi(req, res) {
   const chunks = [];
