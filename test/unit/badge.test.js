@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { statusBadge, BADGE_STATUSES, matchStatusKey } from '../../src/ui/badge.js';
+import { statusBadge, BADGE_STATUSES, matchStatusKey, absentBadge, nameHtml } from '../../src/ui/badge.js';
 
 test('状態バッジ: 5種類を、状態ごとのクラスと文字で出す', () => {
   assert.deepEqual(BADGE_STATUSES, ['ready', 'running', 'done', 'waiting', 'bye']);
@@ -42,4 +42,14 @@ test('状態バッジのCSS: 進行中＝緑（--ok）の塗り', () => {
   const rule = css.match(/\.badge-running\s*\{([^}]*)\}/)[1];
   assert.match(rule, /background:\s*var\(--ok\)/);
   assert.match(rule, /color:\s*var\(--on-primary\)/);
+});
+
+test('欠席のバッジ: 名前の末尾の「（欠席）」だけをバッジに替える。ほかの文字はエスケープする', () => {
+  assert.equal(absentBadge(), '<span class="badge badge-absent">欠席</span>');
+  assert.equal(nameHtml('山田 太郎'), '山田 太郎');
+  assert.equal(nameHtml('山田 太郎（欠席）'), '山田 太郎<span class="badge badge-absent">欠席</span>');
+  assert.equal(nameHtml('<b>x</b>（欠席）'), '&lt;b&gt;x&lt;/b&gt;<span class="badge badge-absent">欠席</span>');
+  assert.equal(nameHtml('山田（欠席）の勝ち'), '山田（欠席）の勝ち'); // 末尾でなければ、そのまま（文字）
+  assert.equal(nameHtml(3), '3');
+  assert.equal(nameHtml(undefined), '');
 });

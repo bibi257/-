@@ -8,7 +8,7 @@ import { exportMenuHtml } from './exportMenu.js';
 import { podiumHtml } from './podium.js';
 import { tableBoardHtml } from './tableBoardView.js';
 import { setupStartButtons, changeStart } from './startMatch.js';
-import { statusBadge, matchStatusKey } from './badge.js';
+import { statusBadge, matchStatusKey, nameHtml } from './badge.js';
 import { resultCardsHtml } from './resultCards.js';
 import { controlsHtml, setupWrap, setupBracketControls, revealMatch, viewSwitchHtml, viewMode, getRoundSel, roundsActive } from './bracketView.js';
 import { foldHtml, syncFold, setupFold } from './resultsFold.js';
@@ -86,7 +86,7 @@ export function renderTournament() {
           ${cells.map((c, i) => {
             if (i === 8) return `<td>${statusBadge(matchStatusKey(m))}</td>`;
             const pid = { 4: m.p1, 6: m.p2, 7: m.winner }[i]; // 選手の列には ID を付ける（「自分の試合」の強調）
-            return `<td${[0, 3, 5].includes(i) ? ' class="num"' : ''}${typeof pid === 'string' ? ` data-pid="${h(pid)}"` : ''}>${h(c)}</td>`;
+            return `<td${[0, 3, 5].includes(i) ? ' class="num"' : ''}${typeof pid === 'string' ? ` data-pid="${h(pid)}"` : ''}>${nameHtml(c)}</td>`;
           }).join('')}</tr>`).join('')}</tbody>
       </table>
     </div>

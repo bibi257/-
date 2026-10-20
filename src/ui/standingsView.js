@@ -5,7 +5,7 @@ import { emptyGuideHtml } from './emptyGuide.js';
 import { h, toast, pngOptions, downloadCSV, downloadPNG } from './io.js';
 import { tournamentStandingsTable, tournamentStandingsRows, leagueStandingsTable } from '../core/exportData.js';
 import { exportMenuHtml } from './exportMenu.js';
-import { aliveBadge } from './badge.js';
+import { aliveBadge, nameHtml } from './badge.js';
 import { tableSvg } from '../render/svg.js';
 import { qualifyHtml } from './editions.js';
 import { leagueStandings } from '../core/league.js';
@@ -15,7 +15,7 @@ const panel = () => document.getElementById('panel-standings');
 function tableHtml(table, numCols, ids = []) {
   return `<div class="table-wrap"><table class="data">
     <thead><tr>${table.headers.map((x, i) => `<th${numCols.includes(i) ? ' class="num"' : ''}>${h(x)}</th>`).join('')}</tr></thead>
-    <tbody>${table.rows.map((r, ri) => `<tr${ids[ri] ? ` data-pid="${h(ids[ri])}"` : ''}>${r.map((c, i) => `<td${numCols.includes(i) ? ' class="num"' : ''}>${h(c)}</td>`).join('')}</tr>`).join('')}</tbody>
+    <tbody>${table.rows.map((r, ri) => `<tr${ids[ri] ? ` data-pid="${h(ids[ri])}"` : ''}>${r.map((c, i) => `<td${numCols.includes(i) ? ' class="num"' : ''}>${nameHtml(c)}</td>`).join('')}</tr>`).join('')}</tbody>
   </table></div>`;
 }
 
@@ -27,7 +27,7 @@ function tournamentTableHtml(st) {
   return `<div class="table-wrap"><table class="data standings">
     <thead><tr>${table.headers.map((x, i) => `<th${numCols.includes(i) ? ' class="num"' : ''}>${h(x)}</th>`).join('')}</tr></thead>
     <tbody>${rows.map(({ ranking, cells }) => `<tr data-pid="${h(ranking.playerId)}" class="${ranking.phase === 'alive' ? 'st-alive' : ''}${ranking.medal ? ` medal-${ranking.medal}` : ''}">${cells.map((c, i) => {
-      const inner = i === 0 && ranking.phase === 'alive' ? aliveBadge() : h(c);
+      const inner = i === 0 && ranking.phase === 'alive' ? aliveBadge() : nameHtml(c);
       return `<td${numCols.includes(i) ? ' class="num"' : ''}>${inner}</td>`;
     }).join('')}</tr>`).join('')}</tbody>
   </table></div>`;

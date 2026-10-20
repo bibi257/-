@@ -3,7 +3,7 @@
 import { resolveBracket, roundName, tournamentRanking } from './bracket.js';
 import { resolveLeague, leagueStandings, outcomeFor } from './league.js';
 import { formatScore } from './result.js';
-import { playerName, tableName } from './state.js';
+import { playerLabel, tableName } from './state.js';
 import { eventTitle } from './edition.js';
 
 // running は画面のバッジだけ（試合の状態は ready のまま、開始時刻があるものを「進行中」と呼ぶ）。CSV・PNG の「状態」は ready のとき「試合待ち」のまま
@@ -38,16 +38,16 @@ export function bracketTable(state) {
       if (k > 0 && id === null) { row.push(''); continue; }
       const sc = sideScore(m, side);
       const mark = m.status === 'done' && m.winner === id ? '○' : '';
-      row.push(id === undefined ? '' : `${mark}${playerName(state, id)}${sc ? ` (${sc})` : ''}`);
+      row.push(id === undefined ? '' : `${mark}${playerLabel(state, id)}${sc ? ` (${sc})` : ''}`);
     }
-    row.push(i === 0 && res.champion ? playerName(state, res.champion) : '');
+    row.push(i === 0 && res.champion ? playerLabel(state, res.champion) : '');
     rows.push(row);
   }
   if (res.thirdPlace) {
     const tp = res.thirdPlace;
     rows.push(Array(R + 1).fill(''));
-    const name = (side) => (tp[side] === undefined ? '（未定）' : playerName(state, tp[side]));
-    const winner = tp.winner ? `3位: ${playerName(state, tp.winner)}` : '';
+    const name = (side) => (tp[side] === undefined ? '（未定）' : playerLabel(state, tp[side]));
+    const winner = tp.winner ? `3位: ${playerLabel(state, tp.winner)}` : '';
     const vs = `${name('p1')} vs ${name('p2')}`;
     const score = formatScore(tp.result);
     // 見出しの列数（回戦数+1）に合わせる。4人以下は列が3つなので、スコアを対戦者の欄にまとめる
@@ -71,10 +71,10 @@ export function tournamentResultRows(state) {
         m.isThirdPlace ? '3位決定戦' : roundName(m.round, R),
         m.tableId ? tableName(state, m.tableId) : '',
         m.timeSlot ?? '',
-        m.p1 === undefined ? '（未定）' : playerName(state, m.p1),
+        m.p1 === undefined ? '（未定）' : playerLabel(state, m.p1),
         formatScore(m.result),
-        m.p2 === undefined ? '（未定）' : playerName(state, m.p2),
-        m.status === 'done' || m.status === 'bye' ? playerName(state, m.winner) : '',
+        m.p2 === undefined ? '（未定）' : playerLabel(state, m.p2),
+        m.status === 'done' || m.status === 'bye' ? playerLabel(state, m.winner) : '',
         STATUS[m.status],
       ],
     });
@@ -97,7 +97,7 @@ export function tournamentResultsTable(state) {
 export function tournamentStandingsRows(state) {
   return tournamentRanking(state.tournament).map((r) => ({
     ranking: r,
-    cells: [r.rank ?? '', playerName(state, r.playerId), r.label, r.wins, r.losses],
+    cells: [r.rank ?? '', playerLabel(state, r.playerId), r.label, r.wins, r.losses],
   }));
 }
 
@@ -128,7 +128,7 @@ export function leagueMatrixTable(state) {
   const l = state.league;
   const pairs = new Map(l.matches.map((m) => [`${m.p1}|${m.p2}`, m]).concat(l.matches.map((m) => [`${m.p2}|${m.p1}`, m])));
   const standings = new Map(leagueStandings(l, state.settings.league).map((s) => [s.playerId, s]));
-  const names = l.playerIds.map((id) => playerName(state, id));
+  const names = l.playerIds.map((id) => playerLabel(state, id));
   const headers = ['', ...names, '勝', '分', '敗', '勝点', '順位'];
   const rows = l.playerIds.map((id, i) => {
     const s = standings.get(id);
@@ -150,11 +150,11 @@ export function leagueResultRows(state) {
   return res.matches.map((m) => {
     const r = m.result;
     let verdict = '';
-    if (r) verdict = r.outcome === 'draw' ? '引き分け' : `${playerName(state, r.outcome === 'p1' ? m.p1 : m.p2)}の勝ち`;
+    if (r) verdict = r.outcome === 'draw' ? '引き分け' : `${playerLabel(state, r.outcome === 'p1' ? m.p1 : m.p2)}の勝ち`;
     return {
       match: m,
       cells: [m.no, `${m.round}回戦`, m.tableId ? tableName(state, m.tableId) : '', m.timeSlot ?? '',
-        playerName(state, m.p1), formatScore(r), playerName(state, m.p2), verdict, STATUS[m.status]],
+        playerLabel(state, m.p1), formatScore(r), playerLabel(state, m.p2), verdict, STATUS[m.status]],
     };
   });
 }
@@ -169,7 +169,7 @@ export function leagueResultsTable(state) {
 
 export function leagueStandingsTable(state) {
   const rows = leagueStandings(state.league, state.settings.league).map((s) => [
-    s.rank, playerName(state, s.playerId), s.played, s.win, s.draw, s.loss, s.gf, s.ga, s.diff, s.points,
+    s.rank, playerLabel(state, s.playerId), s.played, s.win, s.draw, s.loss, s.gf, s.ga, s.diff, s.points,
   ]);
   return {
     title: titleOf(state, '総当たり 順位表'),

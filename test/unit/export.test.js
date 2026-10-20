@@ -1,7 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createState } from '../../src/core/state.js';
+import { createState, playerLabel, ABSENT_MARK } from '../../src/core/state.js';
 import { makePlayers } from '../../src/core/players.js';
+import { setAbsent } from '../../src/core/attendance.js';
 import { generateTournament, setTournamentResult } from '../../src/core/bracket.js';
 import { generateLeague, setLeagueResult } from '../../src/core/league.js';
 import {
@@ -180,4 +181,51 @@ test('SVG（PNG出力）: 優勝が決まったら右上に優勝者名を小さ
   // 長い大会名でタイトルと重なるときは、1行下げる
   st.meta.title = 'あ'.repeat(40);
   assert.ok(bracketSvg(st).svg.includes(`y="44"`));
+});
+
+// ---- 欠席の印（N11）----
+
+function withAbsent(n = 4) {
+  const st = sample(n);
+  st.players = setAbsent(st.players, st.players[1].id, true); // 選手2が欠席
+  return st;
+}
+
+test('欠席の印: 欠席の選手の名前の後ろに「（欠席）」。出席の選手・欠席のいない大会は変わらない', () => {
+  const st = withAbsent();
+  assert.equal(ABSENT_MARK, '（欠席）');
+  assert.equal(playerLabel(st, st.players[1].id), '選手2（欠席）');
+  assert.equal(playerLabel(st, st.players[0].id), '選手1');
+  assert.equal(playerLabel(st, null), '（不戦）');
+  assert.equal(playerLabel(st, undefined), '');
+  const plain = sample();
+  assert.ok(!JSON.stringify(bracketTable(plain)).includes('欠席'));
+});
+
+test('欠席の印: トーナメント表・試合結果・順位表（CSV・PNG の元の表データ）に付く', () => {
+  const st = withAbsent();
+  assert.ok(bracketTable(st).rows.flat().some((c) => c.includes('選手2（欠席）')));
+  assert.ok(!bracketTable(st).rows.flat().some((c) => c.includes('選手1（欠席）')));
+  assert.ok(tournamentResultsTable(st).rows.flat().some((c) => c === '選手2（欠席）'));
+  assert.ok(tournamentStandingsTable(st).rows.some((r) => r[1] === '選手2（欠席）'));
+  // CSV にもそのまま出る
+  const t = bracketTable(st);
+  assert.match(toCSV([t.headers, ...t.rows]), /選手2（欠席）/);
+});
+
+test('欠席の印: 総当たり表（対戦表の見出しと行）・試合結果・順位表に付く', () => {
+  const st = withAbsent();
+  const m = leagueMatrixTable(st);
+  assert.ok(m.headers.includes('選手2（欠席）'));
+  assert.ok(m.rows.some((r) => r[0] === '選手2（欠席）'));
+  assert.ok(leagueResultsTable(st).rows.some((r) => r[4] === '選手2（欠席）' || r[6] === '選手2（欠席）'));
+  assert.ok(leagueStandingsTable(st).rows.some((r) => r[1] === '選手2（欠席）'));
+});
+
+test('欠席の印: トーナメント表の SVG（画面・PNG）と表の SVG の文字にも付く', () => {
+  const st = withAbsent();
+  assert.match(bracketSvg(st).svg, /選手2（欠席）/);
+  assert.doesNotMatch(bracketSvg(sample()).svg, /欠席/);
+  assert.match(tableSvg(st, leagueStandingsTable(st)).svg, /選手2（欠席）/);
+  assert.match(tableSvg(st, tournamentStandingsTable(st)).svg, /選手2（欠席）/);
 });

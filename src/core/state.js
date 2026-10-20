@@ -287,6 +287,15 @@ export function playerName(state, id) {
   return state.players.find((p) => p.id === id)?.name ?? '（削除された参加者）';
 }
 
+/** 欠席の印（CSV・PNG・SVG では名前の後ろにこの文字を付ける。画面の表では、これをバッジに替える） */
+export const ABSENT_MARK = '（欠席）';
+
+/** 表・順位表・出力に出す名前。欠席の選手は、名前の後ろに「（欠席）」を付ける（過去の回は、その回の名簿の出欠で付く） */
+export function playerLabel(state, id) {
+  const name = playerName(state, id);
+  return state.players.find((p) => p.id === id)?.absent === true ? `${name}${ABSENT_MARK}` : name;
+}
+
 export function tableName(state, id) {
   return state.tables.find((t) => t.id === id)?.name ?? '';
 }
