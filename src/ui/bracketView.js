@@ -2,6 +2,7 @@
 // 拡大率は SVG の表示上の width/height を変えて実現する（CSS 変数 --bw・--bh・--bz → web/style.css）。属性（元の大きさ）は変えないので、印刷は今までどおり。
 
 import { scrollBehavior, flash } from './reveal.js';
+import { initialBracketScale } from '../core/bracketFit.js';
 
 export const ZOOM_STEPS = [50, 75, 100, 125, 150];
 
@@ -27,7 +28,8 @@ export function controlsHtml(columnNames) {
   </div>`;
 }
 
-const state = { mode: 'pct', pct: 100 }; // mode: 'fit'（全体表示）| 'pct'（拡大率を指定）
+// mode: 'auto'（最初の倍率。枠に収まるなら収める）| 'fit'（全体表示）| 'pct'（拡大率を指定）。利用者が倍率を変えたら 'auto' には戻さない（描き直しても保つ）
+const state = { mode: 'auto', pct: 100, sig: '' };
 
 // スマホ幅（700px 以下）の表示: 'rounds'（回戦ごと。初期表示）| 'table'（今の SVG の表）。PC 幅は常に表
 const MOBILE = '(max-width: 700px)';
@@ -63,6 +65,7 @@ function currentScale(wrap) {
   const n = natural(wrap);
   if (!n) return 1;
   if (state.mode === 'fit') return wrap.clientWidth > 0 ? Math.min(1, wrap.clientWidth / n.w) : 1;
+  if (state.mode === 'auto') return initialBracketScale(wrap.clientWidth, n.w);
   return state.pct / 100;
 }
 
@@ -70,6 +73,9 @@ function currentScale(wrap) {
 export function applyZoom(wrap) {
   const n = natural(wrap);
   if (!n) return;
+  // 表の大きさが変わった（別の大会を作った）ときは、最初の倍率に戻す
+  const sig = `${n.w}x${n.h}`;
+  if (state.sig !== sig) { state.sig = sig; state.mode = 'auto'; }
   const s = currentScale(wrap);
   // 画面の CSS（@media screen）が、元の大きさ × 拡大率で width/height を決める。印刷は元の属性のまま
   n.svg.style.setProperty('--bw', String(n.w));
@@ -78,7 +84,7 @@ export function applyZoom(wrap) {
   const pct = Math.round(s * 100);
   const card = wrap.closest('.card') || document;
   const level = card.querySelector('#zoom-level');
-  if (level) level.textContent = state.mode === 'fit' ? `全体 ${pct}%` : `${pct}%`;
+  if (level) level.textContent = state.mode === 'fit' ? `全体 ${pct}%` : `${pct}%`; // 実際の倍率を整数の % で出す
   card.querySelector('[data-zoom=fit]')?.setAttribute('aria-pressed', String(state.mode === 'fit'));
   const out = card.querySelector('[data-zoom=out]');
   const inn = card.querySelector('[data-zoom=in]');
@@ -86,10 +92,10 @@ export function applyZoom(wrap) {
   if (inn) inn.disabled = pct >= ZOOM_STEPS.at(-1);
 }
 
-/** 描画のたびに呼ぶ。全体表示のときは、枠の幅が変わったら（タブを開いた・画面を回したなど）自動で合わせ直す */
+/** 描画のたびに呼ぶ。全体表示・最初の倍率のときは、枠の幅が変わったら（タブを開いた・画面を回したなど）自動で合わせ直す */
 export function setupWrap(wrap) {
   applyZoom(wrap);
-  if (typeof ResizeObserver !== 'undefined') new ResizeObserver(() => { if (state.mode === 'fit') applyZoom(wrap); }).observe(wrap);
+  if (typeof ResizeObserver !== 'undefined') new ResizeObserver(() => { if (state.mode !== 'pct') applyZoom(wrap); }).observe(wrap);
 }
 
 function scrollToColumn(wrap, k) {
