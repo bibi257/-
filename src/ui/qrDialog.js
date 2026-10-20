@@ -42,7 +42,7 @@ export function setupQrDialog() {
   $('qr-png').addEventListener('click', async () => {
     if (!current) return;
     try {
-      await downloadPNG(current.art, `${eventTitle(getState())} 閲覧リンクのQRコード`);
+      await downloadPNG(current.art, `${eventTitle(getState())} 閲覧リンクのQRコード`, { imageOnly: true });
     } catch (e) {
       toast(`画像を保存できませんでした: ${e.message}`, { error: true });
     }

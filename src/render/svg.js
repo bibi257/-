@@ -8,10 +8,8 @@ import { formatEventDate } from '../core/schedule.js';
 import { THEME as T } from './theme.js';
 
 const SYSTEM_FONTS = "'BIZ UDPGothic','Yu Gothic UI','Yu Gothic','Meiryo','Hiragino Sans','Noto Sans JP','Noto Sans CJK JP',sans-serif";
-/** 画面（ページ内の SVG）用。IBM Plex Sans JP は web/fonts で同梱している */
+/** 画面と PNG 出力で共通。IBM Plex Sans JP は web/fonts で同梱している（読み込めなかったときは、後ろの端末のフォント） */
 export const FONT_FAMILY = `'IBM Plex Sans JP',${SYSTEM_FONTS}`;
-/** PNG 出力用。SVG を画像として描くときは、ページのフォントを使えない（外部ファイルを読めない）ため、端末のフォントにする */
-export const EXPORT_FONT_FAMILY = SYSTEM_FONTS;
 
 export function approxMeasure(text, size, bold = false) {
   let w = 0;
@@ -37,8 +35,8 @@ const C = {
   champFill: T.goldWeak, champ: T.goldLine, ready: T.primary, done: T.muted, waiting: T.faint, sub: T.muted,
 };
 
-function svgDoc(width, height, body, extraAttrs = '', fontFamily = FONT_FAMILY) {
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" font-family="${esc(fontFamily)}"${extraAttrs}>` +
+function svgDoc(width, height, body, extraAttrs = '') {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" font-family="${esc(FONT_FAMILY)}"${extraAttrs}>` +
     `<rect width="100%" height="100%" fill="${T.paper}"/>${body}</svg>`;
 }
 
@@ -63,9 +61,9 @@ function matchLabel(state, m) {
 /**
  * トーナメント表の SVG。
  * @param {object} state
- * @param {{measure?:Function, interactive?:boolean, fontFamily?:string}} opts interactive なら試合ごとにクリック用の <g class="match"> を付ける
+ * @param {{measure?:Function, interactive?:boolean}} opts interactive なら試合ごとにクリック用の <g class="match"> を付ける
  */
-export function bracketSvg(state, { measure = approxMeasure, interactive = false, fontFamily = FONT_FAMILY } = {}) {
+export function bracketSvg(state, { measure = approxMeasure, interactive = false } = {}) {
   const t = state.tournament;
   const res = resolveBracket(t, state.tables);
   const R = res.roundCount;
@@ -177,14 +175,14 @@ export function bracketSvg(state, { measure = approxMeasure, interactive = false
   }
   out.push(footer(state, width, height));
   // columns: 各列（回戦・優勝）の左端の x。画面の「回戦へ移動」が使う
-  return { svg: svgDoc(width, height, out.join(''), '', fontFamily), width, height, columns: Array.from({ length: R + 1 }, (_, k) => colX(k)) };
+  return { svg: svgDoc(width, height, out.join('')), width, height, columns: Array.from({ length: R + 1 }, (_, k) => colX(k)) };
 }
 
 /**
  * 表の SVG（総当たり表・結果一覧・順位表の PNG 用）。
  * @param {{title:string, headers:any[], rows:any[][], note?:string}} table
  */
-export function tableSvg(state, table, { measure = approxMeasure, fontFamily = FONT_FAMILY } = {}) {
+export function tableSvg(state, table, { measure = approxMeasure } = {}) {
   const size = 13;
   const pad = 10;
   const rowH = 28;
@@ -231,5 +229,5 @@ export function tableSvg(state, table, { measure = approxMeasure, fontFamily = F
   }
   if (table.note) out.push(text(left, top + bodyH + 16, table.note, { size: 11, color: T.muted }));
   out.push(footer(state, width, height));
-  return { svg: svgDoc(width, height, out.join(''), '', fontFamily), width, height };
+  return { svg: svgDoc(width, height, out.join('')), width, height };
 }

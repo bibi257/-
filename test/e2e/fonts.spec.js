@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { readFile } from 'node:fs/promises';
 import { open, importNames, genTournament, NAMES } from './helpers.js';
 
 test.describe('フォント（IBM Plex Sans JP・IBM Plex Mono）', () => {
@@ -22,12 +23,12 @@ test.describe('フォント（IBM Plex Sans JP・IBM Plex Mono）', () => {
     expect(await family('.tc-no')).toMatch(/^"?IBM Plex Mono"?,/);
   });
 
-  test('表の SVG は画面のフォントで、PNG 用は端末のフォントで作る（PNG 出力は引き続き成功する）', async ({ page }) => {
+  test('PNG 出力は画面と同じフォントで、画面の表と同じ大きさ・配置の画像になる（N14）', async ({ page }) => {
     await open(page);
     await importNames(page, NAMES);
     await genTournament(page);
-    expect(await page.locator('#bracket-wrap svg').first().getAttribute('font-family')).toMatch(/^'IBM Plex Sans JP',/);
-    // 出力メニューから PNG をダウンロードできる（フォント指定が PNG 変換を壊さない）
+    const svg = page.locator('#bracket-wrap svg').first();
+    expect(await svg.getAttribute('font-family')).toMatch(/^'IBM Plex Sans JP',/);
     const [dl] = await Promise.all([
       page.waitForEvent('download'),
       (async () => {
@@ -37,5 +38,10 @@ test.describe('フォント（IBM Plex Sans JP・IBM Plex Mono）', () => {
       })(),
     ]);
     expect(dl.suggestedFilename().endsWith('.png')).toBe(true);
+    const png = await readFile(await dl.path());
+    expect(png.subarray(0, 8).toString('hex')).toBe('89504e470d0a1a0a');
+    // 画像の大きさは、画面の表（IBM Plex で測った SVG）の 2 倍。端末のフォントで測り直していない
+    const [w, h] = await svg.evaluate((el) => [Number(el.getAttribute('width')), Number(el.getAttribute('height'))]);
+    expect([png.readUInt32BE(16), png.readUInt32BE(20)]).toEqual([w * 2, h * 2]);
   });
 });

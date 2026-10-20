@@ -25,7 +25,7 @@
 
 - 言語: JavaScript（ES2022, ES Modules）。フレームワークなし
 - バンドル: esbuild（`src/` → `web/app.js`、IIFE 形式。`file://` でも動くようにするため）
-- フォント: 本文 IBM Plex Sans JP・数える部分 IBM Plex Mono。`@fontsource`（開発用の依存）から、ビルドが `web/fonts/` にそろえる（外部の配信サービスは使わない。生成物はコミットしない）。PNG 出力だけは端末のフォント（`pngOptions`。PLAN D48）
+- フォント: 本文 IBM Plex Sans JP・数える部分 IBM Plex Mono。`@fontsource`（開発用の依存）から、ビルドが `web/fonts/` にそろえる（外部の配信サービスは使わない。生成物はコミットしない）。PNG 出力も同じフォントで描く（SVG を読み取って canvas に直接描く。PLAN D58）
 - デスクトップ版: Electron + electron-builder（Windows portable `.exe`）
 - 共有サーバー: Cloudflare Workers + D1（`worker/`）。アプリ側は `fetch` のみで通信（実行時ライブラリ 0 を維持）
 - テスト: Node 標準テストランナー（`node --test`）＋ Playwright（E2E）
@@ -56,6 +56,7 @@ src/core/      純粋ロジック（DOM非依存・Nodeでテスト可能）
   callView.js  呼び出し画面を別ウィンドウで開く URL（?view=call）の読み書き
   gridNav.js   表を矢印キーで動くときの次の位置（対戦表のマス・一覧の行。ローピング tabindex 用）
 src/render/    SVG 生成（表示とPNG出力で共用。QRコードの SVG も）
+  svgShapes.js PNG 出力用の SVG を、canvas に描く図形（rect・line・text）に読み取る（未対応の要素・属性はエラー）
 src/ui/        画面（DOM 操作）
 web/           配信ファイル（index.html, style.css, 生成物 app.js）
 electron/      Electron メインプロセス
