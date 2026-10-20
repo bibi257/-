@@ -91,6 +91,20 @@ test.describe('結果入力（スマホ幅のシート）', () => {
     await expect(versus).toBeHidden();
   });
 
+  test('シートを開いたまま画面の幅が変わると、対戦の全文の表示も追従する', async ({ page }) => {
+    const HUGE = 'あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよ';
+    await open(page);
+    await importNames(page, ['山田', HUGE, '佐藤', '鈴木']);
+    await genTournament(page);
+    await page.locator('.next-item', { hasText: HUGE }).first().click();
+    const versus = page.locator('#rd-versus');
+    await expect(versus).toBeVisible();
+    await page.setViewportSize({ width: 1280, height: 800 }); // PC幅では名前を省略しない
+    await expect(versus).toBeHidden();
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(versus).toBeVisible();
+  });
+
   test('画面が低いときは中身だけスクロールし、ボタンは下に固定される', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 480 });
     await open(page);

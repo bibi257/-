@@ -62,6 +62,11 @@ function showFullNames(o) {
   el.textContent = cut ? `対戦：${o.p1Name} 対 ${o.p2Name}` : '';
 }
 
+// 画面の回転・ウィンドウの大きさの変更で名前の切れ方が変わるので、開いている間は追従する
+window.addEventListener('resize', () => {
+  if (current && $('result-dialog').open) showFullNames(current);
+});
+
 function selectedOutcome() {
   return document.querySelector('#result-form input[name="outcome"]:checked')?.value || null;
 }
