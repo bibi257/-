@@ -54,6 +54,7 @@ src/core/      純粋ロジック（DOM非依存・Nodeでテスト可能）
   started.js   試合の「開始」（開始時刻の検証・経過分・進行中の反映）
   tableBoard.js 卓ごとの「進行中／空き／次」の一覧
   callView.js  呼び出し画面を別ウィンドウで開く URL（?view=call）の読み書き
+  gridNav.js   表を矢印キーで動くときの次の位置（対戦表のマス・一覧の行。ローピング tabindex 用）
 src/render/    SVG 生成（表示とPNG出力で共用。QRコードの SVG も）
 src/ui/        画面（DOM 操作）
 web/           配信ファイル（index.html, style.css, 生成物 app.js）
