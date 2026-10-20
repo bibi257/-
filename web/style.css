@@ -384,6 +384,7 @@ table.data tr.flash td:last-child { box-shadow: inset -2px 2px 0 var(--primary),
 .matrix td.self { background: var(--canvas); color: var(--faint); }
 .matrix td.cell { cursor: pointer; min-width: 4.5em; }
 .matrix td.cell:hover { background: var(--primary-weak); }
+.matrix td.cell:focus-visible, table.results tbody tr[tabindex]:focus-visible { outline: 3px solid var(--primary); outline-offset: -3px; } /* キーボードで選んでいるマス・行（ローピング tabindex） */
 /* 勝ち負けは記号（○×△）と太さで示す。PNG・CSV と同じく色は使わない（赤は勝ち上がり線と削除・エラーだけ） */
 .matrix td.win { color: var(--text); font-weight: bold; }
 .matrix td.loss, .matrix td.draw { color: var(--text); }
