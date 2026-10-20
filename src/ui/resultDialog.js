@@ -50,7 +50,16 @@ export function openResultDialog(o) {
   $('rd-error').textContent = o.editable ? '' : o.notice || '';
   updateWalkover();
   $('result-dialog').showModal();
+  showFullNames(o);
   (o.editable ? $('rd-s1') : $('rd-table')).focus();
+}
+
+/** 名前が2行に収まらず「…」になったときだけ、対戦の全文を見出しの下に出す */
+function showFullNames(o) {
+  const cut = ['rd-p1', 'rd-p2'].some((id) => $(id).scrollHeight > $(id).clientHeight + 1);
+  const el = $('rd-versus');
+  el.hidden = !cut;
+  el.textContent = cut ? `対戦：${o.p1Name} 対 ${o.p2Name}` : '';
 }
 
 function selectedOutcome() {
