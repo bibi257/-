@@ -1,8 +1,20 @@
 // Windows 版（Electron）のメインプロセス。Web 版と同じ web/index.html を表示する
 const { app, BrowserWindow, Menu, shell, dialog } = require('electron');
 const path = require('node:path');
+const { pathToFileURL } = require('node:url');
 
 const INDEX = path.join(__dirname, '..', 'web', 'index.html');
+const INDEX_URL = pathToFileURL(INDEX).href;
+
+/** アプリ自身の呼び出し画面（index.html?view=call…）か。別ウィンドウで開く対象 */
+function isCallWindowUrl(url) {
+  try {
+    const u = new URL(url);
+    return u.protocol === 'file:' && u.pathname === new URL(INDEX_URL).pathname && u.searchParams.get('view') === 'call';
+  } catch {
+    return false;
+  }
+}
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -18,10 +30,25 @@ function createWindow() {
       sandbox: true,
     },
   });
-  // アプリ外のページへは移動させず、リンクは既定のブラウザで開く
+  // アプリ外のページへは移動させず、リンクは既定のブラウザで開く。
+  // 呼び出し画面（?view=call）だけは、外のブラウザへ飛ばさず、アプリの別ウィンドウで開く
   win.webContents.setWindowOpenHandler(({ url }) => {
+    if (isCallWindowUrl(url)) {
+      return {
+        action: 'allow',
+        overrideBrowserWindowOptions: {
+          width: 1280, height: 720, minWidth: 480, minHeight: 320,
+          title: '呼び出し画面', backgroundColor: '#f4f6f9', autoHideMenuBar: true,
+        },
+      };
+    }
     if (/^https?:/.test(url)) shell.openExternal(url);
     return { action: 'deny' };
+  });
+  // 開いた呼び出し画面のウィンドウからは、さらにウィンドウを開かせない
+  win.webContents.on('did-create-window', (child) => {
+    child.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+    child.webContents.on('will-navigate', (e, url) => { if (!isCallWindowUrl(url)) e.preventDefault(); });
   });
   win.webContents.on('will-navigate', (e, url) => {
     if (url !== win.webContents.getURL()) e.preventDefault();
