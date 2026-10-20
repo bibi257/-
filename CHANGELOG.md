@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+### 追加（アプリアイコン・UI改善計画（第2弾）N13）
+- アプリのアイコンを作った。図柄は、ヘッダーのロゴ（トーナメントの勝ち上がり線）を、背景が `--ink`（#13233a）の角丸の正方形に載せたもの。線は白と青（ヘッダーのロゴと同じ明るい青 #6fa5ea）。文字は入れていない
+- ブラウザのタブ用 `web/favicon.svg`、スマホのホーム画面用 `web/apple-touch-icon.png`（180×180。角丸なし。iOS が自分で角を丸める）、Windows の `.exe` 用 `build/icon.ico`（16〜256pxの PNG を入れた .ico）。`web/index.html` の小さな `data:` のアイコンを、`favicon.svg` と `apple-touch-icon.png` の指定に替えた。electron-builder の設定（`win.icon`）で `.ico` を指定
+- 元の図柄は `scripts/icon.svg`。画像は `npm run icons`（`scripts/make-icons.mjs`）で作り、できたファイルをコミットする方式にした。ビルドでは作らない（画像への変換に、ネイティブの部品を使うライブラリではなく、Playwright の Chromium を使う。実行時の依存は0個のまま）。判断は `PLAN.md` D57
+- ローカルの確認用サーバー（`scripts/serve.mjs`）が、`.svg`・`.png`・`.ico`・フォントの種類（Content-Type）を返すようにした（本番の GitHub Pages・Cloudflare は、もとから返す）
 ### 追加（総当たり表をキーボードで操作できるようにする・UI改善計画（第2弾）N12）
 - 総当たりの対戦表（`.matrix`）を、キーボードだけで操作できるようにした。これまでは、マウス・タッチだけで押せて、キーボードでは選べなかった。方式は「ローピング tabindex」: 対戦表の中で Tab が止まるのは1マスだけ（`tabindex="0"`、ほかは `-1`）。矢印キーで上下左右のマスへ移り（自分自身のマスは飛ばす）、Home／End で行の先頭／最後へ。Enter か Space で結果入力が開く
 - 試合結果一覧の表の行も同じ方式で、上下の矢印キー・Home／End で行を移り、Enter か Space で結果入力が開く。絞り込みで隠れた行には Tab が止まらない

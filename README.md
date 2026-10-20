@@ -128,6 +128,7 @@ Windows でも Linux / macOS でもビルドできます（Linux では Wine 不
 ```sh
 npm ci
 npm run build        # src/ → web/app.js、フォント → web/fonts/
+npm run icons        # アイコンの画像を作り直す（scripts/icon.svg を直したときだけ。できた web/favicon.svg・web/apple-touch-icon.png・build/icon.ico はコミットする）
 npm run serve        # http://localhost:4173/ で確認
 npm start            # Electron で起動
 npm test             # 単体テスト
