@@ -102,8 +102,32 @@ export async function svgToPng(svg, width, height, scale = 2) {
   return new Promise((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('PNG の作成に失敗しました'))), 'image/png'));
 }
 
-export async function downloadPNG({ svg, width, height }, title) {
-  const blob = await svgToPng(svg, width, height);
+/**
+ * 文字を含まない SVG（QR コード）を、SVG ごと画像にして PNG の Blob にする。
+ * 表の PNG（svgToPng）と違い、フォントも rect・line・text 以外の要素（path）も関係ないので、ブラウザの描画にまかせる
+ */
+function imageSvgToPng(svg, width, height, scale = 2) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const s = Math.max(0.5, Math.min(scale, 16000 / width, 16000 / height));
+      canvas.width = Math.round(width * s);
+      canvas.height = Math.round(height * s);
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('PNG の作成に失敗しました'))), 'image/png');
+    };
+    img.onerror = () => reject(new Error('画像の作成に失敗しました'));
+    img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+  });
+}
+
+/** 表の PNG を保存する（文字は画面と同じフォント）。QR コードのように文字のない図は、imageOnly: true */
+export async function downloadPNG({ svg, width, height }, title, { imageOnly = false } = {}) {
+  const blob = await (imageOnly ? imageSvgToPng : svgToPng)(svg, width, height);
   downloadBlob(blob, `${safeFileName(title)}.png`);
 }
 

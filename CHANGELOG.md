@@ -9,6 +9,7 @@
 - 文字の幅は、PNG の SVG を作るときから画面と同じフォントで測る。画面の表と PNG で、表の幅・配置が一致する（これまでは、PNG だけ端末のフォントで測っていた）
 - 文字の縦の位置は、画面の SVG の `dominant-baseline="central"` に合わせた（canvas の `middle` は太字 20px で 2px ずれるため、フォントの上下の高さから基準線を計算）
 - 未対応の要素・属性（`path`・`g`・`transform`・`opacity` など）が SVG に入ったら、静かに無視せずエラーにする。フォントの読み込みは長くても 1 秒待ち、間に合わなければ端末のフォントで描く
+- 閲覧リンクの QR コードの PNG は、文字がなく `path` を使うため、これまでの「SVG を画像として描く」方式のまま（`downloadPNG` の `imageOnly`）
 - やめたもの: `pngOptions`・`EXPORT_FONT_FAMILY`・`bracketSvg`／`tableSvg` の `fontFamily` の指定、「画面と PNG でフォントが違う」の注記（`TODO.md`・`CLAUDE.md`・`PLAN.md` D48）
 
 ### 調査（PNG 出力のフォントを画面とそろえる方法の比較・UI改善計画（第2弾）N14。報告のみで、アプリのコードは変えていない）
