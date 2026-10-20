@@ -17,8 +17,10 @@ test('アイコン: 元の図柄（scripts/icon.svg）と、ブラウザのタ�
   assert.doesNotMatch(src, /<text/); // 文字は入れない
 });
 
-test('アイコン: ホーム画面用の apple-touch-icon.png は 180×180 の PNG', () => {
-  assert.deepEqual(pngSize(read('web/apple-touch-icon.png')), [180, 180]);
+test('アイコン: ホーム画面用の apple-touch-icon.png は 180×180 の PNG で、透明な部分が無い（角丸なし）', () => {
+  const png = read('web/apple-touch-icon.png');
+  assert.deepEqual(pngSize(png), [180, 180]);
+  assert.equal(png[25], 2); // 色の種類 2 = 透明（アルファ）の無い RGB。角が透明だと 6（RGBA）になり、iOS では角が黒く塗られる
 });
 
 test('アイコン: .exe 用の icon.ico は、256×256 を含む PNG 入りの .ico', () => {

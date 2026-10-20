@@ -10,7 +10,8 @@ import { chromium } from '@playwright/test';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const source = readFileSync(join(root, 'scripts', 'icon.svg'), 'utf8');
-const square = source.replace(' rx="14"', ''); // 角丸なし（ホーム画面用）
+const square = source.replace(/\s+rx="\d+"/, ''); // 角丸なし（ホーム画面用）
+if (square === source) throw new Error('scripts/icon.svg に、角丸（rx）の指定が見つかりません。ホーム画面用の角丸なしの図を作れません');
 
 const browser = await chromium.launch();
 async function png(svg, size) {
@@ -41,10 +42,13 @@ function ico(images) {
   return Buffer.concat([head, dir, ...images.map((x) => x.data)]);
 }
 
-mkdirSync(join(root, 'build'), { recursive: true });
-writeFileSync(join(root, 'web', 'favicon.svg'), source);
-writeFileSync(join(root, 'web', 'apple-touch-icon.png'), await png(square, 180));
-const sizes = [16, 24, 32, 48, 64, 128, 256];
-writeFileSync(join(root, 'build', 'icon.ico'), ico(await Promise.all(sizes.map(async (size) => ({ size, data: await png(source, size) })))));
-await browser.close();
-console.log('アイコンを作りました: web/favicon.svg, web/apple-touch-icon.png, build/icon.ico');
+try {
+  mkdirSync(join(root, 'build'), { recursive: true });
+  writeFileSync(join(root, 'web', 'favicon.svg'), source);
+  writeFileSync(join(root, 'web', 'apple-touch-icon.png'), await png(square, 180));
+  const sizes = [16, 24, 32, 48, 64, 128, 256];
+  writeFileSync(join(root, 'build', 'icon.ico'), ico(await Promise.all(sizes.map(async (size) => ({ size, data: await png(source, size) })))));
+  console.log('アイコンを作りました: web/favicon.svg, web/apple-touch-icon.png, build/icon.ico');
+} finally {
+  await browser.close(); // 途中で失敗しても、Chromium を残さない
+}
