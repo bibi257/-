@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+### 調査（PNG 出力のフォントを画面とそろえる方法の比較・UI改善計画（第2弾）N14。報告のみで、アプリのコードは変えていない）
+- PNG だけ端末のフォントになる問題（PLAN D48）について、使う字を SVG に埋め込む案Aと、SVG を読み取って canvas に直接描く案Bを、試作で比べた（試作はコミットしていない）。おすすめは案B（`file://`・`https://`・Electron のすべてで動き、実行時の依存が増えず、既存の SVG を作る処理をそのまま使い回せ、PNG の出力も現状と同じか速い）。案Aは、ブラウザで `file://` を直接開くと動かず、出力に1〜2秒かかる。報告は `docs/n14-png-font-report.md`、判断は `PLAN.md` D58
 ### 追加（アプリアイコン・UI改善計画（第2弾）N13）
 - アプリのアイコンを作った。図柄は、ヘッダーのロゴ（トーナメントの勝ち上がり線）を、背景が `--ink`（#13233a）の角丸の正方形に載せたもの。線は白と青（ヘッダーのロゴと同じ明るい青 #6fa5ea）。文字は入れていない
 - ブラウザのタブ用 `web/favicon.svg`、スマホのホーム画面用 `web/apple-touch-icon.png`（180×180。角丸なし。iOS が自分で角を丸める）、Windows の `.exe` 用 `build/icon.ico`（16〜256pxの PNG を入れた .ico）。`web/index.html` の小さな `data:` のアイコンを、`favicon.svg` と `apple-touch-icon.png` の指定に替えた。electron-builder の設定（`win.icon`）で `.ico` を指定
