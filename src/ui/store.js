@@ -1,7 +1,8 @@
 // 大会データの保持と自動保存（localStorage）
 
 import { createState, parseState, serializeState } from '../core/state.js';
-import { createUndo, recordChange, popUndo, canUndo as historyCanUndo } from '../core/undo.js';
+import { createUndo, recordChange, popUndo, undoLabel as historyUndoLabel, canUndo as historyCanUndo } from '../core/undo.js';
+import { describeChange } from '../core/undoLabel.js';
 
 const KEY = 'bukatsu-taikai:state';
 let state = null;
@@ -28,7 +29,7 @@ export function setState(next, { render = true, merge = false } = {}) {
   if (readOnly) return; // 閲覧専用（共有を見ている間）は、操作で内容を変えない
   const prev = state;
   state = { ...next, meta: { ...next.meta, updatedAt: new Date().toISOString() } };
-  setHistory(recordChange(undoHistory, prev, state, { merge }));
+  setHistory(recordChange(undoHistory, prev, state, { merge, label: prev && !merge ? describeChange(prev, state) : '' }));
   persist();
   if (render) listeners.forEach((f) => f());
 }
@@ -36,8 +37,9 @@ export function setState(next, { render = true, merge = false } = {}) {
 function setHistory(next) {
   if (next === undoHistory) return;
   const could = historyCanUndo(undoHistory);
+  const label = historyUndoLabel(undoHistory);
   undoHistory = next;
-  if (could !== historyCanUndo(undoHistory)) undoListeners.forEach((f) => f());
+  if (could !== historyCanUndo(undoHistory) || label !== historyUndoLabel(undoHistory)) undoListeners.forEach((f) => f());
 }
 
 /** 元に戻せる操作があるか（閲覧専用のときは戻せない） */
@@ -45,7 +47,12 @@ export function canUndo() {
   return !readOnly && historyCanUndo(undoHistory);
 }
 
-/** 戻せるかどうかが変わったときに呼ばれる（ヘッダーのボタンの状態用） */
+/** 今「元に戻す」を押すと戻る操作の名前（「結果の保存（No.3）」など。戻せないときは空） */
+export function undoLabel() {
+  return readOnly ? '' : historyUndoLabel(undoHistory);
+}
+
+/** 戻せるかどうか・戻る操作の名前が変わったときに呼ばれる（ヘッダーのボタンの状態用） */
 export function onUndoChange(f) {
   undoListeners.add(f);
 }

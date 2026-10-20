@@ -1,6 +1,6 @@
 // エントリポイント: タブ切替・ヘッダー操作・保存/読込
 
-import { getState, setState, onChange, onSaveStatus, initState, isReadOnly, undo, canUndo, onUndoChange } from './store.js';
+import { getState, setState, onChange, onSaveStatus, initState, isReadOnly, undo, canUndo, undoLabel, onUndoChange } from './store.js';
 import { toast, downloadBlob, safeFileName, fontsReady } from './io.js';
 import { createState, parseState, serializeState } from '../core/state.js';
 import { renderSetup, setupSetupView } from './setupView.js';
@@ -73,7 +73,13 @@ function doUndo() {
 
 function syncUndoButton() {
   const btn = document.getElementById('undo-btn');
-  if (btn) btn.disabled = !canUndo();
+  if (!btn) return;
+  btn.disabled = !canUndo();
+  // 何が戻るかを、メニューでは名前の下に、PC では title に出す（戻す前に分かるように）
+  const label = canUndo() ? undoLabel() : '';
+  const sub = document.getElementById('undo-sub');
+  if (sub) sub.textContent = label ? `直前：${label}` : '';
+  btn.title = label ? `直前の操作「${label}」を取り消します（Ctrl+Z）` : '直前の操作を取り消します（Ctrl+Z）';
 }
 
 /** Ctrl+Z（Mac は ⌘+Z）。入力欄・ダイアログが開いているときは、そちらの操作を優先する */
