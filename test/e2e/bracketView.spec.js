@@ -31,8 +31,41 @@ test.describe('トーナメント表の表示操作（PC 1280px）', () => {
     });
   }
 
+  test('最初の倍率: 枠に収まるなら収め、0.75 未満になる大きな表は 100%（N8）', async ({ page }) => {
+    const wrapFits = async () => {
+      const w = await page.locator('#bracket-wrap').boundingBox();
+      const svg = await page.locator('#bracket-wrap svg').boundingBox();
+      return svg.x + svg.width <= w.x + w.width + 1;
+    };
+    // 8人: もともと枠に入る → 100%
+    await start(page, 8);
+    expect(await level(page)).toBe('100%');
+    expect(await wrapFits()).toBe(true);
+    // 12人: 約87%に縮めて、優勝の欄まで見える。横スクロールなし
+    await start(page, 12);
+    expect(await level(page)).toMatch(/^8\d%$/);
+    expect(await wrapFits()).toBe(true);
+    expect(await page.locator('#bracket-wrap').evaluate((el) => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
+    await expect(page.locator('[data-zoom=fit]')).toHaveAttribute('aria-pressed', 'false');
+    // 32人・64人: 枠の幅 ÷ 表の幅が0.75未満なので 100% のまま（文字を小さくしすぎない）
+    for (const n of [32, 64]) {
+      await start(page, n);
+      expect(await level(page)).toBe('100%');
+    }
+  });
+
+  test('最初の倍率: 倍率を変えたあとは、その大会の間は保たれる（幅を変えても戻らない）（N8）', async ({ page }) => {
+    await start(page, 12);
+    await page.click('[data-zoom=out]'); // 75%
+    expect(await level(page)).toBe('75%');
+    await page.setViewportSize({ width: 1400, height: 800 });
+    expect(await level(page)).toBe('75%');
+  });
+
   test('拡大縮小は 50%〜150% を 25% 刻み。限度ではボタンが押せない', async ({ page }) => {
     await start(page, 12);
+    expect(await level(page)).toMatch(/^8\d%$/); // 最初は枠に収まる倍率（N8）。「＋」で次の段（100%）へ
+    await page.click('[data-zoom=in]');
     expect(await level(page)).toBe('100%');
     await page.click('[data-zoom=in]');
     expect(await level(page)).toBe('125%');
@@ -101,7 +134,8 @@ test.describe('トーナメント表の表示操作（PC 1280px）', () => {
   test('結果を保存して表が描き直されても、拡大率と横の位置は変わらない', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await start(page, 12);
-    await page.click('[data-zoom=in]');
+    await page.click('[data-zoom=in]'); // 87% → 100%
+    await page.click('[data-zoom=in]'); // 125%
     await page.locator('.next-item').first().click();
     await enterScore(page, 2, 0);
     expect(await level(page)).toBe('125%');
