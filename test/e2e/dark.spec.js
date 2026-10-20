@@ -95,3 +95,50 @@ test.describe('ライトのまま（端末の設定がライト）', () => {
     expect(await page.evaluate(() => getComputedStyle(document.documentElement).colorScheme)).toBe('light');
   });
 });
+
+const DIALOGS = ['result-dialog', 'import-dialog', 'pairing-dialog', 'choice-dialog', 'share-dialog', 'qr-dialog'];
+const dialogCss = (page, id, prop) => page.evaluate(([i, p]) => {
+  const d = document.getElementById(i);
+  d.showModal();
+  const v = getComputedStyle(d)[p];
+  d.close();
+  return v;
+}, [id, prop]);
+
+for (const [scheme, paper, text] of [['dark', '#172234', '#e6ebf2'], ['light', '#ffffff', null]]) {
+  test.describe(`ダイアログの背景・文字（${scheme}。N10）`, () => {
+    test.use({ colorScheme: scheme, viewport: { width: 1280, height: 800 } });
+
+    test('結果入力・取込・組み合わせ・共有・QRコードなどのダイアログは、ページのカードと同じ背景・文字の色', async ({ page }) => {
+      await open(page);
+      const card = await page.locator('#panel-setup .card').first().evaluate((el) => getComputedStyle(el).backgroundColor);
+      const body = await page.evaluate(() => getComputedStyle(document.body).color);
+      if (scheme === 'dark') expect(card).toBe(rgb(paper));
+      for (const id of DIALOGS) {
+        expect(await dialogCss(page, id, 'backgroundColor'), `${id} の背景`).toBe(card);
+        expect(await dialogCss(page, id, 'color'), `${id} の文字`).toBe(text ? rgb(text) : body);
+      }
+    });
+
+    test('ダイアログの中の入力欄・ボタンの色は、ページの中のものと同じ', async ({ page }) => {
+      await open(page);
+      const pageField = await page.locator('#panel-setup input:not([type=checkbox]):not([type=radio])').first().evaluate((el) => {
+        const c = getComputedStyle(el);
+        return [c.backgroundColor, c.color];
+      });
+      const pageBtn = await page.locator('#panel-setup button:not(.primary):not(.danger)').first().evaluate((el) => [getComputedStyle(el).backgroundColor, getComputedStyle(el).borderTopColor]);
+      await page.click('.h2-actions [data-act=import]');
+      const f = await page.locator('#im-text').evaluate((el) => { const c = getComputedStyle(el); return [c.backgroundColor, c.color]; });
+      expect(f).toEqual(pageField);
+      const b = await page.locator('#im-file-btn').evaluate((el) => [getComputedStyle(el).backgroundColor, getComputedStyle(el).borderTopColor]);
+      expect(b).toEqual(pageBtn);
+    });
+
+    test('QRコードの画像部分は白地のまま・呼び出し画面は今の配色（ページの背景色）のまま', async ({ page }) => {
+      await open(page);
+      expect(await page.evaluate(() => getComputedStyle(document.getElementById('qr-img')).backgroundColor)).toBe('rgb(255, 255, 255)');
+      const canvas = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+      expect(await dialogCss(page, 'call-screen', 'backgroundColor')).toBe(canvas);
+    });
+  });
+}
