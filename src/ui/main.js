@@ -9,6 +9,8 @@ import { renderLeague, setupLeagueView } from './leagueView.js';
 import { renderStandings, setupStandingsView } from './standingsView.js';
 import { setupResultDialog } from './resultDialog.js';
 import { setupCallScreen, refreshCallScreen } from './callScreen.js';
+import { callViewParams, startCallWindow } from './callWindow.js';
+import { setupCallNotify } from './callChannel.js';
 import { renderComments, setupCommentsView } from './commentsView.js';
 import { setupEditions } from './editions.js';
 import { setupMenu } from './menu.js';
@@ -158,6 +160,8 @@ function setupHeader() {
 }
 
 function init() {
+  const callWindow = callViewParams();
+  if (callWindow) { startCallWindow(callWindow); return; } // 呼び出し画面だけの別ウィンドウ（読み取り専用。共有もしない）
   const restored = initState();
   setupHeader();
   setupSetupView();
@@ -166,6 +170,7 @@ function init() {
   setupStandingsView();
   setupResultDialog();
   setupCallScreen();
+  setupCallNotify();
   setupCommentsView();
   setupEditions();
   setupMyMatch();

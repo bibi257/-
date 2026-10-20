@@ -492,6 +492,9 @@ html:fullscreen #qr-dialog .qr-link { font-size: clamp(14px, 2vw, 24px); }
 .cs-progress { margin: 0; color: var(--ink); font-size: clamp(16px, 2vw, 28px); font-variant-numeric: tabular-nums; align-self: center; }
 .cs-actions { display: flex; gap: 8px; align-self: center; }
 .cs-actions button { min-height: 40px; }
+/* 別ウィンドウ（?view=call）: 呼び出し画面だけを出す。ヘッダー・タブ・入力は出さない */
+html.call-window body > *:not(#call-screen) { display: none !important; }
+html.call-window body { overflow: hidden; }
 .cs-body { flex: 1 1 auto; overflow-y: auto; padding: clamp(14px, 2.5vw, 36px) clamp(16px, 3vw, 40px); display: flex; flex-direction: column; gap: 16px; }
 .cs-next { margin: 0; color: var(--muted); font-size: clamp(16px, 2vw, 28px); font-weight: bold; }
 .cs-list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr)); gap: clamp(10px, 1.6vw, 22px); align-content: start; }

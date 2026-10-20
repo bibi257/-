@@ -1,8 +1,9 @@
 // 呼び出し画面（会場のプロジェクター・大型ディスプレイ向けの大きな表示）
 
 import { canFullscreen, toggleFullscreen, leaveFullscreen } from './fullscreen.js';
-import { getState } from './store.js';
-import { h } from './io.js';
+import { getState, isReadOnly } from './store.js';
+import { h, toast } from './io.js';
+import { openCallWindow } from './callChannel.js';
 import { callBoard } from '../core/callBoard.js';
 import { elapsedMinutes } from '../core/started.js';
 
@@ -51,8 +52,27 @@ export function renderCallScreen() {
 export function openCallScreen(k) {
   kind = k;
   renderCallScreen();
+  // 別ウィンドウは、手元の端末のデータを映す。共有・過去の回を閲覧中は、見ている内容が別ウィンドウに無いので出さない
+  $('cs-window').hidden = isReadOnly();
   const dlg = $('call-screen');
   if (!dlg.open) dlg.showModal();
+}
+
+/**
+ * 別ウィンドウ（?view=call）で、種類を決めて呼び出し画面だけを開いたままにする。閉じる操作はできない（Esc でも閉じない）。
+ * 「別ウィンドウで開く」「閉じる」は出さない。「全画面」は使える。
+ */
+export function setCallKind(k, { standalone = false } = {}) {
+  kind = k;
+  if (!standalone) return;
+  const dlg = $('call-screen');
+  $('cs-close').hidden = true;
+  $('cs-window').hidden = true;
+  dlg.addEventListener('cancel', (e) => e.preventDefault());
+  dlg.addEventListener('close', () => { if (!dlg.open) dlg.showModal(); }); // 閉じてしまったら、開き直す
+  renderCallScreen();
+  dlg.showModal();
+  document.activeElement?.blur?.(); // 映したときに、ボタンの枠が出ないように
 }
 
 /** 状態が変わったとき（結果入力・共有の更新）に、開いていれば内容を更新する */
@@ -66,6 +86,10 @@ export function setupCallScreen() {
   full.hidden = !canFullscreen();
   full.addEventListener('click', toggleFullscreen);
   $('cs-close').addEventListener('click', () => dlg.close());
+  $('cs-window').addEventListener('click', () => {
+    if (openCallWindow(kind)) dlg.close(); // 開けたら、元の画面の呼び出し画面は閉じる
+    else toast('別ウィンドウを開けませんでした。ポップアップがブロックされていないか確認してください', { error: true });
+  });
   dlg.addEventListener('close', () => {
     leaveFullscreen();
   });
