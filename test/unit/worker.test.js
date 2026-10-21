@@ -452,6 +452,8 @@ test('結果の報告: 勝者もスコアも無い・スコアと勝者の矛盾
   assert.equal((await post(report({ p1: '"><x' }))).status, 400);
   assert.equal((await post(report({ name: 'あ'.repeat(21) }))).status, 400);
   assert.equal((await post(report({ outcome: 'p1', score1: null, score2: null }))).status, 201); // 勝者だけでもよい
+  assert.equal((await post(report({ outcome: 'zzz', score1: null, score2: null }))).status, 400); // 勝敗は p1・p2・draw のどれか
+  assert.equal((await post(report({ outcome: { x: 1 }, score1: null, score2: null }))).status, 400);
 });
 
 test('結果の報告: 同じ人が同じ試合を2回は送れない。1試合 3 件まで、1共有 60 件まで', async () => {

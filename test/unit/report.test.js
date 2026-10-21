@@ -119,3 +119,11 @@ test('報告の説明文: 勝者とスコアが読める。引き分けも', () 
   assert.equal(reportText(st, { matchId: m.id, outcome: 'p1', score1: null, score2: null, p1: m.p1, p2: m.p2 }), `${a} vs ${b}　${a}の勝ち`);
   assert.match(reportText(st, { matchId: m.id, outcome: 'draw', score1: 2, score2: 2, p1: m.p1, p2: m.p2 }), /引き分け/);
 });
+
+test('承認: 勝敗が不正な報告は表に反映されない（保存したデータが読めなくなるのを防ぐ）', () => {
+  const st = sample(3);
+  const m = resolveLeague(st.league, st.tables).matches[0];
+  const bad = { matchId: m.id, outcome: 'zzz', score1: null, score2: null, p1: m.p1, p2: m.p2 };
+  assert.equal(applyReport(st, bad).ok, false);
+  assert.equal(checkReport(st, { matchId: m.id, outcome: 'zzz' }).ok, false);
+});
