@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { pickNextMatch } from '../../src/core/result.js';
+import { pickNextMatch, normalizeResultInput } from '../../src/core/result.js';
 
 const ms = (...nos) => nos.map((no) => ({ id: `m${no}`, no }));
 
@@ -24,4 +24,13 @@ test('pickNextMatch: 元の配列を並べ替えない', () => {
   const a = ms(4, 2, 3);
   pickNextMatch(a, 1);
   assert.deepEqual(a.map((m) => m.no), [4, 2, 3]);
+});
+
+test('結果の入力: 勝敗は p1・p2・draw のどれか。それ以外（スコアなしでも）は弾く', () => {
+  for (const outcome of ['zzz', 'P1', { x: 1 }, ['p1'], 'p1 ']) {
+    assert.equal(normalizeResultInput({ outcome, score1: null, score2: null }, { allowDraw: true }).ok, false, String(outcome));
+    assert.equal(normalizeResultInput({ outcome, score1: 3, score2: 1 }, { allowDraw: true }).ok, false, String(outcome));
+    assert.equal(normalizeResultInput({ outcome, walkover: true }, { allowDraw: true }).ok, false, String(outcome));
+  }
+  assert.deepEqual(normalizeResultInput({ outcome: 'p2' }, { allowDraw: false }).value, { outcome: 'p2', score1: null, score2: null, walkover: false });
 });

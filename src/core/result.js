@@ -21,6 +21,8 @@ function parseScore(v) {
 export function normalizeResultInput(input, { allowDraw }) {
   const outcome = input.outcome || null;
   const walkover = !!input.walkover;
+  // 勝敗は p1・p2・draw のどれか（未指定も可）に限る。それ以外を保存すると、保存したデータを読み込めなくなる
+  if (outcome !== null && !['p1', 'p2', 'draw'].includes(outcome)) return { ok: false, error: '勝者の指定が正しくありません' };
 
   if (walkover) {
     if (outcome !== 'p1' && outcome !== 'p2') return { ok: false, error: '不戦勝の勝者を選んでください' };
