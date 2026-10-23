@@ -13,7 +13,7 @@
     {
       "binding": "DB",
       "database_name": "tournament",
-      "database_id": "26f095f8-b04d-4eb9-9b5c-09db79280e95"
+      "database_id": "6ad57a79-0d80-436e-9e69-092dc7a2d761"
     }
   ],
   // PR ブランチのプレビュー（wrangler preview）は、本番とは別のデータベースを使う
@@ -21,7 +21,7 @@
     "d1_databases": [
       {
         "binding": "DB",
-        "database_id": "69c28862-e0c6-41da-b27a-75c88598f7af"
+        "database_id": "51047be4-8c28-4831-a636-7f77abb662f2"
       }
     ]
   },
